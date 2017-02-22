@@ -1,4 +1,5 @@
 # encoding: utf-8
+from datetime import datetime
 
 class MyBaseException(Exception):
     """
@@ -29,6 +30,7 @@ def json_default(obj):
     :param obj: Anything json dumps can't serialize
     :return: string for extended types
     """
-    if hasattr(obj,"isoformat"):  # Especially for datetime
+    if isinstance(obj, (datetime,)):    # Using isinstance rather than hasattr because __getattr__ always returns true
+    #if hasattr(obj,"isoformat"):  # Especially for datetime
         return obj.isoformat()
     raise TypeError("Type %s not serializable" % obj.__class__.__name__)

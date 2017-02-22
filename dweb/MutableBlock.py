@@ -20,7 +20,14 @@ class MutableBlock(StructuredBlock):
     ChainedObject: `DatedBlock` `Chain`
     Chain:  "previous": `Multihash`
     # Note could do a class DatedBlock as subclass of StructuredBlock
+
+
+    Rethinking a bit
+    Block -> Store; Data+Sign local, store signature+date+multihash (of block being signed)
+
     """
+    #TODO-MUTABLE copy changes back to spec
+
     def store(self, verbose=False, **options):
         """
         Store a Mutable Object

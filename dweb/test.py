@@ -7,7 +7,7 @@ from datetime import datetime
 
 def test():
     # Test Block
-    verbose=True
+    verbose=False
     Block.setup(TransportLocal, verbose=verbose, dir="../cache")
     mydata="The quick brown fox ran over the lazy duck"
     multihash = Block(mydata).store(verbose=verbose)
@@ -25,13 +25,12 @@ def test():
     assert sblock.B_date == mydic["B_date"], "DateTime should survive round trip"
 
     # Test Signatures
-    signedblock = SignedBlock(sblock)
+    signedblock = SignedBlock(structuredblock=sblock)
     key = SignedBlock.keygen()
-    signedblock.sign(key)
-    assert signedblock.verify(), "Should verify"
-    #print signedblock
-    signedblock.signed.a="A++"
-    assert not signedblock.verify(), "Should fail"
+    signedblock.sign(key, verbose=verbose)
+    assert signedblock.verify(verify_atleastone=True), "Should verify"
+    signedblock.a="A++"
+    assert not signedblock.verify(verify_atleastone=True, verbose=verbose), "Should fail"
 
     #TODO-SIGNED move signed to use hash
     #TODO-SIGNED update docs on signed
