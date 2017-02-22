@@ -149,18 +149,18 @@ Functional level
 ----------------
 .. parsed-literal::
 
-    mutableoject(:any:`MutableReference`) -> :any:`MutableObject`
+    mutableoject(:any:`MutableReference`) -> :any:`MutableBlock`
     store(:any:`MutableReferenceMaster`, :any:`MutableListEntry`) -> :any:`Multihash`
 
 .. productionlist::
-    MutableObjectMaster: `MutableReferenceMaster` `MutableListEntry`*
-    MutableListEntry: `SignedDatedObject` | `SignedChainedObject`
+    MutableBlockMaster: `MutableReferenceMaster` `MutableListEntry`*
+    MutableListEntry: `SignedDatedBlock` | `SignedChainedObject`
     MutableReference: `PublicKey` `MutableOptions`
     MutableReferenceMaster: `KeyPair` `MutableOptions`
-    MutableObject: `MutableListEntry`*
+    MutableBlock: `MutableListEntry`*
     MutableOptions: "options": "LAST" | "ALL"  [ int ]
     SignedChainedObject: `ChainedObject` `Signature` `PublicKey`
-    ChainedObject: `DatedObject` `Chain`
+    ChainedObject: `DatedBlock` `Chain`
     Chain:  "previous": `Multihash`
 
 Comparisom to IPFS/IPNS
@@ -277,15 +277,16 @@ A signed object contains untransformed bytes, along with a Public Key of the sig
 all a signature says is that the owner of the Public Key (i.e. possessor of the Private Key) confirms the content.
 
 .. productionlist::
-    SignedObject: `StructuredObject` `Signature` `PublicKey`
-    SignedDatedObject: `DatedObject` `Signature` `PublicKey`
+    TODO - this needs reworking to match thinking { signed: {...}, signatures: [{ date: ISO, hmac: hex  publickey: hex }]
+    SignedBlock: `StructuredObject` `Signature` `PublicKey`
+    SignedDatedBlock: `DatedBlock` `Signature` `PublicKey`
     Signature: "signature": `HMACSignature`
     HMACSignature:  bytes # Defined by hmac spec
              : #TODO check this is self describing.
     KeyPair: PublicKey PrivateKey
     PublicKey: "publickey": `Multihash`
     PrivateKey: "privatekey": `Multihash`
-    DatedObject: `StructuredObject` `Date`
+    DatedBlock: `StructuredObject` `Date`
     Date: "date": bytes # iso formated
 
 * Based to a certain extend on IPFS Draft 3.5.4, with unclarity about field names in the object.
@@ -305,7 +306,7 @@ Authentication
 
 Comparisom to IPFS (Draft 3, 3.5.4)
 -----------------------------------
-* IPFS defines the type, not the representation in a "EncryptedObject" or "SignedObject",
+* IPFS defines the type, not the representation in a "EncryptedObject" or :any:`SignedBlock`,
 * I'm assuming it is represented as a dictionary but it would be good to get exact syntax
 
 .. _Addressing:
@@ -314,7 +315,7 @@ Addressing
 ==========
 * <these are just notes>
 * This is about how various kinds of pointers can be made e.g. to a immutable object etc
-* And about both internal pointers and the external URLs for :apc:`oWeb Browser integration`
+* And about both internal pointers and the external URLs for :any:`oWeb Browser integration`
 
 .. _Meta Data:
 

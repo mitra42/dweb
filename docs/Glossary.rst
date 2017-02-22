@@ -36,7 +36,8 @@ Glossary
     SCTP: Stream Control Transmission Protocol
         TODO I believe this is a reference in IPFS - review if useful
 
-    uTP: Utorrent Transport Protocol - built on UDP, restricts size of in-flight queue (packets sent but not ack-ed)
+    uTP: Utorrent Transport Protocol
+        Built on UDP, restricts size of in-flight queue (packets sent but not ack-ed)
 
     WebRTP: Real time protocol over web
         A protocol suiotable, after NAT traversal for Peer-to-Peer communication.
