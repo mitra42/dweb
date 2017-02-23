@@ -23,6 +23,7 @@ class SignedBlock(object):
     """
     A SignedBlock groups data with signatures - for internal use
     Its stored as quads (hash of data; date; signature; pubkey)
+    { Structured data, Hash, [ date, signature, publickey ]* }
     """
     """
     It has following properties
@@ -84,6 +85,15 @@ class SignedBlock(object):
         self._hash = None       # Cant be stored, as changed
         self._signatures = []   # Cant be signed, as changed
 
+    def date(self):
+        """
+        :return: Earliest signed date or None
+        """
+        if not self._signatures:
+            return None # Undated
+        else:
+            return min(sig["date"] for sig in self._signatures)
+
     def sign(self, keypair, verbose=False, **options):
         """
         Add a signature to a StructuredBlock
@@ -131,6 +141,27 @@ class SignedBlock(object):
                 results[key] = SignedBlock(hash=key)
             results[key]._signatures.append(block)
         # Turn it into a list of SignedBlock - stores the hashes but doesnt fetch the data
-        sbs = [ results[key] for key in results]
+        sbs = SignedBlocks([ results[key] for key in results])
         return sbs
+        #TODO-MUTABLE add verification on fetching, use option
 
+class SignedBlocks(list):
+    """
+    A list of SignedBlock
+    """
+
+    def latest(self):
+        dated = { sb.date(): sb for sb in self} # Use date of first sig
+        latest = max(key for key in dated)      # Find date of SB with latest first sig
+        return dated[latest]
+
+    def latestandsorteddeduplicatedrest(self):
+        """
+        Extract the latest, and return a deduplicated, ordered list of rest
+        :return: latest signed block, [ signed blocks in date order excluding latest ]*
+        """
+        dated = {sb.date(): sb for sb in self}  # Extract date of first sig of each block
+        sorted = dated.keys()
+        sorted.sort()       # Earliest first
+        latestdate = sorted.pop()   # Get latest, leave rest
+        return dated[latestdate], [ dated[date] for date in sorted ]

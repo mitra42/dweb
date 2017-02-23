@@ -6,7 +6,7 @@ from TransportLocal import TransportLocal
 from Block import Block
 from StructuredBlock import StructuredBlock
 from SignedBlock import SignedBlock
-from MutableBlock import MutableBlock
+from MutableBlock import MutableBlockMaster, MutableBlock
 
 def test():
     # Test Block
@@ -36,12 +36,19 @@ def test():
     assert not signedblock.verify(verify_atleastone=True, verbose=verbose), "Should fail"
 
     # Mutable Blocks
-    mblock = MutableBlock(verbose=verbose)
-    mblock.data = mydata
-    mblock.signandstore(verbose=verbose)
-    mblock.data = "But the clever dog chased the fox"
-    mblock.signandstore(verbose=verbose)
-    verbose = True
+    mblockm = MutableBlockMaster(verbose=verbose)
+    mblockm.data = mydata
+    mblockm.signandstore(verbose=verbose)
+    testhash0 = mblockm._current._hash
+    mblockm.data = "But the clever dog chased the fox"
+    mblockm.signandstore(verbose=verbose)
+    testhash = mblockm._current._hash
+    publickey = mblockm.publickey()
+    mblock = MutableBlock(key=publickey)
     mblock.fetch(verbose=verbose)
+    assert mblock._current._hash == testhash, "Should match hash stored above"
+    assert mblock._prev[0]._hash == testhash0, "Prev list should hold first stored"
+    verbose = True
+
 
     #TODO Split mutable objects class
