@@ -4,7 +4,7 @@ from datetime import datetime
 from misc import ToBeImplementedException
 from CryptoLib import CryptoLib # Suite of functions for hashing, signing, encrypting
 #from StructuredBlock import StructuredBlock
-from SignedBlock import SignedBlock
+from SignedBlock import SignedBlock, SignedBlocks
 
 class MutableBlock(object):
     """
@@ -63,7 +63,7 @@ class MutableBlock(object):
         :param options:
         :return:
         """
-        signedblocks = SignedBlock.fetch(self._key.publickey(), verbose=verbose, **options)
+        signedblocks = SignedBlocks.fetch(self._key.publickey(), verbose=verbose, **options)
         curr, prev = signedblocks.latestandsorteddeduplicatedrest()
         self._current = curr
         self._prev = prev

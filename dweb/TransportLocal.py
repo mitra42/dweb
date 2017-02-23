@@ -1,6 +1,6 @@
 # encoding: utf-8
 #from abc import ABCMeta, abstractmethod
-
+from json import loads
 from CryptoLib import CryptoLib
 from Transport import Transport
 
@@ -67,6 +67,6 @@ class TransportLocal(Transport):
     def DHT_fetch(self, table, key, verbose=False, **options):
         if verbose: print "TransportLocal.DHT_fetch",table,key
         f = open(self._DHT_filename(table, key, verbose=verbose, **options), 'r')
-        s = f.readlines()
+        s = [ loads(s) for s in f.readlines() ]
         f.close()
         return s

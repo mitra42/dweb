@@ -53,17 +53,20 @@ class CryptoLib(object):
         return base64.urlsafe_b64encode(keypair.decrypt(CryptoLib._signable(date, data)))
 
     @staticmethod
-    def verify(pubkeystr, signature, date, data ):
+    def verify(publickey=None, signature=None, date=None, hash=None, **unused ):
         """
         Pair of signature(), compares signature and date against encrypted data
-        :param pubkeystr: String as exported by RSA.exportKey #TODO-CRYPT make paired function
+        Typically called with **block where block is a signature dictionary read from Transport with date transformed to datetime
+        :param publickey: String as exported by RSA.exportKey #TODO-CRYPT make paired function
         :param signature: Signature to decrypt
-        :param check: Unsigned to check against sig
+        :param date: Date it was signed
+        :param hash: Unsigned to check against sig
         :return:
         """
-        pubkey = CryptoLib.importpublic(pubkeystr)
-        decrypted = pubkey.encrypt(base64.urlsafe_b64decode(signature), 32)[0]
-        check = CryptoLib._signable(date, data)
+        pubkey = CryptoLib.importpublic(publickey)
+        #b64decode requires a str, but signature may be unicode
+        decrypted = pubkey.encrypt(base64.urlsafe_b64decode(str(signature)), 32)[0]
+        check = CryptoLib._signable(date, hash)
         return check == decrypted
 
     @staticmethod

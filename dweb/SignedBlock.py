@@ -1,6 +1,7 @@
 # encoding: utf-8
 
 from datetime import datetime
+import dateutil.parser  # pip py-dateutil
 from json import loads
 from CryptoLib import CryptoLib
 from StructuredBlock import StructuredBlock
@@ -130,25 +131,28 @@ class SignedBlock(object):
             ss["hash"] = self._h(verbose=verbose, **options)
             self._sb().transport.DHT_store("signedby",s["publickey"],ss, verbose=verbose, **options)
 
+class SignedBlocks(list):
+    """
+    A list of SignedBlock
+    """
+
     @classmethod
     def fetch(cls, publickey, verbose=False, **options):
         lines = StructuredBlock.transport.DHT_fetch("signedby", CryptoLib.exportpublic(publickey), verbose=verbose, **options)
         if verbose: print "SignedBlock.fetch found ",len(lines)
         results = {}
-        for block in [ loads(line) for line in lines ]:
+        for block in lines:
             key = block["hash"]
             if not results.get(key,None):
                 results[key] = SignedBlock(hash=key)
-            results[key]._signatures.append(block)
+            if isinstance(block["date"], basestring):
+                block["date"] = dateutil.parser.parse(block["date"])
+            if CryptoLib.verify(**block):
+                results[key]._signatures.append(block)
+
         # Turn it into a list of SignedBlock - stores the hashes but doesnt fetch the data
         sbs = SignedBlocks([ results[key] for key in results])
         return sbs
-        #TODO-MUTABLE add verification on fetching, use option
-
-class SignedBlocks(list):
-    """
-    A list of SignedBlock
-    """
 
     def latest(self):
         dated = { sb.date(): sb for sb in self} # Use date of first sig
