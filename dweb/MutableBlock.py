@@ -2,6 +2,7 @@
 from datetime import datetime
 
 from misc import ToBeImplementedException
+from CryptoLib import CryptoLib # Suite of functions for hashing, signing, encrypting
 #from StructuredBlock import StructuredBlock
 from SignedBlock import SignedBlock
 
@@ -46,22 +47,22 @@ class MutableBlock(object):
         return "MutableBlock(%s)" % self.__dict__
 
     def __init__(self, key=None, **options):
+        """
+        :param key:
+        :param options:
+        """
+        #TODO-MUTABLE allow creation and initialization from a known public key
         if not key:
-            key = SignedBlock.keygen()
+            key = CryptoLib.keygen()
         self._key = key
         self._current = SignedBlock()
         self._prev = []
 
     def signandstore(self, verbose=False, **options):
         """
-        Sigm and Store a Mutable Object
+        Sign and Store a version, or entry in MutableBlockMaster
         :return: hash stored under
         """
-        # Date, Sign, <DONE> Store the block, get the hash, save hash in db
-        # Maybe date on outside of sig
-        #     Rethinking a bit
-        # Block -> Store; Data+Sign local, store signature+date+multihash (of block being signed)
-
         self._current.sign(self._key).store(verbose=verbose, **options)
 
     def fetch(self, verbose=False, **options):
@@ -77,3 +78,4 @@ class MutableBlock(object):
         return blocks
 
     #TODO - add metadata to Mutable - and probably others
+

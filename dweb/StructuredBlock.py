@@ -1,8 +1,8 @@
 # encoding: utf-8
 import dateutil.parser  # pip py-dateutil
-from json import loads, dumps
+from json import loads
 from Block import Block
-from misc import json_default
+from CryptoLib import CryptoLib
 
 class StructuredBlock(Block):
     """
@@ -27,9 +27,9 @@ class StructuredBlock(Block):
     def _data(self):
         """
         Override _data property of Block,
-        :return: anonical json string that handles dates, and order in dictionaries
+        :return: canonical json string that handles dates, and order in dictionaries
         """
-        return dumps(self.__dict__, sort_keys=True, separators=(',',':'), default=json_default)
+        return CryptoLib.dumps(self.__dict__)
 
     def __init__(self, data=None):
         """

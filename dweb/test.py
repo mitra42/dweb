@@ -1,6 +1,7 @@
 # encoding: utf-8
 from datetime import datetime
 
+from CryptoLib import CryptoLib
 from TransportLocal import TransportLocal
 from Block import Block
 from StructuredBlock import StructuredBlock
@@ -28,7 +29,7 @@ def test():
 
     # Test Signatures
     signedblock = SignedBlock(structuredblock=sblock)
-    key = SignedBlock.keygen()
+    key = CryptoLib.keygen()
     signedblock.sign(key, verbose=verbose)
     assert signedblock.verify(verify_atleastone=True), "Should verify"
     signedblock.a="A++"
@@ -44,5 +45,3 @@ def test():
     mblock.fetch(verbose=verbose)
 
     #TODO Split mutable objects class
-    #TODO-CRYPTO move to its own class
-    #TODO-CRYPTO replace sha1 with sha3 or sha256

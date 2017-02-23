@@ -1,22 +1,15 @@
 # encoding: utf-8
 
-from hmac import HMAC
 from datetime import datetime
-from json import loads, dumps
-
-import hashlib
-import base64
-
-from Crypto import Random
-#from Crypto.Cipher import AES, PKCS1_OAEP
-from Crypto.PublicKey import RSA
-
+from json import loads
+from CryptoLib import CryptoLib
 from StructuredBlock import StructuredBlock
+
 """
 A collection of classes that represent objects that are signed, dated, encrypted etc
 
 For a block { ... }
-Signed = { signed: {...}, signatures: { date: ISO, hmac: hex  publickey: hex }
+Signed = { signed: {...}, signatures: { date: ISO, hash: hex  publickey: hex }
 
 The date is optional, but recommended
 The date is included in the sig
@@ -91,16 +84,7 @@ class SignedBlock(object):
         self._hash = None       # Cant be stored, as changed
         self._signatures = []   # Cant be signed, as changed
 
-    def _signable(self, date, verbose=False, **options):
-        """
-        Return a string suitable for signing with Private key - concatenates date and data
-        Side effect of storing the block if not yet stored
-        :param date:
-        :return:
-        """
-        return date.isoformat()+self._h(verbose=verbose, **options) # Note side effect of storing the block if not yet stored
-
-    def sign(self, keypair, verbose=False):
+    def sign(self, keypair, verbose=False, **options):
         """
         Add a signature to a StructuredBlock
         :param keypair:
@@ -108,8 +92,8 @@ class SignedBlock(object):
         TODO move to public key / private key pair
         """
         date = datetime.now()
-        signature = base64.urlsafe_b64encode(keypair.decrypt(self._signable(date, verbose=verbose)))
-        self._signatures.append({ "date": date, "signature": signature, "publickey": keypair.publickey().exportKey("PEM") } )
+        signature = CryptoLib.signature(keypair, date, self._h(verbose=verbose, **options) )
+        self._signatures.append({ "date": date, "signature": signature, "publickey": CryptoLib.exportpublic(keypair)})
         return self
 
     def verify(self, verbose=False, verify_atleastone=False, **options):
@@ -124,12 +108,8 @@ class SignedBlock(object):
         if verify_atleastone and not self._signatures:
             return False
         for s in self._signatures:
-            base = self._signable(s["date"])
-            if verbose: print "SignedBlock.verify.base=",base
-            pubkey = RSA.importKey(s["publickey"])
-            decrypted = pubkey.encrypt(base64.urlsafe_b64decode(s["signature"]),32)[0]
-            if verbose: print "SignedBlock.verify.decrypted=",decrypted
-            if decrypted != base:
+            verified = CryptoLib.verify(s["publickey"], s["signature"], s["date"],  self._h(verbose=verbose, **options))
+            if not verified:
                 return False
         return True
 
@@ -142,7 +122,7 @@ class SignedBlock(object):
 
     @classmethod
     def fetch(cls, publickey, verbose=False, **options):
-        lines = StructuredBlock.transport.DHT_fetch("signedby", publickey.exportKey("PEM"), verbose=verbose, **options)
+        lines = StructuredBlock.transport.DHT_fetch("signedby", CryptoLib.exportpublic(publickey), verbose=verbose, **options)
         if verbose: print "SignedBlock.fetch found ",len(lines)
         results = {}
         for block in [ loads(line) for line in lines ]:
@@ -154,12 +134,3 @@ class SignedBlock(object):
         sbs = [ results[key] for key in results]
         return sbs
 
-    @classmethod
-    def keygen(cls):
-        """
-        Create a public/private key pair,
-        :return: key which has .publickey() method
-        """
-        return RSA.generate(1024, Random.new().read)
-
-#http://stackoverflow.com/questions/28426102/python-crypto-rsa-public-private-key-with-large-file

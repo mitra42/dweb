@@ -1,6 +1,4 @@
 # encoding: utf-8
-import hashlib
-import base64
 from abc import ABCMeta, abstractmethod
 
 from misc import ToBeImplementedException
