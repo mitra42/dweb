@@ -5,13 +5,9 @@ from abc import ABCMeta, abstractmethod
 
 from misc import ToBeImplementedException
 
-"""
-The Transport class provides the abstract interface to different ways to implement transport.
-"""
-
 class Transport(object):
     """
-    Test to make sure this gets to docs
+    The Transport class provides the abstract interface to different ways to implement transport.
     """
     __metaclass__ = ABCMeta
 
@@ -40,39 +36,12 @@ class Transport(object):
         """
         raise ToBeImplementedException(name=cls.__name__+".setup")
 
-class TransportLocal(Transport):
-    """
-    TransportLocal is a subclasss of Transport providing local file and sqlite storage to facilitate local testing.
-    """
-    def __init__(self, dir, options):
-        #TODO check existance of dir
-        self.dir = dir
-        self.options = options
-
-    @classmethod
-    def setup(cls, **options):
-        return cls(options["dir"], options)
-
-    def store(self, data):
+    def DHT_store(self, table, key, value, **options):
         """
-        Store the data locally
-        :param data: opaque data to store
-        :return: hash of data
-        """
-        hash = "SHA1B64URL:" + base64.urlsafe_b64encode(hashlib.sha1(data).digest())  # TODO maybe not right hash function to use
-        filename = "%s/%s" % (self.dir, hash)
-        f = open(filename, 'w')
-        f.write(data)
-        f.close()
-        return hash
-
-    def block(self, hash, verbose=False, **options):
-        """
-        Fetch a block from the local file system
-        :param hash:
+        :param table: Name of table to store in e.g. "signatures"
+        :param key:     Key to store under
+        :param value:
         :param options:
         :return:
         """
-        file = "%s/%s" % (self.dir, hash)
-        if verbose: print "Opening" + file
-        return open(file).read()
+        raise ToBeImplementedException(name=cls.__name__+".DHT_store")
