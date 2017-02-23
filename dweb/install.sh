@@ -6,9 +6,9 @@ fPIPUPGRADE=true
 fMAKECHANGE=true
 fVERBOSE=true
 
-PIPINSTALLS="py-dateutil pycrypto"
-#OTHER MODULES USE OFTEN : pytz CherryPy lxml xlwt py-dateutil phonenumbers Py-dateutil requests-mock passlib pycrypto"
-PIPEGREP='py-dateutil|pycrypto'
+PIPINSTALLS="py-dateutil pycrypto sha3"
+#OTHER MODULES USE OFTEN : pytz CherryPy lxml xlwt phonenumbers Py-dateutil requests-mock passlib
+PIPEGREP=`echo $PIPINSTALLS | sed -e 's/ /|/g'`
 DIRS="../cache ../cache/signedby"
 #GROUP="wheel"  # Define if want all checkAndCreate to use group
 

@@ -8,10 +8,7 @@ from Crypto import Random
 from Crypto.PublicKey import RSA
 #from Crypto.Cipher import AES, PKCS1_OAEP
 from misc import ToBeImplementedException
-
-
-#TODO-CRYPTO - move away from (insecure) SHA1 to SHA256 or SHA3
-
+import sha3 # To add to hashlib
 
 class CryptoLib(object):
     """
@@ -20,13 +17,17 @@ class CryptoLib(object):
     """
 
     @staticmethod
-    def urlhash(data, hashscheme="SHA1B64URL", **options):
+    def urlhash(data, hashscheme="SHA3256B64URL", **options):
         """
         :param data: Any length and combination of bytes
         :return: URL and Filename safe string   hashname.b64encoding
         """
         if hashscheme == "SHA1B64URL":
             return "SHA1B64URL." + base64.urlsafe_b64encode(hashlib.sha1(data).digest())
+        elif hashscheme == "SHA3256B64URL":
+            return "SHA3256B64URL." + base64.urlsafe_b64encode(hashlib.sha3_256(data).digest())
+        elif hashscheme == "SHA3512B64URL":
+            return "SHA3512256B64URL." + base64.urlsafe_b64encode(hashlib.sha3_512(data).digest())
         else:
             raise ToBeImplementedException(name="CryptoLib.urlhash for hashscheme="+hashscheme)
 
