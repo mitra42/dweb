@@ -1,9 +1,11 @@
 # encoding: utf-8
-from Transport import TransportLocal
+from datetime import datetime
+
+from TransportLocal import TransportLocal
 from Block import Block
 from StructuredBlock import StructuredBlock
 from SignedBlock import SignedBlock
-from datetime import datetime
+from MutableBlock import MutableBlock
 
 def test():
     # Test Block
@@ -32,5 +34,15 @@ def test():
     signedblock.a="A++"
     assert not signedblock.verify(verify_atleastone=True, verbose=verbose), "Should fail"
 
-    #TODO-SIGNED move signed to use hash
-    #TODO-SIGNED update docs on signed
+    # Mutable Blocks
+    mblock = MutableBlock(verbose=verbose)
+    mblock.data = mydata
+    mblock.signandstore(verbose=verbose)
+    mblock.data = "But the clever dog chased the fox"
+    mblock.signandstore(verbose=verbose)
+    verbose = True
+    mblock.fetch(verbose=verbose)
+
+    #TODO Split mutable objects class
+    #TODO-CRYPTO move to its own class
+    #TODO-CRYPTO replace sha1 with sha3 or sha256

@@ -31,16 +31,17 @@ class StructuredBlock(Block):
         """
         return dumps(self.__dict__, sort_keys=True, separators=(',',':'), default=json_default)
 
-    def __init__(self, data):
+    def __init__(self, data=None):
         """
         Create a new StructuredBlock
         :param data: Can be a dict, or a json string
         """
-        if not isinstance(data, dict):
-            # Its data - should be JSON
-            data = loads(data)  # Will throw exception if it isn't JSON
-        for k in data:
-            self.__setattr__(k, data[k])
+        if data:  # Just skip if no initialization
+            if not isinstance(data, dict):
+                # Its data - should be JSON
+                data = loads(data)  # Will throw exception if it isn't JSON
+            for k in data:
+                self.__setattr__(k, data[k])
 
     def store(self, verbose=False, **options):
         """
