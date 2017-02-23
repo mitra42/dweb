@@ -9,16 +9,13 @@ from StructuredBlock import StructuredBlock
 """
 A collection of classes that represent objects that are signed, dated, encrypted etc
 
-For a block { ... }
-Signed = { signed: {...}, signatures: { date: ISO, hash: hex  publickey: hex }
+Signed = { StructuredBlock|Hash, signatures: { date: ISO, signature: hex  publickey: hex }
 
-The date is optional, but recommended
-The date is included in the sig
+The date is included in what is signed
 
 Note they are not subclassed off StructuredBlock because they have, rather than are, StructuredBlocks
 """
 
-# TODO-SIGNED update docs on SignedBlocks
 
 class SignedBlock(object):
     """

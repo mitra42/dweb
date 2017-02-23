@@ -128,7 +128,7 @@ A mutable object can't use Content Addressability since the content changes,
 so it draws on private key/public key pairs.
 Possession of the Private Key provides the ability to publish to the address which is the Public Key
 
-Mutable Objects are implemented as Lists where each item is dated and signed, (in that order).
+Mutable Objects are implemented as Lists where each item is dated and signed.
 
 This allows a range of applications all based on the ability to retrieve a list or its most recent element.
 
@@ -139,6 +139,8 @@ This allows a range of applications all based on the ability to retrieve a list 
 * Previous versions can be requested by requesting all the items of a list.
 * TODO add functionality for deleting specific items (via a "deleted" entry), and Clearing a list of all earlier.
 
+Simplified: { _key: KeyPair, _current: SignedBlock, _prev: [ SignedBlock* ] }
+
 Chain linking
 -------------
 An additional layer of security can be added via a chain, where a recent item refers to previous ones.
@@ -148,20 +150,16 @@ Chains could also be used without dates, but this would slow down retrieval, and
 Functional level
 ----------------
 .. parsed-literal::
-
+    TODO - update this
     mutableoject(:any:`MutableReference`) -> :any:`MutableBlock`
     store(:any:`MutableReferenceMaster`, :any:`MutableListEntry`) -> :any:`Multihash`
 
 .. productionlist::
-    MutableBlockMaster: `MutableReferenceMaster` `MutableListEntry`*
-    MutableListEntry: `SignedDatedBlock` | `SignedChainedObject`
+    MutableBlockMaster: `MutableReferenceMaster` `SignedBlock` [ `SignedBlock` ]*
+    MutableBlock: `MutableReference` `SignedBlock` [ `SignedBlock` ]*
     MutableReference: `PublicKey` `MutableOptions`
     MutableReferenceMaster: `KeyPair` `MutableOptions`
-    MutableBlock: `MutableListEntry`*
     MutableOptions: "options": "LAST" | "ALL"  [ int ]
-    SignedChainedObject: `ChainedObject` `Signature` `PublicKey`
-    ChainedObject: `DatedBlock` `Chain`
-    Chain:  "previous": `Multihash`
 
 Comparisom to IPFS/IPNS
 -----------------------
@@ -273,25 +271,25 @@ An encrypted object is just transformed bytes, along with information to help id
 Signing
 -------
 
-A signed object contains untransformed bytes, along with a Public Key of the signer,
+A signed object contains untransformed bytes, along with a Public Key of the signer, and a date
 all a signature says is that the owner of the Public Key (i.e. possessor of the Private Key) confirms the content.
 
+A signed block may contain multiple, independent signatures.
+
 .. productionlist::
-    TODO - this needs reworking to match thinking { signed: {...}, signatures: [{ date: ISO, hmac: hex  publickey: hex }]
-    SignedBlock: `StructuredObject` `Signature` `PublicKey`
-    SignedDatedBlock: `DatedBlock` `Signature` `PublicKey`
-    Signature: "signature": `HMACSignature`
-    HMACSignature:  bytes # Defined by hmac spec
-             : #TODO check this is self describing.
+Signed = { StructuredBlock|Hash, signatures: { date: ISO, signature: hex  publickey: hex }
+
+    SignedBlock: `StructuredBlock`|`Hash` `SignatureDict`*
+    SignatureDict: Date Signature PublicKey Hash?
+    Signature: bytes # PrivateKey.decrypt(Date Hash)
     KeyPair: PublicKey PrivateKey
     PublicKey: "publickey": `Multihash`
     PrivateKey: "privatekey": `Multihash`
-    DatedBlock: `StructuredObject` `Date`
-    Date: "date": bytes # iso formated
+    Date: bytes   # iso formated or datetime
 
-* Based to a certain extend on IPFS Draft 3.5.4, with unclarity about field names in the object.
+* Based to a certain extend on IPFS Draft 3.5.4, which has unclarity about field names in the object.
 * Dating is added to facilitate Mutable Objects.
-* TODO - make retrieval check signature
+* Signatures are automatically verified wherever appropriate
 
 Delegation
 ----------
@@ -300,14 +298,14 @@ Delegation
 
 Authentication
 --------------
-
 * <these are just notes>
 * Authentication describes who can access an object, it needs to build on Encryption and signing.
 
 Comparisom to IPFS (Draft 3, 3.5.4)
 -----------------------------------
-* IPFS defines the type, not the representation in a "EncryptedObject" or :any:`SignedBlock`,
+* IPFS defines the type, not the representation in a "EncryptedObject" or :any:`SignedBlock` so a little hard to interpret
 * I'm assuming it is represented as a dictionary but it would be good to get exact syntax
+* IPFS allows a single signature on content, we use an array to allow multiple signatures of the same data.
 
 .. _Addressing:
 
