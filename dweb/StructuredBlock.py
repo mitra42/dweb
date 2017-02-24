@@ -4,19 +4,21 @@ from json import loads
 from Block import Block
 from CryptoLib import CryptoLib
 
-#TODO make both StructuredLink and StructuredBlock superclass off smartdic
-class StructuredLink(object):
+class SmartDict(object):
     """
-    A link inside the links field of a StructuredBlock
-    { date: datetime, size: int, [ data: string | hash: multihash | links: [ link ]* }
+    The SmartDict class allows for merging of the functionality of a Dict and an object,
+    allowing setting from a dictionary and access to elements by name.
     """
+    #TODO Signature should be SmartDict
     def __getattr__(self, name):
         return self.__dict__.get(name)
 
+    # Allow access to arbitrary attributes, allows chaining e.g. xx.data.len
     def __setattr__(self, name, value):
         if "date" in name and isinstance(value,basestring):
             value = dateutil.parser.parse(value)
-        return super(StructuredLink, self).__setattr__(name, value)
+        #return super(SmartDict, self).__setattr__(name, value)  << For some reason not working with multiple inheritance
+        self.__dict__[name] = value
 
     def __str__(self):
         return str(self.__dict__)
@@ -37,6 +39,13 @@ class StructuredLink(object):
             for k in data:
                 self.__setattr__(k, data[k])
 
+class StructuredLink(SmartDict):
+    """
+    A link inside the links field of a StructuredBlock
+
+    { date: datetime, size: int, [ data: string | hash: multihash | links: [ link ]* }
+    """
+
     def content(self, verbose=False, **options):
         """
         :return: content of block, fetching links (possibly recursively) if required
@@ -48,24 +57,10 @@ class StructuredLink(object):
             "")
 
 
-class StructuredBlock(Block):
+class StructuredBlock(Block, SmartDict):
     """
     Encapsulates an JSON Dict and stores / retrieves over transports
     """
-    # Allow access to arbitrary attributes, allows chaining e.g. xx.data.len
-    def __getattr__(self, name):
-        return self.__dict__.get(name)
-
-    def __setattr__(self, name, value):
-        if "date" in name and isinstance(value,basestring):
-            value = dateutil.parser.parse(value)
-        return super(StructuredBlock, self).__setattr__(name, value)
-
-    def __str__(self):
-        return str(self.__dict__)
-
-    def __repr__(self):
-        return repr(self.__dict__)
 
     @property
     def _data(self):
@@ -83,12 +78,7 @@ class StructuredBlock(Block):
 
         :param data: Can be a dict, or a json string
         """
-        if data:  # Just skip if no initialization
-            if not isinstance(data, dict):
-                # Its data - should be JSON
-                data = loads(data)  # Will throw exception if it isn't JSON
-            for k in data:
-                self.__setattr__(k, data[k])
+        SmartDict.__init__(self, data)   # Cant use "super" as would use Block instead of SmartDic
 
     def store(self, verbose=False, **options):
         """
