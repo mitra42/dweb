@@ -55,7 +55,7 @@ class CryptoLib(object):
         return base64.urlsafe_b64encode(keypair.decrypt(CryptoLib._signable(date, data)))
 
     @staticmethod
-    def verify(publickey=None, signature=None, date=None, hash=None, **unused ):
+    def verify(sig, hash=None): # { publickey=None, signature=None, date=None, hash=None, **unused }
         """
         Pair of signature(), compares signature and date against encrypted data.
         Typically called with \*\*block where block is a signature dictionary read from Transport with date transformed to datetime.
@@ -66,10 +66,10 @@ class CryptoLib(object):
         :param hash: Unsigned to check against sig
         :return:
         """
-        pubkey = CryptoLib.importpublic(publickey)
+        pubkey = CryptoLib.importpublic(sig.publickey)
         #b64decode requires a str, but signature may be unicode
-        decrypted = pubkey.encrypt(base64.urlsafe_b64decode(str(signature)), 32)[0]
-        check = CryptoLib._signable(date, hash)
+        decrypted = pubkey.encrypt(base64.urlsafe_b64decode(str(sig.signature)), 32)[0]
+        check = CryptoLib._signable(sig.date, hash or sig.hash)
         return check == decrypted
 
     @staticmethod
@@ -125,4 +125,7 @@ def json_default(obj):
     if isinstance(obj, (datetime,)):    # Using isinstance rather than hasattr because __getattr__ always returns true
     #if hasattr(obj,"isoformat"):  # Especially for datetime
         return obj.isoformat()
-    raise TypeError("Type %s not serializable" % obj.__class__.__name__)
+    try:
+        return obj.dumps()
+    except:
+        raise TypeError("Type %s not serializable" % obj.__class__.__name__)

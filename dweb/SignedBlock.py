@@ -4,7 +4,7 @@ from datetime import datetime
 import dateutil.parser  # pip py-dateutil
 from json import loads
 from CryptoLib import CryptoLib
-from StructuredBlock import StructuredBlock
+from StructuredBlock import SmartDict, StructuredBlock
 
 """
 A collection of classes that represent objects that are signed, dated, encrypted etc
@@ -16,6 +16,37 @@ The date is included in what is signed
 Note they are not subclassed off StructuredBlock because they have, rather than are, StructuredBlocks
 """
 
+class Signature(SmartDict):
+    """
+    Encapsulate a signature - part of a SignedBlock
+    """
+    pass
+
+    @classmethod
+    def sign(cls, keypair, hash):
+        date = datetime.now()
+        signature = CryptoLib.signature(keypair, date, hash)
+        return cls({"date": date, "signature": signature, "publickey": CryptoLib.exportpublic(keypair)})
+
+    def verify(self, hash=None):
+        return CryptoLib.verify(self, hash=hash)
+
+class Signatures(list):
+    """
+    A list of Signature
+    """
+    def earliest(self):
+        """
+        :return: earliest date of a list of signatures
+        """
+        return min(sig.date for sig in self)
+
+    def verify(self, hash=None):
+        """
+        :param hash: hash to check (None to check hash in sigs)
+        :return: True if all signatures verify
+        """
+        return all(s.verify(hash=hash) for s in self)
 
 class SignedBlock(object):
     """
@@ -70,7 +101,7 @@ class SignedBlock(object):
             self._hash = self._structuredblock.store(verbose=verbose, **options)
         return self._hash
 
-    def __init__(self, hash=None, structuredblock=None, signatures=None, verbose=False, **options):
+    def __init__(self, hash=None, structuredblock=None, signatures=None, verbose=False, **options): #TODO-SIG change calls to here
         """
         Create a signedblock - but dont sign it yet
 
@@ -81,12 +112,12 @@ class SignedBlock(object):
             structuredblock = StructuredBlock(structuredblock) # Handles dict or json of dict
         self._structuredblock = structuredblock
         self._hash = hash
-        self._signatures = signatures or []
+        self._signatures = Signatures(signatures or [])
 
     def _dirty(self):
         # TODO - could get smarter about this, and check probably hash against _hash before clearing it
         self._hash = None       # Cant be stored, as changed
-        self._signatures = []   # Cant be signed, as changed
+        self._signatures = Signatures([])   # Cant be signed, as changed
 
     def date(self):
         """
@@ -95,7 +126,7 @@ class SignedBlock(object):
         if not self._signatures:
             return None # Undated
         else:
-            return min(sig["date"] for sig in self._signatures)
+            return self._signatures.earliest()
 
     def sign(self, keypair, verbose=False, **options):
         """
@@ -104,9 +135,7 @@ class SignedBlock(object):
         :param keypair:
         :return: self
         """
-        date = datetime.now()
-        signature = CryptoLib.signature(keypair, date, self._h(verbose=verbose, **options) )
-        self._signatures.append({ "date": date, "signature": signature, "publickey": CryptoLib.exportpublic(keypair)})
+        self._signatures.append(Signature.sign(keypair=keypair, hash=self._h(verbose=verbose, **options)))
         return self
 
     def verify(self, verbose=False, verify_atleastone=False, **options):
@@ -119,13 +148,9 @@ class SignedBlock(object):
         :return: True if all signatures present match
         """
         if verbose: print "SignedBlock.verify",self
-        if verify_atleastone and not self._signatures:
+        if verify_atleastone and not len(self._signatures):
             return False
-        for s in self._signatures:
-            verified = CryptoLib.verify(s["publickey"], s["signature"], s["date"],  self._h(verbose=verbose, **options))
-            if not verified:
-                return False
-        return True
+        return self._signatures.verify(hash=self._h(verbose=verbose, **options))
 
     def store(self, verbose=False, **options):
         """
@@ -135,8 +160,8 @@ class SignedBlock(object):
         for s in self._signatures:
             #DHT_store(self, table, key, value, **options)
             ss = s.copy()
-            ss["hash"] = self._h(verbose=verbose, **options)
-            self._sb().transport.DHT_store("signedby",s["publickey"],ss, verbose=verbose, **options)
+            ss.hash = self._h(verbose=verbose, **options)
+            self._sb().transport.DHT_store("signedby",s.publickey, ss, verbose=verbose, **options)
 
 class SignedBlocks(list):
     """
@@ -149,13 +174,14 @@ class SignedBlocks(list):
         if verbose: print "SignedBlock.fetch found ",len(lines)
         results = {}
         for block in lines:
-            key = block["hash"]
+            s = Signature(block)
+            key = s.hash
             if not results.get(key,None):
                 results[key] = SignedBlock(hash=key)
-            if isinstance(block["date"], basestring):
-                block["date"] = dateutil.parser.parse(block["date"])
-            if CryptoLib.verify(**block):
-                results[key]._signatures.append(block)
+            if isinstance(s.date, basestring):
+                s.date = dateutil.parser.parse(s.date)
+            if CryptoLib.verify(s):
+                results[key]._signatures.append(s)
 
         # Turn it into a list of SignedBlock - stores the hashes but doesnt fetch the data
         sbs = SignedBlocks([ results[key] for key in results])

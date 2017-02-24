@@ -39,6 +39,12 @@ class SmartDict(object):
             for k in data:
                 self.__setattr__(k, data[k])
 
+    def dumps(self):    # Called by json_default
+        return CryptoLib.dumps(self.__dict__)
+
+    def copy(self):
+        return self.__class__(self.__dict__.copy())
+
 class StructuredLink(SmartDict):
     """
     A link inside the links field of a StructuredBlock
