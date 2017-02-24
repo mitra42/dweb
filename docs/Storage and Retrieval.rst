@@ -40,8 +40,8 @@ Functional level
 ----------------
 .. parsed-literal::
 
-    block(:any:`Multihash`) -> :any:`Block`;
-    store(:any:`Block`) -> :any:`Multihash`
+    block(:any:`Multihash`) -> :std:token:`Block`;
+    store(:std:token:`Block`) -> :any:`Multihash`
 
 .. productionlist::
     Block: `OpaqueBlock` | `StructuredBlock`
@@ -66,12 +66,12 @@ Implementation would look something like:
 
 .. parsed-literal::
 
-    def store(:any:`Block`):
-        :any:`Multihash` = multihash(:any:`Block`)    # Get the hash of the block
-        storelocal(:any:`Multihash`, :any:`Block`)    # Save it locally
-        IPFS.ProvideValue(:any:`Multihash`)        # Tell the IPFS DHT its available.
-    def block(:any:`Multihash`):
-        peers = IPFS.ValuePeers(:any:`Multihash`)
+    def store(:std:token:`Block`):
+        :std:token:`Multihash` = multihash(:std:token:`Block`)    # Get the hash of the block
+        storelocal(:std:token:`Multihash`, :std:token:`Block`)    # Save it locally
+        IPFS.ProvideValue(:std:token:`Multihash`)        # Tell the IPFS DHT its available.
+    def block(:std:token:`Multihash`):
+        peers = IPFS.ValuePeers(:std:token:`Multihash`)
         ??? then somehow fetch the data (its unclear what the IPFS API call to do this is).
 
 
@@ -98,9 +98,9 @@ Functional level
 
 .. parsed-literal::
 
-    json(:any:`Multihash`, options) -> :any:`StructuredBlock`
+    json(:std:token:`Multihash`, options) -> :std:token:`StructuredBlock`
         # Use block('Multihash') to retrieve, then parse JSON
-    store(:any:`StructuredBlock`, options) -> :any:`Multihash`
+    store(:std:token:`StructuredBlock`, options) -> :std:token:`Multihash`
 
 It follows Python rules for data structures, esp order is significant in a list, but not in a dictionary,
 and that only one instance of any field in a dictionary is allowed.
@@ -110,8 +110,6 @@ Ideally any consumer of the dictionary should allow for receiving a single value
     "title": [ "The Small Prince", "Le Petit Prince"]
 
 In general the fields are either defined in the :any:`Meta Data` or other sections here.
-
-* TODO Need to define "canonicalise" to produce a standardise, compact JSON representation as makes signing easier.
 
 .. productionlist::
     StructuredBlock : `JsonDict`
@@ -139,7 +137,10 @@ This allows a range of applications all based on the ability to retrieve a list 
 * Previous versions can be requested by requesting all the items of a list.
 * TODO add functionality for deleting specific items (via a "deleted" entry), and Clearing a list of all earlier.
 
-Simplified: { _key: KeyPair, _current: SignedBlock, _prev: [ SignedBlock* ] }
+.. parsed-literal::
+
+    MutableBlock { _key: :std:token:`KeyPair`, _current: :std:token:`SignedBlock`,
+                   _prev: [ :std:token:`SignedBlock` ]* }
 
 Chain linking
 -------------
@@ -150,9 +151,8 @@ Chains could also be used without dates, but this would slow down retrieval, and
 Functional level
 ----------------
 .. parsed-literal::
-    TODO - update this
-    mutableoject(:any:`MutableReference`) -> :any:`MutableBlock`
-    store(:any:`MutableReferenceMaster`, :any:`MutableListEntry`) -> :any:`Multihash`
+    mutableoject(:std:token:`MutableReference`) -> :std:token:`MutableBlock`
+    store(:std:token:`MutableReferenceMaster`, :std:token:`MutableListEntry`) -> :std:token:`Multihash`
 
 .. productionlist::
     MutableBlockMaster: `MutableReferenceMaster` `SignedBlock` [ `SignedBlock` ]*
@@ -259,7 +259,8 @@ An encrypted object is just transformed bytes, along with information to help id
     EncryptedContent: `StructuredObject`
     EncryptionTag: "tag": `EncryptionTagBody`
     EncryptionTagBody: bytes
-                     : #TODO decide how to make this self-describing
+
+: #TODO decide how to make this self-describing
 
 * Based to a certain extend on IPFS Draft 3.5.4, which has unclarity about field names in the object.
 * Its unclear to me if we need meta-data outside the encrypted object to know how to interpret the bytes.
@@ -276,9 +277,9 @@ all a signature says is that the owner of the Public Key (i.e. possessor of the 
 
 A signed block may contain multiple, independent signatures.
 
-.. productionlist::
 Signed = { StructuredBlock|Hash, signatures: { date: ISO, signature: hex  publickey: hex }
 
+.. productionlist::
     SignedBlock: `StructuredBlock`|`Hash` `SignatureDict`*
     SignatureDict: Date Signature PublicKey Hash?
     Signature: bytes # PrivateKey.decrypt(Date Hash)
@@ -303,7 +304,7 @@ Authentication
 
 Comparisom to IPFS (Draft 3, 3.5.4)
 -----------------------------------
-* IPFS defines the type, not the representation in a "EncryptedObject" or :any:`SignedBlock` so a little hard to interpret
+* IPFS defines the type, not the representation in a "EncryptedObject" or :std:token:`SignedBlock` so a little hard to interpret
 * I'm assuming it is represented as a dictionary but it would be good to get exact syntax
 * IPFS allows a single signature on content, we use an array to allow multiple signatures of the same data.
 
@@ -339,6 +340,5 @@ TODO
 ====
 .. todo::
 
-    * Need to define Private Key / Public Key pairs in self describing way
     * Look up protobufs as referenced in IPFS
 

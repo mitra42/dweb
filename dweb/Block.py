@@ -23,6 +23,7 @@ class Block(object):
     def store(self, verbose=False, **options):
         """
         Store this block on the underlying transport, return the hash for future id
+
         :param data: Opaque data to store
         :return: hash of data
         """

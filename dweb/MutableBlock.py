@@ -9,9 +9,9 @@ from SignedBlock import SignedBlock, SignedBlocks
 class MutableBlock(object):
     """
     Encapsulates a block that can change
+    Get/Set non-private attributes writes to _current
 
     { _key: KeyPair, _current: SignedBlock, _prev: [ SignedBlock* ] }
-    Get/Set non-private attributes writes to _current
 
     """
     def __getattr__(self, name):
@@ -42,9 +42,9 @@ class MutableBlock(object):
     def fetch(self, verbose=False, **options):
         """
         Still experimental - may split MutableBlock and MutableBlockMaster
+
         :param verbose:
         :param options:
-        :return:
         """
         signedblocks = SignedBlocks.fetch(self._key.publickey(), verbose=verbose, **options)
         curr, prev = signedblocks.latestandsorteddeduplicatedrest()
@@ -55,10 +55,11 @@ class MutableBlock(object):
 
 class MutableBlockMaster(MutableBlock):
     """
-    Class for publishing contains a list of older versions, or of previous blog postings
+    Class for publishing contains a list of older versions, or of previous blog postings.
+    Get/Set non-private attributes writes to _current
 
     { _key: KeyPair, _current: SignedBlock, _prev: [ SignedBlock* ] }
-    Get/Set non-private attributes writes to _current
+
     """
     # TODO-MUTABLE add variants for publishing & reading Lists (e.g. Blogs) or  Single Items,
 
@@ -71,6 +72,7 @@ class MutableBlockMaster(MutableBlock):
     def signandstore(self, verbose=False, **options):
         """
         Sign and Store a version, or entry in MutableBlockMaster
+
         :return: hash stored under
         """
         self._current.sign(self._key).store(verbose=verbose, **options)

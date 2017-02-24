@@ -11,7 +11,7 @@ Glossary
         Sometimes will also be a CAFS i.e. sometimes the hash refers to a unique set of bytes.
 
     DSHT: Distributed Sloppy Hash Table
-        TODO Needs definition  - I think its defined in IPFS
+        TODO Needs definition  - I think its defined in IPFS.
 
     dWeb - Decentralized Web
         A web that is not subject to any single points of failure

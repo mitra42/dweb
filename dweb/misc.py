@@ -4,13 +4,12 @@ from datetime import datetime
 class MyBaseException(Exception):
     """
     Base class for Exceptions
-    errno   Number of error,
-    msg     Parameterised string for message
+
     msgargs Arguments that slot into msg
     __str__ Returns msg expanded with msgparms
     """
     errno=0
-    msg="Generic Model Exception"
+    msg="Generic Model Exception"   #: Parameterised string for message
     def __init__(self, **kwargs):
         self.msgargs=kwargs # Store arbitrary dict of message args (can be used ot output msg from template
 
@@ -20,6 +19,10 @@ class MyBaseException(Exception):
         except:
             return self.msg+" "+unicode(self.msgargs)
 
+
 class ToBeImplementedException(MyBaseException):
+    """
+    Raised when some code has not been implemented yet
+    """
     msg = "{name} needs implementing"
 

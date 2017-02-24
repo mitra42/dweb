@@ -34,8 +34,9 @@ class CryptoLib(object):
     @staticmethod
     def _signable(date, data):
         """
-        Returns a string suitable for signing and dating, current imp includes date and storage hash of data
+        Returns a string suitable for signing and dating, current imp includes date and storage hash of data.
         Called by signature, so that same thing signed as compared
+
         :param date: Date on which it was signed
         :param data: Storage hash of data signed (as returned by Transport layer)
         :return: Signable or comparable string
@@ -45,7 +46,8 @@ class CryptoLib(object):
     @staticmethod
     def signature(keypair, date, data, verbose=False, **options):
         """
-        Pair of verify(), signs date and data using public key function
+        Pair of verify(), signs date and data using public key function.
+
         :param keypair: Key that be used for signture
         :param date: Date that signing (usually now)
         :return: signature that can be verified with verify
@@ -55,8 +57,9 @@ class CryptoLib(object):
     @staticmethod
     def verify(publickey=None, signature=None, date=None, hash=None, **unused ):
         """
-        Pair of signature(), compares signature and date against encrypted data
-        Typically called with **block where block is a signature dictionary read from Transport with date transformed to datetime
+        Pair of signature(), compares signature and date against encrypted data.
+        Typically called with \*\*block where block is a signature dictionary read from Transport with date transformed to datetime.
+
         :param publickey: String as exported by RSA.exportKey #TODO-CRYPT make paired function
         :param signature: Signature to decrypt
         :param date: Date it was signed
@@ -72,8 +75,9 @@ class CryptoLib(object):
     @staticmethod
     def dumps(data):
         """
-        Convert arbitrary data into a JSON string that can be deterministically hashed or compared
-        Must be valid for loading with json.loads (unless change all calls to that)
+        Convert arbitrary data into a JSON string that can be deterministically hashed or compared.
+        Must be valid for loading with json.loads (unless change all calls to that).
+
         :param data:    Any
         :return: JSON string that can be deterministically hashed or compared
         """
@@ -82,7 +86,8 @@ class CryptoLib(object):
     @staticmethod
     def keygen():
         """
-        Create a public/private key pair,
+        Create a public/private key pair.
+
         :return: key which has .publickey() method
         """
         return RSA.generate(1024, Random.new().read)
@@ -90,7 +95,8 @@ class CryptoLib(object):
     @staticmethod
     def importpublic(exportedstr):
         """
-        Import a public key, pair with exportpublic()
+        Import a public key, pair with exportpublic().
+
         :param exported: Exported public key
         :return: RSAobj containing just the public key
         """
@@ -99,7 +105,8 @@ class CryptoLib(object):
     @staticmethod
     def exportpublic(keypair):
         """
-        Export a public key, pair with #TODO
+        Export a public key, pair with importpublic
+
         :param keypair: RSA obj - could be private key or public key
         :return: String for export
         """
@@ -110,7 +117,8 @@ class CryptoLib(object):
 
 def json_default(obj):
     """
-    Default JSON serialiser especially for handling datetime
+    Default JSON serialiser especially for handling datetime.
+
     :param obj: Anything json dumps can't serialize
     :return: string for extended types
     """

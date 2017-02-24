@@ -27,6 +27,7 @@ class StructuredLink(object):
     def __init__(self, data=None):
         """
         Create a new StructuredBlock
+
         :param data: Can be a dict, or a json string
         """
         if data:  # Just skip if no initialization
@@ -37,6 +38,9 @@ class StructuredLink(object):
                 self.__setattr__(k, data[k])
 
     def content(self, verbose=False, **options):
+        """
+        :return: content of block, fetching links (possibly recursively) if required
+        """
         return (
             self.data or
             (self.hash and Block.block(self.hash, verbose=verbose, **options)._data) or
@@ -67,14 +71,16 @@ class StructuredBlock(Block):
     def _data(self):
         """
         Override _data property of Block,
+
         :return: canonical json string that handles dates, and order in dictionaries
-        #TODO need to check that this doesnt have internal e.g. _* fields that might get stored, if so strip
         """
+        #TODO need to check that this doesnt have internal e.g. _* fields that might get stored, if so strip
         return CryptoLib.dumps(self.__dict__)
 
     def __init__(self, data=None):
         """
         Create a new StructuredBlock
+
         :param data: Can be a dict, or a json string
         """
         if data:  # Just skip if no initialization
@@ -87,7 +93,7 @@ class StructuredBlock(Block):
     def store(self, verbose=False, **options):
         """
         Store this block on the underlying transport, return the hash for future id
-        :param data: Opaque data to store
+
         :return: hash of data
         """
         #store accesses the data via _data above
@@ -99,6 +105,7 @@ class StructuredBlock(Block):
     def block(cls, hash, verbose=False, **options):
         """
         Locate and return a block, based on its multihash
+
         :param hash: Multihash
         :return: Block
         """
@@ -113,6 +120,9 @@ class StructuredBlock(Block):
     #---------------------------------------------------------------------------------------------------------
 
     def content(self, verbose=False, **options):
+        """
+        :return: content of block, fetching links (possibly recursively) if required
+        """
         return (
             self.data or
             (self.hash and Block.block(self.hash, verbose=verbose, **options)._data) or
@@ -123,4 +133,4 @@ class StructuredBlock(Block):
 
 
 
-            #TODO - allow storing data | ref | list on creation
+    #TODO - allow storing data | ref | list on creation

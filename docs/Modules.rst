@@ -11,15 +11,36 @@ Abstract class for Transport, and subclasses for local and other transport metho
 .. automodule:: dweb.Transport
     :members:
 
+.. automodule:: dweb.TransportLocal
+    :members:
+
 Storage
 =======
 Set of storage classes building on each other.
-
-.. automodule:: dweb.storage
-    :members:
 
 .. automodule:: dweb.Block
     :members:
 
 .. automodule:: dweb.StructuredBlock
     :members:
+
+.. automodule:: dweb.SignedBlock
+    :members:
+
+.. automodule:: dweb.MutableBlock
+    :members:
+
+CryptoLib
+=========
+An abstraction of the hashing and cryptographic functionality
+
+.. automodule:: dweb.CryptoLib
+    :members:
+
+Misc
+====
+Everything that doesnt' fit elsewhere
+
+.. automodule:: dweb.misc
+    :members:
+

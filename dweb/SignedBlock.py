@@ -21,8 +21,10 @@ class SignedBlock(object):
     """
     A SignedBlock groups data with signatures - for internal use
     Its stored as quads (hash of data; date; signature; pubkey)
+
     { Structured data, Hash, [ date, signature, publickey ]* }
     """
+
     """
     It has following properties
     Attribute           Access
@@ -30,6 +32,7 @@ class SignedBlock(object):
     _hash               _h()    Hash of data once stored, (accessing this will cause it to be stored)
     _signatures                 Array of signatures
     """
+
     def __setattr__(self, name, value):
         if name and name[0] == "_":
             super(SignedBlock, self).__setattr__(name, value)   # Save _structuredblock, _hash etc locally
@@ -59,6 +62,7 @@ class SignedBlock(object):
 
     def _h(self, verbose=False, **options):
         """
+
         :param options: undefined but may add one to prevent storing
         :return: hash of StructuredBlock suitable for signing, will store block first, may be None
         """
@@ -69,6 +73,7 @@ class SignedBlock(object):
     def __init__(self, hash=None, structuredblock=None, signatures=None, verbose=False, **options):
         """
         Create a signedblock - but dont sign it yet
+
         :param hash: hash of block - will retrieve structuredblock if reqd
         :param structuredblock: dict, JSON string or StructuredBlock
         """
@@ -95,9 +100,9 @@ class SignedBlock(object):
     def sign(self, keypair, verbose=False, **options):
         """
         Add a signature to a StructuredBlock
+
         :param keypair:
         :return: self
-        TODO move to public key / private key pair
         """
         date = datetime.now()
         signature = CryptoLib.signature(keypair, date, self._h(verbose=verbose, **options) )
@@ -107,6 +112,7 @@ class SignedBlock(object):
     def verify(self, verbose=False, verify_atleastone=False, **options):
         """
         Verify the signatures on a block (if any)
+
         :param verbose: True for debugging output
         :param verify_atleastone: True if should fail if no signatures
         :param options: unused
@@ -122,6 +128,10 @@ class SignedBlock(object):
         return True
 
     def store(self, verbose=False, **options):
+        """
+        Store any signatures in the Transport layer, content must already have been stored before signing
+        """
+
         for s in self._signatures:
             #DHT_store(self, table, key, value, **options)
             ss = s.copy()
