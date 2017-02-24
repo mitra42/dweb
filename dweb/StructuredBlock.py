@@ -56,6 +56,16 @@ class StructuredLink(SmartDict):
             (self.links and "".join(d.content(verbose=verbose, **options) for d in self.links)) or
             "")
 
+    def size(self, verbose=False, **options):
+        """
+        :return: Size of content, or None if cant calculate
+        """
+        return (
+            self.__dict__.get("size", None) or
+            (self.data and len(self.data)) or
+            (self.hash and Block.block(self.hash, verbose=verbose, **options).size(verbose=verbose, **options)) or
+            (self.links and sum(d.size(verbose=verbose, **options) for d in self.links)) or
+            None)
 
 class StructuredBlock(Block, SmartDict):
     """
@@ -119,6 +129,16 @@ class StructuredBlock(Block, SmartDict):
             (self.links and "".join(d.content(verbose=verbose, **options) for d in self.links)) or
             "")
 
+    def size(self, verbose=False, **options):
+        """
+        :return: Size of content, or None if cant calculate
+        """
+        return (
+            self.__dict__.get("size",None) or
+            (self.data and len(self.data)) or
+            (self.hash and Block.block(self.hash, verbose=verbose, **options).size(verbose=verbose, **options)) or
+            (self.links and sum(d.size(verbose=verbose, **options) for d in self.links)) or
+            None)
 
 
 

@@ -62,15 +62,18 @@ class Testing(unittest.TestCase):
 
     def test_LongFiles(self):
         from StructuredBlock import StructuredBlock, StructuredLink
-        self.verbose=True
         sblock = StructuredBlock({ "data": self.quickbrownfox})
+        assert sblock.size(verbose=self.verbose) == len(self.quickbrownfox), "Should get length"
         assert sblock.content(verbose=self.verbose) == self.quickbrownfox, "Should fetch string"
         multihash = Block(self.dog).store(verbose=self.verbose)
         sblock = StructuredBlock({ "hash": multihash})
         assert sblock.content(verbose=self.verbose) == self.dog, "Should fetch dog string"
+        assert sblock.size(verbose=self.verbose) == len(self.dog), "Should get length"
         slinksblock = StructuredBlock({ "links": [
                                             StructuredLink({ "data": self.quickbrownfox}),
                                             StructuredLink({ "hash": multihash}),
                                         ]})
         assert slinksblock.content(verbose=self.verbose) == self.quickbrownfox+self.dog, "Should get concatenation"
-        #TODO-FILE add link concept, probably to StructuredBlock as an be signed and be part of mutableblock
+        assert slinksblock.size(verbose=self.verbose) == len(self.quickbrownfox)+len(self.dog), "Should get length"
+        self.verbose=True
+        #TODO add functionality for deleting specific items (via a "deleted" entry), and Clearing a list of all earlier.

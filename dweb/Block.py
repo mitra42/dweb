@@ -10,6 +10,9 @@ class Block(object):
     def __init__(self, data=None):
         self._data = data
 
+    def size(self, verbose=False, **options):
+        return len(self._data)
+
     @classmethod
     def setup(cls, transportclass=None, **transportoptions):
         """
