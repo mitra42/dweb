@@ -30,9 +30,9 @@ class Testing(unittest.TestCase):
         sblock = StructuredBlock(self.mydic)
         assert sblock.a == self.mydic['a'], "Testing attribute access"
         multihash = sblock.store(verbose=self.verbose)
-        sblock = StructuredBlock.block(multihash, verbose=self.verbose)
-        assert sblock.a == self.mydic['a'], "Testing StructuredBlock round-trip"
-        assert sblock.B_date == self.mydic["B_date"], "DateTime should survive round trip"
+        sblock2 = StructuredBlock.block(multihash, verbose=self.verbose)
+        assert sblock2.a == self.mydic['a'], "Testing StructuredBlock round-trip"
+        assert sblock2.B_date == self.mydic["B_date"], "DateTime should survive round trip"
 
     def test_Signatures(self):
         from SignedBlock import SignedBlock
@@ -59,4 +59,18 @@ class Testing(unittest.TestCase):
         mblock.fetch(verbose=self.verbose)
         assert mblock._current._hash == testhash, "Should match hash stored above"
         assert mblock._prev[0]._hash == testhash0, "Prev list should hold first stored"
-        verbose = True
+
+    def test_LongFiles(self):
+        from StructuredBlock import StructuredBlock, StructuredLink
+        self.verbose=True
+        sblock = StructuredBlock({ "data": self.quickbrownfox})
+        assert sblock.content(verbose=self.verbose) == self.quickbrownfox, "Should fetch string"
+        multihash = Block(self.dog).store(verbose=self.verbose)
+        sblock = StructuredBlock({ "hash": multihash})
+        assert sblock.content(verbose=self.verbose) == self.dog, "Should fetch dog string"
+        slinksblock = StructuredBlock({ "links": [
+                                            StructuredLink({ "data": self.quickbrownfox}),
+                                            StructuredLink({ "hash": multihash}),
+                                        ]})
+        assert slinksblock.content(verbose=self.verbose) == self.quickbrownfox+self.dog, "Should get concatenation"
+        #TODO-FILE add link concept, probably to StructuredBlock as an be signed and be part of mutableblock
