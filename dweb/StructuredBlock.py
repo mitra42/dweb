@@ -9,7 +9,6 @@ class SmartDict(object):
     The SmartDict class allows for merging of the functionality of a Dict and an object,
     allowing setting from a dictionary and access to elements by name.
     """
-    #TODO Signature should be SmartDict
     def __getattr__(self, name):
         return self.__dict__.get(name)
 
@@ -40,7 +39,7 @@ class SmartDict(object):
                 self.__setattr__(k, data[k])
 
     def dumps(self):    # Called by json_default
-        return CryptoLib.dumps(self.__dict__)
+        return self.__dict__    # Can serialize the dict
 
     def copy(self):
         return self.__class__(self.__dict__.copy())

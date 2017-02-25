@@ -158,10 +158,9 @@ class SignedBlock(object):
         """
 
         for s in self._signatures:
-            #DHT_store(self, table, key, value, **options)
             ss = s.copy()
             ss.hash = self._h(verbose=verbose, **options)
-            self._sb().transport.DHT_store("signedby",s.publickey, ss, verbose=verbose, **options)
+            self._sb().transport.DHT_store(table="signedby",key=s.publickey, value=ss, verbose=verbose, **options)
 
 class SignedBlocks(list):
     """
@@ -171,7 +170,7 @@ class SignedBlocks(list):
     @classmethod
     def fetch(cls, publickey, verbose=False, **options):
         lines = StructuredBlock.transport.DHT_fetch("signedby", CryptoLib.exportpublic(publickey), verbose=verbose, **options)
-        if verbose: print "SignedBlock.fetch found ",len(lines)
+        if verbose: print "SignedBlock.fetch found ",len(lines) if lines else None
         results = {}
         for block in lines:
             s = Signature(block)

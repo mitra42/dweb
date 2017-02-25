@@ -6,10 +6,10 @@ fPIPUPGRADE=true
 fMAKECHANGE=true
 fVERBOSE=true
 
-PIPINSTALLS="py-dateutil pycrypto sha3"
+PIPINSTALLS="py-dateutil pycrypto sha3 requests"
 #OTHER MODULES USE OFTEN : pytz CherryPy lxml xlwt phonenumbers Py-dateutil requests-mock passlib
 PIPEGREP=`echo $PIPINSTALLS | sed -e 's/ /|/g'`
-DIRS="../cache ../cache/signedby"
+DIRS="../cache ../cache/signedby ../cache_http ../cache_http/signedby"
 #GROUP="wheel"  # Define if want all checkAndCreate to use group
 
 if ${fPIPUPGRADE}
@@ -66,5 +66,7 @@ checkAndCreate() {
     fi
 }
 
-checkAndCreate "../cache"
-checkAndCreate "../cache/signedby"
+for i in $DIRS
+do
+    checkAndCreate $i
+done

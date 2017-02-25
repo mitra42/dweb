@@ -4,6 +4,7 @@ import unittest
 
 from CryptoLib import CryptoLib
 from TransportLocal import TransportLocal
+from TransportHTTP import TransportHTTP
 from Block import Block
 
 
@@ -14,7 +15,10 @@ class Testing(unittest.TestCase):
         self.quickbrownfox =  "The quick brown fox ran over the lazy duck"
         self.dog = "But the clever dog chased the fox"
         self.mydic = { "a": "AAA", "1":100, "B_date": datetime.now()}  # Dic can't contain integer field names
-        Block.setup(TransportLocal, verbose=self.verbose, dir="../cache")
+        ipandport = ('localhost', 4243)  # Serve it via HTTP on all addresses
+        #Block.setup(TransportLocal, verbose=self.verbose, dir="../cache")
+        Block.setup(TransportHTTP, verbose=self.verbose, ipandport=ipandport )
+        #TODO-HTTP complete tests with TransportHTTP
 
     def tearDown(self):
         super(Testing, self).tearDown()
@@ -75,5 +79,12 @@ class Testing(unittest.TestCase):
                                         ]})
         assert slinksblock.content(verbose=self.verbose) == self.quickbrownfox+self.dog, "Should get concatenation"
         assert slinksblock.size(verbose=self.verbose) == len(self.quickbrownfox)+len(self.dog), "Should get length"
-        self.verbose=True
         #TODO add functionality for deleting specific items (via a "deleted" entry), and Clearing a list of all earlier.
+
+    def test_http(self):
+        # Run python -m ServerHTTP; before this
+        ipandport = ('localhost', 4243)  # Serve it via HTTP on all addresses
+        Block.setup(TransportHTTP, verbose=self.verbose, ipandport=ipandport )
+        multihash = Block(self.quickbrownfox).store(verbose=self.verbose)
+        block = Block.block(multihash, verbose=self.verbose)
+        assert block._data == self.quickbrownfox, "Should return data stored"
