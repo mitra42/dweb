@@ -21,6 +21,7 @@ class TransportHTTP(Transport):
         self.ipandport = ipandport
         self.options = options
         self.verbose = verbose
+        self.baseurl = "http://%s:%s/" % (ipandport[0], ipandport[1])
 
     @classmethod
     def setup(cls, ipandport=None, **options):
@@ -30,14 +31,12 @@ class TransportHTTP(Transport):
         :param options: Options to subclasses init method
         :return: None
         """
-        return cls(**options)
+        return cls(ipandport=ipandport, **options)
 
     #TODO-HTTP merge sendPost and sendGet if appropriate
     def _sendPost(self, command, **options):
-        #TODO-HTTP parametise which server going to
-        url = "http://localhost:4243/%s" % (command,)
-        #url = "http://www.naturalinnovation.org/"
-        if self.verbose: print 'sending POST request to',url,options
+        url = self.baseurl + command
+        #print 'sending POST request to',url,options
         try:
             r = requests.post(url, **options)
             r.raise_for_status()
@@ -45,16 +44,12 @@ class TransportHTTP(Transport):
             print e
             #TODO-LOGGING: logger.error(e)
             raise e # For now just raise it
-        # r is a "Response"
-        if self.verbose: print r.status_code, r.text # r.json()
-        return r
+        #print r.status_code, r.text # r.json()
+        return r    # r is a response
 
     def _sendGet(self, command, **options):
-        #TODO-HTTP parametise which server going to
-        url = "http://localhost:4243/%s" % (command,)
-        #url = "http://www.naturalinnovation.org/"
-        #self.verbose=True # Can't pass verbose through options
-        if self.verbose: print 'sending GET request to',url,options
+        url = self.baseurl + command
+        #print 'sending GET request to',url,options
         try:
             r = requests.get(url, **options)
             r.raise_for_status()
@@ -62,9 +57,8 @@ class TransportHTTP(Transport):
             print e
             #TODO-LOGGING: logger.error(e)
             raise e # For now just raise it
-        # r is a "Response"
-        if self.verbose: print r.status_code, r.text # r.json()
-        return r
+        #print r.status_code, r.text # r.json()
+        return r    # r is a "Response"
 
     def store(self, data):
         """

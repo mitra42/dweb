@@ -46,6 +46,6 @@ class Block(object):
         if verbose: print "Fetching block hash=",hash
         data = cls.transport.block(hash=hash)
         if verbose: print "Block returning data len=",len(data)
-        return cls(data=data)       # TODO - not sure if this is what we want to get back, maybe just want data
+        return Block(data=data)
 
 

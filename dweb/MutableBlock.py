@@ -3,13 +3,13 @@ from datetime import datetime
 
 from misc import ToBeImplementedException
 from CryptoLib import CryptoLib # Suite of functions for hashing, signing, encrypting
-#from StructuredBlock import StructuredBlock
 from SignedBlock import SignedBlock, SignedBlocks
 
 class MutableBlock(object):
     """
-    Encapsulates a block that can change
-    Get/Set non-private attributes writes to _current
+    Encapsulates a block that can change, or a list of blocks.
+
+    Get/Set non-private attributes writes to the SignedBlock at _current
 
     { _key: KeyPair, _current: SignedBlock, _prev: [ SignedBlock* ] }
 

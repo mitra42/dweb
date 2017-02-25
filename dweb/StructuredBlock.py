@@ -87,13 +87,18 @@ class StructuredBlock(Block, SmartDict):
         #TODO need to check that this doesnt have internal e.g. _* fields that might get stored, if so strip
         return CryptoLib.dumps(self.__dict__)
 
-    def __init__(self, data=None):
+    def __init__(self, dict=None, **options):
         """
         Create a new StructuredBlock
 
-        :param data: Can be a dict, or a json string
+        :param dict: Can be a dict, or a json string
+        :param options: List of fields to set
         """
-        SmartDict.__init__(self, data)   # Cant use "super" as would use Block instead of SmartDic
+        if isinstance(dict, Block):
+            dict = dict._data
+        SmartDict.__init__(self, dict)   # Cant use "super" as would use Block instead of SmartDic
+        for k in options:
+            self.__setattr__(k, options[k])
 
     def store(self, verbose=False, **options):
         """
@@ -107,7 +112,7 @@ class StructuredBlock(Block, SmartDict):
         return hash
 
     @classmethod
-    def block(cls, hash, verbose=False, **options):
+    def sblock(cls, hash, verbose=False, **options):
         """
         Locate and return a block, based on its multihash
 
@@ -115,7 +120,8 @@ class StructuredBlock(Block, SmartDict):
         :return: Block
         """
         if verbose: print "Fetching Superblock hash=",hash
-        sb = super(StructuredBlock, cls).block(hash)     # Will create a SB and initialze
+        block = cls.block(hash)     # Will create a Block (via Block.block)
+        sb = cls(block)              # Create StructuredBlock and initialze
         if verbose: print "Block returning", str(sb)
         return sb
 

@@ -11,14 +11,20 @@ from Block import Block
 class Testing(unittest.TestCase):
     def setUp(self):
         super(Testing, self).setUp()
+        testTransport = TransportHTTP
         self.verbose=False
         self.quickbrownfox =  "The quick brown fox ran over the lazy duck"
         self.dog = "But the clever dog chased the fox"
         self.mydic = { "a": "AAA", "1":100, "B_date": datetime.now()}  # Dic can't contain integer field names
-        ipandport = ('localhost', 4243)  # Serve it via HTTP on all addresses
-        #Block.setup(TransportLocal, verbose=self.verbose, dir="../cache")
-        Block.setup(TransportHTTP, verbose=self.verbose, ipandport=ipandport )
-        #TODO-HTTP complete tests with TransportHTTP
+        self.ipandport = ('localhost', 4243)  # Serve it via HTTP on all addresses
+        self.exampledir = "../examples/"    # Where example files placed
+        if testTransport == TransportLocal:
+            Block.setup(TransportLocal, verbose=self.verbose, dir="../cache")
+        elif testTransport == TransportHTTP:
+            # Run python -m ServerHTTP; before this
+            Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
+        else:
+            assert False, "Unimplemented test for Transport "+testTransport.__class__.__name__
 
     def tearDown(self):
         super(Testing, self).tearDown()
@@ -31,10 +37,10 @@ class Testing(unittest.TestCase):
     def test_StructuredBlock(self):
         from StructuredBlock import StructuredBlock
         # Test Structured block
-        sblock = StructuredBlock(self.mydic)
+        sblock = StructuredBlock(dict=self.mydic)
         assert sblock.a == self.mydic['a'], "Testing attribute access"
         multihash = sblock.store(verbose=self.verbose)
-        sblock2 = StructuredBlock.block(multihash, verbose=self.verbose)
+        sblock2 = StructuredBlock.sblock(multihash, verbose=self.verbose)
         assert sblock2.a == self.mydic['a'], "Testing StructuredBlock round-trip"
         assert sblock2.B_date == self.mydic["B_date"], "DateTime should survive round trip"
 
@@ -83,8 +89,45 @@ class Testing(unittest.TestCase):
 
     def test_http(self):
         # Run python -m ServerHTTP; before this
-        ipandport = ('localhost', 4243)  # Serve it via HTTP on all addresses
-        Block.setup(TransportHTTP, verbose=self.verbose, ipandport=ipandport )
+        Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         multihash = Block(self.quickbrownfox).store(verbose=self.verbose)
         block = Block.block(multihash, verbose=self.verbose)
         assert block._data == self.quickbrownfox, "Should return data stored"
+
+    def test_current(self):
+        # A set of tools building up to usability for web.
+        Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
+        filename = self.exampledir + "index.html"
+        file = open(filename, "r")
+        content = file.read()
+        file.close()
+        multihash = Block(content).store(verbose=self.verbose)
+        #print "http://localhost:4243/block?hash="+multihash # For debugging with Curl
+        block = Block.block(multihash, verbose=self.verbose)
+        assert block._data == content, "Should return data stored"
+        text = Block.transport._sendGet("block", params={"hash": multihash}).text
+        assert text == content, "Should return data stored"
+        from StructuredBlock import StructuredBlock
+        sb = StructuredBlock(data=content, **{"Content-type":"text/html"})
+        multihash = sb.store()
+        #print "http://localhost:4243/file?hash="+multihash # For debugging with Curl
+        resp = Block.transport._sendGet("file", params={"hash": multihash})
+        assert resp.text == content, "Should return data stored"
+        assert resp.headers["Content-type"] == "text/html", "Should get type"
+        #TODO allow for URL like file/multihash
+        #TODO allow for URLs containing html or json or gif
+        #TODO Create URL; open in browser;
+        #TODO switch from block?hash= to block/hash and file/hash
+
+
+        #TODO Add a public key for the index page, then mutable block then URL that can retrieve mutable, upload, retrieve, test retrieval
+        #TODO upload some other things e.g. an image
+        #TODO Relative URL handler on HTTPServer using same logic as IPFS - look for "/" in request
+        #TODO Test relative URL on index page to image
+        #TODO Add a Ajax list to sample page that loads raw content
+        #TODO Add a Ajax list to sample page that loads structured data
+        #TODO Javascript library running in sample web page
+        #TODO Javascript library to be able to ....
+
+    #TODO Think about tools for URL handling to make play nice with web pages
+    #TODO open question - store html in such a way that "block" understands, or retrieve as "html"
