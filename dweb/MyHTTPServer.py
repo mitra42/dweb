@@ -25,7 +25,13 @@ class HTTPargrequiredException(MyBaseException):
     httperror = 400     # Unimplemented
     msg = "HTTP request {req} requires {arg}"
 
-class MyHTTPdispatcher():
+class MyHTTPRequestHandler(BaseHTTPRequestHandler):
+    """
+    Generic HTTPRequestHandler, extends BaseHTTPRequestHandler, to make it easier to use
+    """
+    # Carefull - do not define __init__ as it is run for each incoming request.
+    # TODO-HTTP add support for longer (streamed) files on both upload and download
+
     """
     Simple (standard) HTTPdispatcher,
     Subclasses should define "exposed" as a list of exposed methods
@@ -39,46 +45,15 @@ class MyHTTPdispatcher():
                 raise HTTPargrequiredException(req=req, arg=arg)  # Will be caught in MyHTTPRequestHandler._dispatch
 
     @classmethod
-    def dispatch(cls, req, **kwargs):
-        """
-        Dispatch a request - drawn from the URL, to a function with the same name, pass any args,
-
-        :param req: main part of URL passed (after /)
-        :param kwargs: args either in URL or in postparams
-        :return: result of dispatched method
-        """
-        verbose=False   # Cant pass thru kwargs
-        #"sms_poll": sms_poll,
-        #"sms_incoming": sms_incoming
-        if verbose: print "HTTPdispatcher.dispatch",req,kwargs
-        #TODO - switch tis round to test "exposed" on retrieved function instead of list
-        if req in cls.exposed:
-            return getattr(cls, req)(**kwargs)
-        else:
-            if verbose: print "HTTPdispatcher.dispatch unimplemented:"+req
-            raise HTTPdispatcherException(req=req)  # Will be caught in MyHTTPRequestHandler._dispatch
-
-#TODO - merge MyHTTPRequestHandler and MyHTTPdispatcher
-
-class MyHTTPRequestHandler(BaseHTTPRequestHandler):
-    """
-    Generic HTTPRequestHandler, extends BaseHTTPRequestHandler, to make it easier to use
-    """
-    # Carefull - do not define __init__ as it is run for each incoming request.
-    #TODO-HTTP add support for longer (streamed) files on both upload and download
-
-    @classmethod
-    def serve_forever(cls, dispatchclass=None, ipandport=None, verbose=False, **options):
+    def serve_forever(cls, ipandport=None, verbose=False, **options):
         """
         Start a server,
 
-        :param dispatchclass: Class to use for dispatcher, else use defaultdispatchclass
         :param ipandport: Ip and port to listen on, else use defaultipandport
         :param verbose: If want debugging
         :param options: Stored on class for access by handlers
         :return: Never returns
         """
-        cls.dispatchclass = dispatchclass or cls.defaultdispatchclass
         cls.ipandport = ipandport or cls.defaultipandport
         cls.verbose = verbose
         cls.options = options
@@ -98,9 +73,21 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
             o = urlparse(self.path)
             print "XXX@98",o
             argvars =  dict(parse_qsl(o.query))     # Look for arguments in URL
+            verbose = argvars.get("verbose", verbose)
             if verbose: print "Handler._dispatch", o.path[1:], vars, argvars
             argvars.update(vars)                    # URL args are updated by any from postparms
-            res = self.dispatchclass.dispatch(o.path[1:], **argvars)    # The main part - call a dispatchable staticmethod
+            req = o.path[1:]
+            #TODO - split req if has / and use parms from exposed.
+
+            # Dispatch a request - drawn from the URL, to a function with the same name, pass any args,
+            if verbose: print "HTTPdispatcher.dispatch", req, argvars
+            func = getattr(self, req, None)
+            if func and func.exposed:
+                if verbose: print "%s.%s %s" % (self.__class__.__name__, req, kwargs)
+                res = func(**argvars)          # MAIN PART - run method and collect result
+            else:
+                if verbose: print "%s.dispatch unimplemented: %s" % (self.__class__.__name__, req)
+                raise HTTPdispatcherException(req=req)  # Will be caught in MyHTTPRequestHandler._dispatch
             if verbose: print "_dispatch:Result=",res
             # Send the content-type
             self.send_response(200)  # Send an ok response
@@ -111,9 +98,10 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
             elif hasattr(data, "dumps"):
                 data = dumps(data)
             if not isinstance(data, basestring):
+                print data
                 # Raise an exception - will not honor the status already sent, but this shouldnt happen as coding
                 # error in the dispatched function if it returns anything else
-                raise ToBeImplementedException(name=self.__class__.__name__+"._dispatch for "+data.__class__.__name__)
+                raise ToBeImplementedException(name=self.__class__.__name__+"._dispatch for return data "+data.__class__.__name__)
             self.send_header('Content-Length', str(len(data)) if data else 0)
             self.end_headers()
             self.wfile.write(data)                   # Write content of result if applicable
@@ -157,3 +145,11 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
             httperror = e.httperror if hasattr(e, "httperror") else 500
             self.send_error(httperror, str(e))  # Send an error response
 
+
+def exposed(func):
+    def wrapped(*args, **kwargs):
+        result = func(*args, **kwargs)
+        return result
+
+    wrapped.exposed = True
+    return wrapped

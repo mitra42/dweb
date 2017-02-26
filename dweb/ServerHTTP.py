@@ -1,60 +1,52 @@
 # encoding: utf-8
 from Block import Block
 from StructuredBlock import StructuredBlock
-from MyHTTPServer import MyHTTPdispatcher, MyHTTPRequestHandler
+from MyHTTPServer import MyHTTPRequestHandler, exposed
 
-class DwebDispatcher(MyHTTPdispatcher):
-    exposed = ["block", "store", "file", "DHT_store", "DHT_fetch"]
+class DwebHTTPRequestHandler(MyHTTPRequestHandler):
+    defaultipandport = ('localhost', 4243)
+    #TODO get rid of exposed1, make @exposed set it
+    #exposed1 = ["block", "store", "file", "DHT_store", "DHT_fetch"]
 
-    @staticmethod
-    def block(**kwargs):
+    @exposed
+    def block(self, **kwargs):
         """
         Retrieve a block, Paired with TransportHTTP.block
 
         :param kwargs: { hash }
         :return: raw data from block
         """
-        verbose = kwargs.get("verbose", False)
-        if verbose: print "DwebDispatcher.block", kwargs
-        MyHTTPdispatcher._checkargs("store", ("hash",), kwargs)
-        b = Block.block(hash=kwargs["hash"]) # Should be raw data returned #TODO-BLOCK will return as block, maybe not what wanted
-        return { "Content-type": "appliction/octet-stream", "data": b._data }
+        DwebHTTPRequestHandler._checkargs("store", ("hash",), kwargs)
+        return { "Content-type": "appliction/octet-stream",
+                 "data": Block.block(hash=kwargs["hash"])._data } # Should be raw data returned
 
-    @staticmethod
-    def sblock(**kwargs):
+
+    @exposed
+    def sblock(self, **kwargs):
         """
         Retrieve a block, Paired with TransportHTTP.block
 
         :param kwargs: { hash }
         :return: raw data from block
         """
-        verbose = kwargs.get("verbose", False)
-        if verbose: print "DwebDispatcher.block", kwargs
-        MyHTTPdispatcher._checkargs("store", ("hash",), kwargs)
-        b = Block.block(hash=kwargs["hash"]) # Should be raw data returned #TODO-BLOCK will return as block, maybe not what wanted
+        DwebHTTPRequestHandler._checkargs("store", ("hash",), kwargs)
+        b = Block.block(hash=kwargs["hash"]) # Should be raw data returned
         return { "Content-type": 'text/json', "data": b._data }
 
-    @staticmethod
-    def store(**kwargs):
-        verbose = kwargs.get("verbose", False)
-        if verbose: print "DwebDispatcher.store", kwargs
-        MyHTTPdispatcher._checkargs("store", ("data",), kwargs)
+    @exposed
+    def store(self, **kwargs):
+        DwebHTTPRequestHandler._checkargs("store", ("data",), kwargs)
         hash = Block(kwargs["data"]).store()
-        if verbose: print "DwebDispatcher.store returning:", hash
         return { "Content-type": "appliction/octet-stream", "data": hash }
 
-    @staticmethod
-    def file(**kwargs):
-        verbose = kwargs.get("verbose", False)
-        verbose=True
-        if verbose: print "DwebDispatcher.file", kwargs
-        MyHTTPdispatcher._checkargs("file", ("hash",), kwargs)
+    @exposed
+    def file(self, **kwargs):
+        DwebHTTPRequestHandler._checkargs("file", ("hash",), kwargs)
         b = StructuredBlock.sblock(hash=kwargs["hash"])
-        if verbose: print "DwebDispatcher.file returning:", b
-        return b.__dict__     # TODO - make it read headers from b._data
+        return b.__dict__
 
-    @staticmethod
-    def DHT_store(**kwargs):
+    @exposed
+    def DHT_store(self, **kwargs):
         """
         DHT_store has no higher level interpretation, so just pass to server's transport layer direct
         Once distributed, this will be clever, or rather ITS transport layer should be.
@@ -62,19 +54,15 @@ class DwebDispatcher(MyHTTPdispatcher):
         :param kwargs: required: { table, key, value }
         :return:
         """
-        verbose = kwargs.get("verbose", False)
-        if verbose: print "DwebDispatcher.DHT_store",kwargs
-        MyHTTPdispatcher._checkargs("DHT_store", ("table", "key", "data"), kwargs)
+        DwebHTTPRequestHandler._checkargs("DHT_store", ("table", "key", "data"), kwargs)
         kwargs["value"] = kwargs["data"]
         del kwargs["data"]
         return  { "Content-type": "appliction/octet-stream",
                   "data":  Block.transport.DHT_store(**kwargs)
                 }
 
-
-
-    @staticmethod
-    def DHT_fetch(**kwargs):
+    @exposed
+    def DHT_fetch(self, **kwargs):
         """
         DHT_fetch has no higher level interpretation, so just pass to server's transport layer direct
         Once distributed, this will be clever, or rather ITS transport layer should be.
@@ -83,35 +71,23 @@ class DwebDispatcher(MyHTTPdispatcher):
         :param key: key to retrieve values for
         :return:
         """
-        verbose = kwargs.get("verbose", False)
-        if verbose: print "DwebDispatcher.DHT_fetch", kwargs
-        MyHTTPdispatcher._checkargs("DHT_store", ("table", "key"), kwargs)
+        DwebHTTPRequestHandler._checkargs("DHT_store", ("table", "key"), kwargs)
         return { 'Content-type': 'text/json',
                  'data': Block.transport.DHT_fetch(**kwargs)
                }
 
-
-
-class DwebHTTPRequestHandler(MyHTTPRequestHandler):
-    """
-    DWeb HTTP server, all this one does is gateway from HTTP Transport to Local Transport, allowing calls to happen over net.
-    One instance of this will be created for each request, so don't override __init__()
-
-    Initiate with something like: DwebHTTPRequestHandler.serve_forever()
-    """
-    defaultdispatchclass = DwebDispatcher
-    defaultipandport = ('localhost', 4243)
-
     @classmethod
     def HTTPToLocalGateway(cls):
         """
-        Launch a gateway that answers on HTTP and forwards to Local
+        DWeb HTTP server, all this one does is gateway from HTTP Transport to Local Transport, allowing calls to happen over net.
+        One instance of this will be created for each request, so don't override __init__()
+        Initiate with something like: DwebHTTPRequestHandler.serve_forever()
 
         :return: Never Returns
         """
         from TransportLocal import TransportLocal # Avoid circular references
         Block.setup(TransportLocal, verbose=False, dir="../cache_http")  # HTTP server is storing locally
-        cls.serve_forever(verbose=False)    # Uses defaultipandport and defaultdispatchclass
+        cls.serve_forever(verbose=False)    # Uses defaultipandport
         #TODO-HTTP its printing log, put somewhere instead
 
 if __name__ == "__main__":

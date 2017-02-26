@@ -119,7 +119,7 @@ class Testing(unittest.TestCase):
         #TODO Create URL; open in browser;
         #TODO switch from block?hash= to block/hash and file/hash
 
-
+        #TODO handle unrecognized hashes in calls like file
         #TODO Add a public key for the index page, then mutable block then URL that can retrieve mutable, upload, retrieve, test retrieval
         #TODO upload some other things e.g. an image
         #TODO Relative URL handler on HTTPServer using same logic as IPFS - look for "/" in request
