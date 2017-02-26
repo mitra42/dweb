@@ -1,7 +1,11 @@
 # encoding: utf-8
 from abc import ABCMeta, abstractmethod
 
-from misc import ToBeImplementedException
+from misc import ToBeImplementedException, MyBaseException
+
+class TransportBlockNotFound(MyBaseException):
+    httperror = 404
+    msg = "Block {hash} not found"
 
 class Transport(object):
     """

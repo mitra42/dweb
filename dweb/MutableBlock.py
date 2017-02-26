@@ -27,7 +27,7 @@ class MutableBlock(object):
         """
         Create and initialize a MutableBlockMaster -
         :param key:
-        :param options:
+        :param options: # Can indicate how to initialize content
         """
         #TODO-MUTABLE allow creation and initialization from a known public key
         if not key:
@@ -36,7 +36,7 @@ class MutableBlock(object):
             # Its an exported key string, import it (note could be public or private)
             key = CryptoLib.importpublic(key)   # Works on public or private
         self._key = key
-        self._current = SignedBlock()
+        self._current = SignedBlock(**options)  # Create a place to hold content, options could load content
         self._prev = []
 
     def fetch(self, verbose=False, **options):
@@ -50,6 +50,9 @@ class MutableBlock(object):
         curr, prev = signedblocks.latestandsorteddeduplicatedrest()
         self._current = curr
         self._prev = prev
+
+    def content(self, **options):
+        return self._current.content(**options)
 
     #TODO - add metadata to Mutable - and probably others
 

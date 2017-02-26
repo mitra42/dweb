@@ -2,10 +2,13 @@
 from datetime import datetime
 import unittest
 
+from misc import filecontent
 from CryptoLib import CryptoLib
+from Transport import TransportBlockNotFound
 from TransportLocal import TransportLocal
 from TransportHTTP import TransportHTTP
 from Block import Block
+from MutableBlock import MutableBlockMaster, MutableBlock
 
 
 class Testing(unittest.TestCase):
@@ -57,16 +60,18 @@ class Testing(unittest.TestCase):
     def test_MutableBlocks(self):
         from MutableBlock import MutableBlockMaster, MutableBlock
         # Mutable Blocks
-        mblockm = MutableBlockMaster(verbose=self.verbose)
-        mblockm.data = self.quickbrownfox
-        mblockm.signandstore(verbose=self.verbose)
-        testhash0 = mblockm._current._hash
-        mblockm.data = self.dog
-        mblockm.signandstore(verbose=self.verbose)
-        testhash = mblockm._current._hash
-        publickey = mblockm.publickey()
-        mblock = MutableBlock(key=publickey)
-        mblock.fetch(verbose=self.verbose)
+        mblockm = MutableBlockMaster(verbose=self.verbose)      # Create a new block with a new key
+        mblockm.data = self.quickbrownfox                       # Put some data in it (goes in the SignedBlock
+        mblockm.signandstore(verbose=self.verbose)              # Sign it - this publishes it
+        testhash0 = mblockm._current._hash                      # Get a pointer to that version
+        # Editing
+        mblockm.data = self.dog                                 # Put some different content in it
+        mblockm.signandstore(verbose=self.verbose)              # Publish new content
+        testhash = mblockm._current._hash                       # Get a pointer to the new version
+        publickey = mblockm.publickey()                         # Get the publickey pointer to the block
+        # And check it
+        mblock = MutableBlock(key=publickey)                    # Setup a copy (not Master) via the publickey
+        mblock.fetch(verbose=self.verbose)                      # Fetch the content
         assert mblock._current._hash == testhash, "Should match hash stored above"
         assert mblock._prev[0]._hash == testhash0, "Prev list should hold first stored"
 
@@ -97,30 +102,41 @@ class Testing(unittest.TestCase):
     def test_current(self):
         # A set of tools building up to usability for web.
         Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
-        filename = self.exampledir + "index.html"
-        file = open(filename, "r")
-        content = file.read()
-        file.close()
+        content = filecontent(self.exampledir + "index.html")
         multihash = Block(content).store(verbose=self.verbose)
         #print "http://localhost:4243/block?hash="+multihash # For debugging with Curl
         block = Block.block(multihash, verbose=self.verbose)
-        assert block._data == content, "Should return data stored"
+        assert block._data == content, "Should return data stored raw"
         text = Block.transport._sendGet("block", [multihash]).text
-        assert text == content, "Should return data stored"
+        assert text == content, "Should return data stored as structured"
         from StructuredBlock import StructuredBlock
         sb = StructuredBlock(data=content, **{"Content-type":"text/html"})
-        multihash = sb.store()
-        #print "http://localhost:4243/file?hash="+multihash # For debugging with Curl
-        resp = Block.transport._sendGet("file", [multihash])
+        sbhash = sb.store()
+        #print "http://localhost:4243/file/"+sbhash # For debugging with Curl
+        resp = Block.transport._sendGet("file", [sbhash])
         assert resp.text == content, "Should return data stored"
         assert resp.headers["Content-type"] == "text/html", "Should get type"
-        #TODO allow for URL like file/multihash
-        #TODO allow for URLs containing html or json or gif
-        #TODO Create URL; open in browser;
-        #TODO switch from block?hash= to block/hash and file/hash
+        content = filecontent(self.exampledir + "WrenchIcon.png")
+        wrenchhash = Block(content).store(verbose=self.verbose)
+        resp = Block.transport._sendGet("block", [wrenchhash], params={"contenttype": "image/png"})
+        assert resp.headers["Content-type"] == "image/png", "Should get type"
+        assert resp.content == content, "Should return data stored"
+        try:
+            resp = Block.transport._sendGet("block", ["12345"], params={"contenttype": "image/png"})
+        except TransportBlockNotFound as e:
+            pass
+        else:
+            assert False, "Should raise a TransportBlockNotFound error"
+        #print CryptoLib.keygen().exportKey("PEM") # Uncomment to get a key
+        mbm = MutableBlockMaster(key=filecontent(self.exampledir+"sampleprivatekey_rsa"), hash=sbhash)
+        mbm.signandstore(verbose=self.verbose)
+        mb = MutableBlock(key=mbm.publickey())
+        mb.fetch()
+        assert mb.content() == mbm.content(), "Should round-trip HTML content"
+        print mb.content()
 
-        #TODO handle unrecognized hashes in calls like file
-        #TODO Add a public key for the index page, then mutable block then URL that can retrieve mutable, upload, retrieve, test retrieval
+
+        #TODO mutable block URL that can retrieve mutable, upload, retrieve, test retrieval
         #TODO upload some other things e.g. an image
         #TODO Relative URL handler on HTTPServer using same logic as IPFS - look for "/" in request
         #TODO Test relative URL on index page to image

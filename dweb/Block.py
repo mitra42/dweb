@@ -10,6 +10,9 @@ class Block(object):
     def __init__(self, data=None):
         self._data = data
 
+    def __repr__(self):
+        return "%s('%s')" % (self.__class__.__name__, self._data)
+
     def size(self, verbose=False, **options):
         return len(self._data)
 
@@ -39,6 +42,7 @@ class Block(object):
     def block(cls, hash, verbose=False, **options):
         """
         Locate and return a block, based on its multihash
+        Exceptions: TransportBlockNotFound if invalid hash
 
         :param hash: Multihash
         :return: Block

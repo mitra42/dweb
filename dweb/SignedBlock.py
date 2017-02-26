@@ -86,7 +86,7 @@ class SignedBlock(object):
         :return: StructuredBlock, retrieve if necessary, can be None
         """
         if not self._structuredblock and self._hash:
-            self._structuredblock = StructuredBlock.block(self._hash, verbose=verbose, **options)
+            self._structuredblock = StructuredBlock.sblock(self._hash, verbose=verbose, **options)
         if create and not self._structuredblock:
             self._structuredblock = StructuredBlock()
         return self._structuredblock
@@ -156,11 +156,13 @@ class SignedBlock(object):
         """
         Store any signatures in the Transport layer, content must already have been stored before signing
         """
-
         for s in self._signatures:
             ss = s.copy()
             ss.hash = self._h(verbose=verbose, **options)
             self._sb().transport.DHT_store(table="signedby",key=s.publickey, value=ss, verbose=verbose, **options)
+
+    def content(self, **options):
+        return self._sb().content()
 
 class SignedBlocks(list):
     """

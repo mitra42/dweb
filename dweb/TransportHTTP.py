@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 import requests             # For outgoing HTTP http://docs.python-requests.org/en/master/
-from Transport import Transport
+from Transport import Transport, TransportBlockNotFound
 from misc import ToBeImplementedException
 from CryptoLib import CryptoLib
 
@@ -41,24 +41,42 @@ class TransportHTTP(Transport):
             r = requests.post(url, **options)
             r.raise_for_status()
         except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as e:
-            print e
-            #TODO-LOGGING: logger.error(e)
-            raise e # For now just raise it
+            if r.status_code == 404:
+                raise TransportBlockNotFound(hash=str(urlargs)+str(options))
+            else:
+                print e
+                #TODO-LOGGING: logger.error(e)
+                raise e # For now just raise it
         #print r.status_code, r.text # r.json()
         return r    # r is a response
 
-    def _sendGet(self, command, urlargs, **options):
+    def _sendGet(self, command, urlargs, verbose=False, **options):
+        """
+        Construct a URL of form  baseurl / command / urlargs ? options
+
+        :param command: command passing to server
+        :param urlargs: contactenated to command in order given
+        :param verbose: if want to display IRL used, place IN params to send to server
+        :param params:  passed to requests.get, forms arguments after "?"
+        :param headers: passe to requests.get, sent as HTTP headers
+        :param options:
+        :return: Response - can access via .text, .content and .headers
+        """
         url = self.baseurl + command
+        #TODO probably should use urllib to manufacture URLs else will hit issues with embedded '/' etc.
         if urlargs:
             url += "/" + "/".join(urlargs)
-        #print 'sending GET request to',url,options
+        if verbose: print 'sending GET request to',url,options
         try:
             r = requests.get(url, **options)
             r.raise_for_status()
         except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as e:
-            print e
-            #TODO-LOGGING: logger.error(e)
-            raise e # For now just raise it
+            if r.status_code == 404:
+                raise TransportBlockNotFound(hash=str(urlargs)+str(options))
+            else:
+                print e
+                #TODO-LOGGING: logger.error(e)
+                raise e # For now just raise it
         #print r.status_code, r.text # r.json()
         return r    # r is a "Response"
 

@@ -4,7 +4,6 @@ from sys import version as python_version
 from cgi import parse_header, parse_multipart
 import BaseHTTPServer       # See https://docs.python.org/2/library/basehttpserver.html for docs on how servers work
                             # also /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/BaseHTTPServer.py for good error code list
-from misc import MyBaseException, ToBeImplementedException
 
 if python_version.startswith('3'):
     from urllib.parse import parse_qs, parse_qs, urlparse
@@ -14,6 +13,9 @@ else:
     from BaseHTTPServer import BaseHTTPRequestHandler
 
 import traceback
+
+from misc import MyBaseException, ToBeImplementedException
+from Transport import TransportBlockNotFound
 
 #TODO-HTTP add support for HTTPS
 
@@ -103,18 +105,22 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
             self.send_response(200)  # Send an ok response
             self.send_header('Content-type', res["Content-type"])
             data = res["data"]
-            if isinstance(data, (dict, list, tuple)):    # Turn it into JSON
-                data = dumps(data)
-            elif hasattr(data, "dumps"):
-                data = dumps(data)
-            if not isinstance(data, basestring):
-                print data
-                # Raise an exception - will not honor the status already sent, but this shouldnt happen as coding
-                # error in the dispatched function if it returns anything else
-                raise ToBeImplementedException(name=self.__class__.__name__+"._dispatch for return data "+data.__class__.__name__)
-            self.send_header('Content-Length', str(len(data)) if data else 0)
+            if data:
+                if isinstance(data, (dict, list, tuple)):    # Turn it into JSON
+                    data = dumps(data)
+                elif hasattr(data, "dumps"):
+                    data = dumps(data)
+                if not isinstance(data, basestring):
+                    print data
+                    # Raise an exception - will not honor the status already sent, but this shouldnt happen as coding
+                    # error in the dispatched function if it returns anything else
+                    raise ToBeImplementedException(name=self.__class__.__name__+"._dispatch for return data "+data.__class__.__name__)
+                self.send_header('Content-Length', str(len(data)) if data else 0)
             self.end_headers()
-            self.wfile.write(data)                   # Write content of result if applicable
+            if data:
+                self.wfile.write(data)                   # Write content of result if applicable
+        except TransportBlockNotFound as e:         # Gentle errors, entry in log is sufficient (note line is app specific)
+            self.send_error(e.httperror, str(e))    # Send an error response
         except Exception as e:
             traceback.print_exc(limit=None)  # unfortunately only prints to try above so need to raise
             httperror = e.httperror if hasattr(e, "httperror") else 500

@@ -28,3 +28,14 @@ class ToBeImplementedException(MyBaseException):
     httperror = 501
     msg = "{name} needs implementing"
 
+def filecontent(filename):
+    """
+    Utility function to open, read and close a file
+
+    :param filename:
+    :return: contents of file
+    """
+    with open(filename, mode='rb') as file:  # b is important -> binary
+        content = file.read()
+    return content
+

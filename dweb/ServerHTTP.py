@@ -9,15 +9,16 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
     #exposed1 = ["block", "store", "file", "DHT_store", "DHT_fetch"]
 
     @exposed
-    def block(self, **kwargs):
+    def block(self, hash=None, contenttype="application/octet-stream", **kwargs):
         """
         Retrieve a block, Paired with TransportHTTP.block
+        Exceptions: TransportBlockNotFound if hash invalid
 
         :param kwargs: { hash }
         :return: raw data from block
         """
-        return { "Content-type": "appliction/octet-stream",
-                 "data": Block.block(hash=kwargs["hash"])._data } # Should be raw data returned
+        return { "Content-type": contenttype,
+                 "data": Block.block(hash=hash)._data } # Should be raw data returned
     block.arglist=["hash"]
 
     @exposed
