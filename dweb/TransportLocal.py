@@ -78,7 +78,7 @@ class TransportLocal(Transport):
         f.write("\n")
         f.close()
 
-    def DHT_fetch(self, table, key, verbose=False, **options):
+    def DHT_fetch(self, table=None, key=None, verbose=False, **options):
         """
         Retrieve record(s) matching a key, in this case from a local directory
 

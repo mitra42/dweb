@@ -169,7 +169,7 @@ class SignedBlocks(list):
 
     @classmethod
     def fetch(cls, publickey, verbose=False, **options):
-        lines = StructuredBlock.transport.DHT_fetch("signedby", CryptoLib.exportpublic(publickey), verbose=verbose, **options)
+        lines = StructuredBlock.transport.DHT_fetch("signedby", key=CryptoLib.exportpublic(publickey), verbose=verbose, **options)
         if verbose: print "SignedBlock.fetch found ",len(lines) if lines else None
         results = {}
         for block in lines:

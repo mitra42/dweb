@@ -105,13 +105,13 @@ class Testing(unittest.TestCase):
         #print "http://localhost:4243/block?hash="+multihash # For debugging with Curl
         block = Block.block(multihash, verbose=self.verbose)
         assert block._data == content, "Should return data stored"
-        text = Block.transport._sendGet("block", params={"hash": multihash}).text
+        text = Block.transport._sendGet("block", [multihash]).text
         assert text == content, "Should return data stored"
         from StructuredBlock import StructuredBlock
         sb = StructuredBlock(data=content, **{"Content-type":"text/html"})
         multihash = sb.store()
         #print "http://localhost:4243/file?hash="+multihash # For debugging with Curl
-        resp = Block.transport._sendGet("file", params={"hash": multihash})
+        resp = Block.transport._sendGet("file", [multihash])
         assert resp.text == content, "Should return data stored"
         assert resp.headers["Content-type"] == "text/html", "Should get type"
         #TODO allow for URL like file/multihash

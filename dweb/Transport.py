@@ -59,7 +59,7 @@ class Transport(object):
         """
         raise ToBeImplementedException(name=cls.__name__+".DHT_store")
 
-    def DHT_fetch(self, table, key, verbose=False, **options):
+    def DHT_fetch(self, table=None, key=None, verbose=False, **options):
         """
         Method that should always be subclassed to retrieve record(s) matching a key
 

@@ -71,18 +71,28 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         try:
             verbose=False   # Cant pass through vars as they are postvariables
             o = urlparse(self.path)
-            print "XXX@98",o
             argvars =  dict(parse_qsl(o.query))     # Look for arguments in URL
             verbose = argvars.get("verbose", verbose)
             if verbose: print "Handler._dispatch", o.path[1:], vars, argvars
             argvars.update(vars)                    # URL args are updated by any from postparms
             req = o.path[1:]
             #TODO - split req if has / and use parms from exposed.
-
+            if '/' in req:
+                urlargs = req.split('/')
+                req = urlargs.pop(0)    # urlargs will be the rest of the args
+            else:
+                urlargs = []
             # Dispatch a request - drawn from the URL, to a function with the same name, pass any args,
-            if verbose: print "HTTPdispatcher.dispatch", req, argvars
+            if verbose: print "HTTPdispatcher.dispatch", req, urlargs, argvars
             func = getattr(self, req, None)
             if func and func.exposed:
+                if func.arglist:
+                    # Override any of the args specified in arglist by the fields of the URL in order
+                    for i in range(len(urlargs)):
+                        argvars[func.arglist[i]]=urlargs[i]
+                    for arg in func.arglist:
+                        if arg not in argvars:
+                            raise HTTPargrequiredException(req=req, arg=arg)  # Will be caught in MyHTTPRequestHandler._dispatch
                 if verbose: print "%s.%s %s" % (self.__class__.__name__, req, kwargs)
                 res = func(**argvars)          # MAIN PART - run method and collect result
             else:

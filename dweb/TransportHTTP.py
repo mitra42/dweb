@@ -47,8 +47,10 @@ class TransportHTTP(Transport):
         #print r.status_code, r.text # r.json()
         return r    # r is a response
 
-    def _sendGet(self, command, **options):
+    def _sendGet(self, command, urlargs, **options):
         url = self.baseurl + command
+        if urlargs:
+            url += "/" + "/".join(urlargs)
         #print 'sending GET request to',url,options
         try:
             r = requests.get(url, **options)
@@ -70,7 +72,7 @@ class TransportHTTP(Transport):
         res = self._sendPost("store", headers={"Content-Type": "application/octet-stream"}, data=data )
         return str(res.text) # Should be the hash - need to return a str, not unicode which isn't supported by decode
 
-    def block(self, **options):
+    def block(self, hash=None, **options):
         """
         Fetch a block,
         Paired with DwebDispatcher.block
@@ -78,7 +80,7 @@ class TransportHTTP(Transport):
         :param options: parameters to block, must include "hash"
         :return:
         """
-        res = self._sendGet("block", params=options)
+        res = self._sendGet("block", urlargs=[hash], params=options)
         return res.text
 
     def DHT_store(self, table=None, key=None, value=None, **options): # Expecting: table, key, value
@@ -95,15 +97,15 @@ class TransportHTTP(Transport):
         if options.get("verbose",None): print "DHT_store",table, key, value, options
         res = self._sendPost("DHT_store", headers={"Content-Type": "application/octet-stream"}, params={"table": table, "key": key}, data=CryptoLib.dumps(value))
 
-    def DHT_fetch(self, table, key, verbose=False, **options):
+    def DHT_fetch(self, table=None, verbose=False, **options):
         """
         Method that should always be subclassed to retrieve record(s) matching a key
 
         :param table: Table to look for key in
-        :param key: Key to be retrieved
+        :param key: Key to be retrieved (embedded in options for easier pass through)
         :return: list of dictionaries for each item retrieved
         """
-        if options.get("verbose",None): print "DHT_fetch",table, key, options
-        res = self._sendGet("DHT_fetch", params={"table": table, "key": key})
+        if options.get("verbose",None): print "DHT_fetch",table, options
+        res = self._sendGet("DHT_fetch", urlargs=(table,), params=options)
         return res.json()
 

@@ -16,10 +16,9 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         :param kwargs: { hash }
         :return: raw data from block
         """
-        DwebHTTPRequestHandler._checkargs("store", ("hash",), kwargs)
         return { "Content-type": "appliction/octet-stream",
                  "data": Block.block(hash=kwargs["hash"])._data } # Should be raw data returned
-
+    block.arglist=["hash"]
 
     @exposed
     def sblock(self, **kwargs):
@@ -29,21 +28,22 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         :param kwargs: { hash }
         :return: raw data from block
         """
-        DwebHTTPRequestHandler._checkargs("store", ("hash",), kwargs)
         b = Block.block(hash=kwargs["hash"]) # Should be raw data returned
         return { "Content-type": 'text/json', "data": b._data }
+    sblock.arglist=["hash"]
 
     @exposed
     def store(self, **kwargs):
-        DwebHTTPRequestHandler._checkargs("store", ("data",), kwargs)
+        self._checkargs("store", ("data",), kwargs)
         hash = Block(kwargs["data"]).store()
         return { "Content-type": "appliction/octet-stream", "data": hash }
+    store.arglist=["data"]
 
     @exposed
     def file(self, **kwargs):
-        DwebHTTPRequestHandler._checkargs("file", ("hash",), kwargs)
         b = StructuredBlock.sblock(hash=kwargs["hash"])
         return b.__dict__
+    file.arglist=["hash"]
 
     @exposed
     def DHT_store(self, **kwargs):
@@ -54,12 +54,12 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         :param kwargs: required: { table, key, value }
         :return:
         """
-        DwebHTTPRequestHandler._checkargs("DHT_store", ("table", "key", "data"), kwargs)
         kwargs["value"] = kwargs["data"]
         del kwargs["data"]
         return  { "Content-type": "appliction/octet-stream",
                   "data":  Block.transport.DHT_store(**kwargs)
                 }
+    DHT_store.arglist=["table", "key", "data"]
 
     @exposed
     def DHT_fetch(self, **kwargs):
@@ -71,10 +71,10 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         :param key: key to retrieve values for
         :return:
         """
-        DwebHTTPRequestHandler._checkargs("DHT_store", ("table", "key"), kwargs)
         return { 'Content-type': 'text/json',
                  'data': Block.transport.DHT_fetch(**kwargs)
                }
+    DHT_fetch.arglist=["table", "key"]
 
     @classmethod
     def HTTPToLocalGateway(cls):
