@@ -1,9 +1,11 @@
 # encoding: utf-8
 
+from sys import version as python_version
 import requests             # For outgoing HTTP http://docs.python-requests.org/en/master/
 from Transport import Transport, TransportBlockNotFound
 from misc import ToBeImplementedException
 from CryptoLib import CryptoLib
+import urllib
 
 #TODO-HTTP add support for HTTPS
 
@@ -33,27 +35,11 @@ class TransportHTTP(Transport):
         """
         return cls(ipandport=ipandport, **options)
 
-    #TODO-HTTP merge sendPost and sendGet if appropriate
-    def _sendPost(self, command, **options):
-        url = self.baseurl + command
-        #print 'sending POST request to',url,options
-        try:
-            r = requests.post(url, **options)
-            r.raise_for_status()
-        except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as e:
-            if r.status_code == 404:
-                raise TransportBlockNotFound(hash=str(urlargs)+str(options))
-            else:
-                print e
-                #TODO-LOGGING: logger.error(e)
-                raise e # For now just raise it
-        #print r.status_code, r.text # r.json()
-        return r    # r is a response
-
-    def _sendGet(self, command, urlargs, verbose=False, **options):
+    def _sendGetPost(self, post, command, urlargs=None, verbose=False, **options):
         """
         Construct a URL of form  baseurl / command / urlargs ? options
 
+        :param post: True if should POST, else GET
         :param command: command passing to server
         :param urlargs: contactenated to command in order given
         :param verbose: if want to display IRL used, place IN params to send to server
@@ -63,34 +49,34 @@ class TransportHTTP(Transport):
         :return: Response - can access via .text, .content and .headers
         """
         url = self.baseurl + command
-        #TODO probably should use urllib to manufacture URLs else will hit issues with embedded '/' etc.
         if urlargs:
-            url += "/" + "/".join(urlargs)
-        if verbose: print 'sending GET request to',url,options
+            url += "/" + "/".join(urllib.quote(u) for u in urlargs)
+        if verbose: print "sending","POST" if post else "GET","request to",url,options
         try:
-            r = requests.get(url, **options)
+            r = None
+            r = requests.post(url, **options) if post else requests.get(url, **options)
             r.raise_for_status()
         except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as e:
-            if r.status_code == 404:
+            if r is not None and (r.status_code == 404):
                 raise TransportBlockNotFound(hash=str(urlargs)+str(options))
             else:
                 print e
                 #TODO-LOGGING: logger.error(e)
                 raise e # For now just raise it
         #print r.status_code, r.text # r.json()
-        return r    # r is a "Response"
+        return r    # r is a response
 
-    def store(self, data):
+    def store(self, table=None, data=None):
         """
         Store the data locally
 
         :param data: opaque data to store
         :return: hash of data
         """
-        res = self._sendPost("store", headers={"Content-Type": "application/octet-stream"}, data=data )
+        res = self._sendGetPost(True, "store", headers={"Content-Type": "application/octet-stream"}, urlargs=[table], data=data )
         return str(res.text) # Should be the hash - need to return a str, not unicode which isn't supported by decode
 
-    def block(self, hash=None, **options):
+    def block(self, table=None, hash=None, **options):
         """
         Fetch a block,
         Paired with DwebDispatcher.block
@@ -98,10 +84,10 @@ class TransportHTTP(Transport):
         :param options: parameters to block, must include "hash"
         :return:
         """
-        res = self._sendGet("block", urlargs=[hash], params=options)
+        res = self._sendGetPost(False, "block", urlargs=[table, hash], params=options)
         return res.text
 
-    def DHT_store(self, table=None, key=None, value=None, **options): # Expecting: table, key, value
+    def add(self, table=None, key=None, value=None, **options): # Expecting: table, key, value
         """
         Store in a DHT
 
@@ -112,10 +98,10 @@ class TransportHTTP(Transport):
         :param options:
         :return:
         """
-        if options.get("verbose",None): print "DHT_store",table, key, value, options
-        res = self._sendPost("DHT_store", headers={"Content-Type": "application/octet-stream"}, params={"table": table, "key": key}, data=CryptoLib.dumps(value))
+        if options.get("verbose",None): print "add",table, key, value, options
+        res = self._sendGetPost(True, "add", urlargs = [table], headers={"Content-Type": "application/octet-stream"}, params={"key": key}, data=CryptoLib.dumps(value))
 
-    def DHT_fetch(self, table=None, verbose=False, **options):
+    def list(self, table=None, hash=None, verbose=False, **options):
         """
         Method that should always be subclassed to retrieve record(s) matching a key
 
@@ -123,7 +109,17 @@ class TransportHTTP(Transport):
         :param key: Key to be retrieved (embedded in options for easier pass through)
         :return: list of dictionaries for each item retrieved
         """
-        if options.get("verbose",None): print "DHT_fetch",table, options
-        res = self._sendGet("DHT_fetch", urlargs=(table,), params=options)
+        if options.get("verbose",None): print "list",table, options
+        hash = hash or CryptoLib.urlhash(options["key"], verbose=verbose, **options)
+        del(options["key"])
+        res = self._sendGetPost(False, "list", urlargs=(table, hash), params=options)
         return res.json()
+
+
+    def url(self, obj, command, **options):
+        """
+
+        :return: HTTP style URL to access this resource - not sure what this works on yet.
+        """
+        return "http://%s:%s/%s/%s/%s"  % (self.ipandport[0], self.ipandport[1], command or obj.transportcommand, obj.table, obj.hash)
 

@@ -2,6 +2,7 @@
 from json import dumps
 from sys import version as python_version
 from cgi import parse_header, parse_multipart
+import urllib
 import BaseHTTPServer       # See https://docs.python.org/2/library/basehttpserver.html for docs on how servers work
                             # also /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/BaseHTTPServer.py for good error code list
 
@@ -40,12 +41,6 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
     """
     exposed = []
 
-    @staticmethod
-    def _checkargs(req, arglist, kwargs):
-        for arg in arglist:
-            if arg not in kwargs:
-                raise HTTPargrequiredException(req=req, arg=arg)  # Will be caught in MyHTTPRequestHandler._dispatch
-
     @classmethod
     def serve_forever(cls, ipandport=None, verbose=False, **options):
         """
@@ -80,7 +75,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
             req = o.path[1:]
             #TODO - split req if has / and use parms from exposed.
             if '/' in req:
-                urlargs = req.split('/')
+                urlargs = [ urllib.unquote(u) for u in req.split('/') ]
                 req = urlargs.pop(0)    # urlargs will be the rest of the args
             else:
                 urlargs = []

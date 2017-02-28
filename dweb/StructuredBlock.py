@@ -57,7 +57,7 @@ class StructuredLink(SmartDict):
         """
         return (
             self.data or
-            (self.hash and Block.block(self.hash, verbose=verbose, **options)._data) or
+            (self.hash and Block.block(self.hash, verbose=verbose, **options)._data) or     # Will use table=sb or superclass
             (self.links and "".join(d.content(verbose=verbose, **options) for d in self.links)) or
             "")
 
@@ -68,7 +68,7 @@ class StructuredLink(SmartDict):
         return (
             self.__dict__.get("size", None) or
             (self.data and len(self.data)) or
-            (self.hash and Block.block(self.hash, verbose=verbose, **options).size(verbose=verbose, **options)) or
+            (self.hash and Block.block(self.hash, verbose=verbose, **options).size(verbose=verbose, **options)) or # Will use table=sb or superclass
             (self.links and sum(d.size(verbose=verbose, **options) for d in self.links)) or
             None)
 
@@ -76,6 +76,8 @@ class StructuredBlock(Block, SmartDict):
     """
     Encapsulates an JSON Dict and stores / retrieves over transports
     """
+    table="sb"
+    transportcommand="block"
 
     @property
     def _data(self):
@@ -86,6 +88,13 @@ class StructuredBlock(Block, SmartDict):
         """
         #TODO need to check that this doesnt have internal e.g. _* fields that might get stored, if so strip
         return CryptoLib.dumps(self.__dict__)
+
+    def url(self, **options):
+        """
+        Get the body of a URL based on the transport just used.
+        :return:
+        """
+        return self.transport.url(self, **options)
 
     def __init__(self, dict=None, **options):
         """
@@ -107,12 +116,13 @@ class StructuredBlock(Block, SmartDict):
         :return: hash of data
         """
         #store accesses the data via _data above
-        hash = super(StructuredBlock, self).store(**options)
+        hash = super(StructuredBlock, self).store(**options) # Will use table=sb
         if verbose: print "Structured Block.store: Hash=",hash
+        self.hash = hash
         return hash
 
     @classmethod
-    def sblock(cls, hash, verbose=False, **options):
+    def sblock(cls, hash=hash, table=None, verbose=False, **options):
         """
         Locate and return a block, based on its multihash
 
@@ -120,7 +130,7 @@ class StructuredBlock(Block, SmartDict):
         :return: Block
         """
         if verbose: print "Fetching Superblock hash=",hash
-        block = cls.block(hash)     # Will create a Block (via Block.block)
+        block = cls.block(table=table, hash=hash)     # Will create a Block (via Block.block) # Will use table=sb or superclass
         sb = cls(block)              # Create StructuredBlock and initialze
         if verbose: print "Block returning", str(sb)
         return sb
@@ -136,7 +146,7 @@ class StructuredBlock(Block, SmartDict):
         """
         return (
             self.data or
-            (self.hash and Block.block(self.hash, verbose=verbose, **options)._data) or
+            (self.hash and Block.block(self.hash, verbose=verbose, **options)._data) or # Will use table=sb or superclass
             (self.links and "".join(d.content(verbose=verbose, **options) for d in self.links)) or
             "")
 
@@ -147,7 +157,7 @@ class StructuredBlock(Block, SmartDict):
         return (
             self.__dict__.get("size",None) or
             (self.data and len(self.data)) or
-            (self.hash and Block.block(self.hash, verbose=verbose, **options).size(verbose=verbose, **options)) or
+            (self.hash and Block.block(self.hash, verbose=verbose, **options).size(verbose=verbose, **options)) or # Will use table=sb or superclass
             (self.links and sum(d.size(verbose=verbose, **options) for d in self.links)) or
             None)
 

@@ -99,7 +99,7 @@ class Testing(unittest.TestCase):
         block = Block.block(multihash, verbose=self.verbose)
         assert block._data == self.quickbrownfox, "Should return data stored"
 
-    def test_current(self):
+    def test_current(self):     #TODO-URLREFACTOR add url function to objects
         # A set of tools building up to usability for web.
         Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         content = filecontent(self.exampledir + "index.html")
@@ -107,22 +107,23 @@ class Testing(unittest.TestCase):
         #print "http://localhost:4243/block?hash="+multihash # For debugging with Curl
         block = Block.block(multihash, verbose=self.verbose)
         assert block._data == content, "Should return data stored raw"
-        text = Block.transport._sendGet("block", [multihash]).text
+        text = Block.transport._sendGetPost(False, "block", [Block.table, multihash]).text
         assert text == content, "Should return data stored as structured"
         from StructuredBlock import StructuredBlock
         sb = StructuredBlock(data=content, **{"Content-type":"text/html"})
         sbhash = sb.store()
-        #print "http://localhost:4243/file/"+sbhash # For debugging with Curl
-        resp = Block.transport._sendGet("file", [sbhash])
+        sburl = sb.url(command="file")
+        print "SBURL=",sburl # For debugging with Curl
+        resp = Block.transport._sendGetPost(False, "file", ["sb", sbhash])
         assert resp.text == content, "Should return data stored"
         assert resp.headers["Content-type"] == "text/html", "Should get type"
         content = filecontent(self.exampledir + "WrenchIcon.png")
         wrenchhash = Block(content).store(verbose=self.verbose)
-        resp = Block.transport._sendGet("block", [wrenchhash], params={"contenttype": "image/png"})
+        resp = Block.transport._sendGetPost(False, "block", [ Block.table, wrenchhash], params={"contenttype": "image/png"})
         assert resp.headers["Content-type"] == "image/png", "Should get type"
         assert resp.content == content, "Should return data stored"
         try:
-            resp = Block.transport._sendGet("block", ["12345"], params={"contenttype": "image/png"})
+            resp = Block.transport._sendGetPost(False, "block", [ Block.table, "12345"], params={"contenttype": "image/png"})
         except TransportBlockNotFound as e:
             pass
         else:
@@ -131,12 +132,16 @@ class Testing(unittest.TestCase):
         mbm = MutableBlockMaster(key=filecontent(self.exampledir+"sampleprivatekey_rsa"), hash=sbhash)
         mbm.signandstore(verbose=self.verbose)
         mb = MutableBlock(key=mbm.publickey())
-        mb.fetch()
+        mb.fetch()      # Just fetches the signatures
         assert mb.content() == mbm.content(), "Should round-trip HTML content"
-        print mb.content()
+        mbcontent2 = Block.transport._sendGetPost(False,"file", [MutableBlock.table,
+                                                                 CryptoLib.urlhash(CryptoLib.exportpublic(mb._key.publickey()))]).text
+        assert mbcontent2 == mbm.content(), "Should fetch MB content via its URL"
+        print "MB URL =", mb.url(command="file")
+        # SigB.fetch -> TransportLocal.list ->
 
-
-        #TODO mutable block URL that can retrieve mutable, upload, retrieve, test retrieval
+        #TODO think of urls that would be useful e.g. /list/
+        #TODO mutable block URL that can retrieve mutable, upload, retrieve, test retrieval and add to demo page
         #TODO upload some other things e.g. an image
         #TODO Relative URL handler on HTTPServer using same logic as IPFS - look for "/" in request
         #TODO Test relative URL on index page to image
@@ -145,5 +150,9 @@ class Testing(unittest.TestCase):
         #TODO Javascript library running in sample web page
         #TODO Javascript library to be able to ....
 
+        #TODO Build a trivial uploader (reqs URL refactor)
+
     #TODO Think about tools for URL handling to make play nice with web pages
     #TODO open question - store html in such a way that "block" understands, or retrieve as "html"
+
+    #TODO-EDITOR image uploading https://www.tinymce.com/docs/get-started/upload-images/

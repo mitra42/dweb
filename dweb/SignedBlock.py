@@ -63,6 +63,7 @@ class SignedBlock(object):
     _hash               _h()    Hash of data once stored, (accessing this will cause it to be stored)
     _signatures                 Array of signatures
     """
+    table="signed"
 
     def __setattr__(self, name, value):
         if name and name[0] == "_":
@@ -101,7 +102,7 @@ class SignedBlock(object):
             self._hash = self._structuredblock.store(verbose=verbose, **options)
         return self._hash
 
-    def __init__(self, hash=None, structuredblock=None, signatures=None, verbose=False, **options): #TODO-SIG change calls to here
+    def __init__(self, hash=None, structuredblock=None, signatures=None, verbose=False, **options):
         """
         Create a signedblock - but dont sign it yet
 
@@ -159,7 +160,7 @@ class SignedBlock(object):
         for s in self._signatures:
             ss = s.copy()
             ss.hash = self._h(verbose=verbose, **options)
-            self._sb().transport.DHT_store(table="signedby",key=s.publickey, value=ss, verbose=verbose, **options)
+            self._sb().transport.add(table="signedby", key=s.publickey, value=ss, verbose=verbose, **options)
 
     def content(self, **options):
         return self._sb().content()
@@ -170,8 +171,10 @@ class SignedBlocks(list):
     """
 
     @classmethod
-    def fetch(cls, publickey, verbose=False, **options):
-        lines = StructuredBlock.transport.DHT_fetch("signedby", key=CryptoLib.exportpublic(publickey), verbose=verbose, **options)
+    def fetch(cls, publickey=None, hash=None, verbose=False, **options):
+        lines = StructuredBlock.transport.list("signedby", hash=hash, verbose=verbose,
+                                               key=CryptoLib.exportpublic(publickey) if publickey is not None else None,
+                                               **options)
         if verbose: print "SignedBlock.fetch found ",len(lines) if lines else None
         results = {}
         for block in lines:

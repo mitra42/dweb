@@ -31,7 +31,7 @@ class Transport(object):
         raise ToBeImplementedException(name=cls.__name__+".setup")
 
     #@abstractmethod
-    def store(self, data):
+    def store(self, table="ERROR", data=None):
         """
         Store the data locally
 
@@ -41,7 +41,7 @@ class Transport(object):
         raise ToBeImplementedException(name=cls.__name__+".store")
 
     #@abstractclassmethod   # Only works in Python 3.3
-    def block(self, hash, **options):
+    def block(self, table, hash, **options):
         """
         Fetch a block
 
@@ -50,7 +50,7 @@ class Transport(object):
         """
         raise ToBeImplementedException(name=cls.__name__+".block")
 
-    def DHT_store(self, table=None, key=None, value=None, **options):
+    def add(self, table=None, key=None, value=None, **options):
         """
         Store in a DHT
 
@@ -61,9 +61,9 @@ class Transport(object):
         :param options:
         :return:
         """
-        raise ToBeImplementedException(name=cls.__name__+".DHT_store")
+        raise ToBeImplementedException(name=cls.__name__+".add")
 
-    def DHT_fetch(self, table=None, key=None, verbose=False, **options):
+    def list(self, table=None, key=None, hash=hash, verbose=False, **options):
         """
         Method that should always be subclassed to retrieve record(s) matching a key
 
@@ -71,4 +71,4 @@ class Transport(object):
         :param key: Key to be retrieved
         :return: list of dictionaries for each item retrieved
         """
-        raise ToBeImplementedException(name=self.__class__.__name__+".DHT_fetch")
+        raise ToBeImplementedException(name=self.__class__.__name__+".list")
