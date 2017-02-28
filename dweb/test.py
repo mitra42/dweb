@@ -8,6 +8,7 @@ from Transport import TransportBlockNotFound
 from TransportLocal import TransportLocal
 from TransportHTTP import TransportHTTP
 from Block import Block
+from StructuredBlock import StructuredBlock
 from MutableBlock import MutableBlockMaster, MutableBlock
 
 
@@ -99,17 +100,9 @@ class Testing(unittest.TestCase):
         block = Block.block(multihash, verbose=self.verbose)
         assert block._data == self.quickbrownfox, "Should return data stored"
 
-    def test_current(self):     #TODO-URLREFACTOR add url function to objects
-        # A set of tools building up to usability for web.
+    def test_file(self):
         Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         content = filecontent(self.exampledir + "index.html")
-        multihash = Block(content).store(verbose=self.verbose)
-        #print "http://localhost:4243/block?hash="+multihash # For debugging with Curl
-        block = Block.block(multihash, verbose=self.verbose)
-        assert block._data == content, "Should return data stored raw"
-        text = Block.transport._sendGetPost(False, "block", [Block.table, multihash]).text
-        assert text == content, "Should return data stored as structured"
-        from StructuredBlock import StructuredBlock
         sb = StructuredBlock(data=content, **{"Content-type":"text/html"})
         sbhash = sb.store()
         sburl = sb.url(command="file")
@@ -117,29 +110,55 @@ class Testing(unittest.TestCase):
         resp = Block.transport._sendGetPost(False, "file", ["sb", sbhash])
         assert resp.text == content, "Should return data stored"
         assert resp.headers["Content-type"] == "text/html", "Should get type"
+        # Now test a MutableBlock that uses this content
+        mbm = MutableBlockMaster(key=filecontent(self.exampledir+"sampleprivatekey_rsa"), hash=sbhash)
+        mbm.signandstore(verbose=self.verbose)
+        mb = MutableBlock(key=mbm.publickey())
+        mb.fetch()      # Just fetches the signatures
+        assert mb.content() == mbm.content(), "Should round-trip HTML content"
+        mbcontent2 = Block.transport._sendGetPost(False,"file", [MutableBlock.table, mb.hash]).text
+        assert mbcontent2 == mbm.content(), "Should fetch MB content via its URL"
+        print "MB URL =", mb.url(command="file")
+
+    def test_typeoverride(self):    # See if can override the type on a block
+        Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
+        # Store the wrench icon
         content = filecontent(self.exampledir + "WrenchIcon.png")
         wrenchhash = Block(content).store(verbose=self.verbose)
+        # And check it got there
         resp = Block.transport._sendGetPost(False, "block", [ Block.table, wrenchhash], params={"contenttype": "image/png"})
         assert resp.headers["Content-type"] == "image/png", "Should get type"
         assert resp.content == content, "Should return data stored"
+
+    def test_badblock(self):
+        Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         try:
             resp = Block.transport._sendGetPost(False, "block", [ Block.table, "12345"], params={"contenttype": "image/png"})
         except TransportBlockNotFound as e:
             pass
         else:
             assert False, "Should raise a TransportBlockNotFound error"
-        #print CryptoLib.keygen().exportKey("PEM") # Uncomment to get a key
-        mbm = MutableBlockMaster(key=filecontent(self.exampledir+"sampleprivatekey_rsa"), hash=sbhash)
-        mbm.signandstore(verbose=self.verbose)
-        mb = MutableBlock(key=mbm.publickey())
-        mb.fetch()      # Just fetches the signatures
-        assert mb.content() == mbm.content(), "Should round-trip HTML content"
-        mbcontent2 = Block.transport._sendGetPost(False,"file", [MutableBlock.table,
-                                                                 CryptoLib.urlhash(CryptoLib.exportpublic(mb._key.publickey()))]).text
-        assert mbcontent2 == mbm.content(), "Should fetch MB content via its URL"
-        print "MB URL =", mb.url(command="file")
-        # SigB.fetch -> TransportLocal.list ->
 
+    def test_current(self):     #TODO-URLREFACTOR add url function to objects
+        # A set of tools building up to usability for web.
+        Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
+        #print CryptoLib.keygen().exportKey("PEM") # Uncomment to get a key
+        content = filecontent(self.exampledir + "dweb.js")
+        sb = StructuredBlock(data=content, **{"Content-type":"application/json"})
+        sb.store(verbose=self.verbose)
+        print "dweb.js", sb.url(command="file")
+
+
+        #TODO ====Storing from web editor====
+        #TODO load fixed JS from dweb via b
+        #TODO Source JS 1 version from dweb via mb
+        #TODO Util function to store file for mb
+        #TODO LOAD JS WORKING
+        #TODO Source html from dweb
+        #TODO retry cross-browser load
+        #TODO LOAD WORKING
+        #TODO SAVE WORKING
+        #TODO -----
         #TODO think of urls that would be useful e.g. /list/
         #TODO mutable block URL that can upload, retrieve, test retrieval and add to demo page
         #TODO upload some other things e.g. an image

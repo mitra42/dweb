@@ -116,7 +116,7 @@ class TransportHTTP(Transport):
         return res.json()
 
 
-    def url(self, obj, command, **options):
+    def url(self, obj, command=None, **options):
         """
 
         :return: HTTP style URL to access this resource - not sure what this works on yet.
