@@ -150,7 +150,6 @@ class Testing(unittest.TestCase):
 
 
         #TODO ====Storing from web editor====
-        #TODO load fixed JS from dweb via b
         #TODO Source JS 1 version from dweb via mb
         #TODO Util function to store file for mb
         #TODO LOAD JS WORKING

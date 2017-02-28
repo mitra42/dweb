@@ -85,8 +85,14 @@ class MutableBlockMaster(MutableBlock):
     """
     # TODO-MUTABLE add variants for publishing & reading Lists (e.g. Blogs) or  Single Items,
 
-    def __init__(self, key=None, **options):
-        super(MutableBlockMaster,self).__init__()
+    def __init__(self, key=None, **options): # Note hash is of data
+        """
+
+        :param key:
+        :param hash: optional hash of data to initialize with NOT hash of the key.
+        :param options:
+        """
+        super(MutableBlockMaster,self).__init__(key=key, **options)
         self._current = SignedBlock(**options)  # Create a place to hold content, options could load content
 
     def __setattr__(self, name, value):
