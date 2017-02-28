@@ -141,7 +141,7 @@ class Testing(unittest.TestCase):
         # SigB.fetch -> TransportLocal.list ->
 
         #TODO think of urls that would be useful e.g. /list/
-        #TODO mutable block URL that can retrieve mutable, upload, retrieve, test retrieval and add to demo page
+        #TODO mutable block URL that can upload, retrieve, test retrieval and add to demo page
         #TODO upload some other things e.g. an image
         #TODO Relative URL handler on HTTPServer using same logic as IPFS - look for "/" in request
         #TODO Test relative URL on index page to image

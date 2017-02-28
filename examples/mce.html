@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<!-- THIS IS AN EXAMPLE EDITOR - ALL IT DOES AT THE MOMENT IS TO POP UP AN ALERT, -->
+<html>
+<head>
+  <script src='https://cloud.tinymce.com/stable/tinymce.min.js'></script>
+  <script>
+  tinymce.init({
+    selector: '#mytextarea',
+    plugins: "save",
+    toolbar: "save",
+    save_onsavecallback: function() {
+                        // USE THIS IN YOUR AJAX CALL
+                alert(tinyMCE.get('mytextarea').getContent());
+        }
+  });
+
+  function submitForm() {
+    tinyMCE.triggerSave();
+    alert(document.forms[0].mytextarea);
+    document.forms[0].submit();
+  }
+  </script>
+
+</head>
+
+<body>
+<h1>TinyMCE Quick Start Guide</h1>
+  <form method="post" action="index.html">
+    <textarea id="mytextarea">Hello, World!</textarea>
+      <input type="submit" name="Foo">
+      <a href="javascript:submitForm();">Submit Form</a>
+  </form>
+</body>
+</html>
