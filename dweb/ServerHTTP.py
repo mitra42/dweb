@@ -82,7 +82,6 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         # Store the data
         sbhash = StructuredBlock(data=data, verbose=verbose, **{"Content-type": type}).store()
         #Create Mbm from key; load with data; sign and store
-        print "XXX@84",sbhash
         mbm = MutableBlockMaster(key=privkey, hash=sbhash, verbose=verbose).signandstore(verbose=verbose)
         return {"Content-type": "text/plain",
                 "data": self.url(mbm, command="file")}  # Note cant use mbm.url as not valid on TransportLocal

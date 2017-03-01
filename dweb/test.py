@@ -161,23 +161,7 @@ class Testing(unittest.TestCase):
         self._storeas("index.html", "index_html_rsa", "text/html")
         self._storeas("snippet.html", "snippet_html_rsa", "text/html")
 
-        #TODO ====Storing from web editor====
-        #TODO Build save part of lib
-
-        """
-        Think storage part is along lines of ...
-        Page has hash for key/privkey << for now fixed, later can load resource to work on
-        Sends update/mbm/keyhash data
-        It fetches key from keyhash, signs mb, and stores
-        """
-
-
-
-        #TODO How to hold key, how to sign,
-        #TODO SAVE WORKING
-        #TODO -----
         #TODO think of urls that would be useful e.g. /list/
-        #TODO mutable block URL that can upload, retrieve, test retrieval and add to demo page
         #TODO upload some other things e.g. an image
         #TODO Relative URL handler on HTTPServer using same logic as IPFS - look for "/" in request
         #TODO Test relative URL on index page to image

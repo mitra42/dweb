@@ -1,6 +1,4 @@
 // Javascript library for dweb
-//TODO very much at experimental stage expect it all to change
-//TODO rename this to just ajax OR make it specific
 
 var dwebserver = 'localhost'
 var dwebport = '4243'
@@ -16,7 +14,7 @@ function dwebget(div, table, hash) {
     xmlhttp.onreadystatechange = function() {
         if (xmlhttp.readyState == XMLHttpRequest.DONE ) {
            if (xmlhttp.status == 200) {
-               document.getElementById(div).innerHTML = xmlhttp.responseText; //TODO parameterise destination
+               document.getElementById(div).innerHTML = xmlhttp.responseText;
            }
            else if (xmlhttp.status == 400) {
               alert('There was an error 400');
@@ -32,13 +30,13 @@ function dwebget(div, table, hash) {
     xmlhttp.open("GET", url, true);
     xmlhttp.send();
 }
-function dwebupdate(div, table, hash, data) {
+function dwebupdate(div, table, hash, type, data) {
     var xmlhttp = new XMLHttpRequest();
 
     xmlhttp.onreadystatechange = function() {
         if (xmlhttp.readyState == XMLHttpRequest.DONE ) {
            if (xmlhttp.status == 200) {
-               document.getElementById(div).innerHTML = xmlhttp.responseText; //TODO parameterise destination
+               document.getElementById(div).innerHTML = xmlhttp.responseText;
            }
            else if (xmlhttp.status == 400) {
               alert('There was an error 400');
@@ -48,8 +46,8 @@ function dwebupdate(div, table, hash, data) {
            }
         }
     };
-    url = dweburl("update", table, hash) + "/" + "text%2Fhtml"  //TODO parameterise type
-    xmlhttp.open("POST", url, true);    //TODO how to send data
+    url = dweburl("update", table, hash) + "/" + type;
+    xmlhttp.open("POST", url, true);
     //Send the proper header information along with the request
     xmlhttp.setRequestHeader("Content-type", 'application/octet-stream');
     //xmlhttp.setRequestHeader("Content-Length", data.length);  // Not allowed to set this, it gets it automatically

@@ -28,7 +28,6 @@ class Signature(SmartDict):
 
     @classmethod
     def sign(cls, keypair, hash):
-        print "XXX@sigb.signature.27 hash=",hash
         date = datetime.now()
         signature = CryptoLib.signature(keypair, date, hash)
         return cls({"date": date, "signature": signature, "publickey": CryptoLib.export(keypair)})
@@ -143,7 +142,6 @@ class SignedBlock(object):
         """
         if not (self._hash or self._structuredblock):
             raise SignedBlockEmptyException()
-        print "XXX@SigBlock.sign",self
         self._signatures.append(Signature.sign(keypair=keypair, hash=self._h(verbose=verbose, **options)))
         return self
 

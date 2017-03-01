@@ -38,7 +38,6 @@ class MutableBlock(object):
         :param key:
         :param options: # Can indicate how to initialize content
         """
-        #TODO-MUTABLE allow creation and initialization from a known public key
         self._hash = hash        # Could be None
         if key:
             if isinstance(key, basestring):
@@ -108,7 +107,6 @@ class MutableBlockMaster(MutableBlock):
 
         :return: hash stored under
         """
-        print "XXX@111", self
         self._current.sign(self._key).store(verbose=verbose, **options) # Note this is storing all the sigs, not the content of _current
         # ERR SignedBlockEmptyException
         return self # Allow chaining functions e.g. MutableBlock(...).signandstore().xyz()

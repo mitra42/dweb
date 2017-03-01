@@ -15,7 +15,8 @@
                 content = tinyMCE.get('mytextarea').getContent();
                 hash = "SHA3256B64URL.hqPCPdsFLTaaWBgyySJmOyvVan80bBGVdyWTSESIFUw="; // Make a parameter
                 // alert(content);
-                dwebupdate("myDiv", "mbm", hash, content);  // Post to Dweb and store URL at myDiv
+                type = "text%2Fhtml";
+                dwebupdate("myDiv", "mbm", hash, type, content);  // Post to Dweb and store URL at myDiv
             }
         });
     </script>
