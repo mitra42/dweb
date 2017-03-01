@@ -3,6 +3,7 @@
 from datetime import datetime
 import dateutil.parser  # pip py-dateutil
 from json import loads
+from misc import MyBaseException
 from CryptoLib import CryptoLib
 from StructuredBlock import SmartDict, StructuredBlock
 
@@ -16,6 +17,9 @@ The date is included in what is signed
 Note they are not subclassed off StructuredBlock because they have, rather than are, StructuredBlocks
 """
 
+class SignedBlockEmptyException(MyBaseException):
+    msg = "Cant sign an empty block"
+
 class Signature(SmartDict):
     """
     Encapsulate a signature - part of a SignedBlock
@@ -24,9 +28,10 @@ class Signature(SmartDict):
 
     @classmethod
     def sign(cls, keypair, hash):
+        print "XXX@sigb.signature.27 hash=",hash
         date = datetime.now()
         signature = CryptoLib.signature(keypair, date, hash)
-        return cls({"date": date, "signature": signature, "publickey": CryptoLib.exportpublic(keypair)})
+        return cls({"date": date, "signature": signature, "publickey": CryptoLib.export(keypair)})
 
     def verify(self, hash=None):
         return CryptoLib.verify(self, hash=hash)
@@ -136,6 +141,9 @@ class SignedBlock(object):
         :param keypair:
         :return: self
         """
+        if not (self._hash or self._structuredblock):
+            raise SignedBlockEmptyException()
+        print "XXX@SigBlock.sign",self
         self._signatures.append(Signature.sign(keypair=keypair, hash=self._h(verbose=verbose, **options)))
         return self
 
@@ -173,7 +181,7 @@ class SignedBlocks(list):
     @classmethod
     def fetch(cls, publickey=None, hash=None, verbose=False, **options):
         lines = StructuredBlock.transport.list("signedby", hash=hash, verbose=verbose,
-                                               key=CryptoLib.exportpublic(publickey) if publickey is not None else None,
+                                               key=CryptoLib.export(publickey) if publickey is not None else None,
                                                **options)
         if verbose: print "SignedBlock.fetch found ",len(lines) if lines else None
         results = {}

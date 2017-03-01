@@ -1,8 +1,24 @@
-<!DOCTYPE html>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>DWEB Demonstration page</title>
+    <script src="http://localhost:4243/file/mb/SHA3256B64URL.OylzjhbKQK5VOVMbvdK9Dkb4UDfOEHU8uCeSnzqiseE="></script><!-- dweb.js -->
+    <script src='//cloud.tinymce.com/stable/tinymce.min.js'></script>
+    <!--<script src='/dweb/tinymce/tinymce.min.js'></script>-->
+    <script>//TODO this needs lots of work to be pretty editor
+        tinymce.init({
+            selector: '#mytextarea',
+            plugins: "save",
+            toolbar: "save",
+            save_onsavecallback: function() {
+                content = tinyMCE.get('mytextarea').getContent();
+                hash = "SHA3256B64URL.hqPCPdsFLTaaWBgyySJmOyvVan80bBGVdyWTSESIFUw="; // Make a parameter
+                // alert(content);
+                dwebupdate("myDiv", "mbm", hash, content);  // Post to Dweb and store URL at myDiv
+            }
+        });
+    </script>
 </head>
 <body>
 <H1>DWEB Demonstration Web</H1>
@@ -10,5 +26,11 @@
 <p>It will includue a range of features as they are added to DWEB</p>
 <p>It is als a good place to put links to other tests - working or not.</p>
 <img src="http://localhost:4243/block/b/SHA3256B64URL.66_cDShGp2wU147C0lbQzzioUjhpY0GuWK1j6JMQFcQ=?contenttype=image/png" width="50px">
+  <form method="post"><!--TODO see if it needs the form-->
+    <textarea id="mytextarea" width="60%">Hello, World!</textarea>
+  </form>
+  <div>Last saved to:<span id="myDiv" name="myDiv">Unreplaced text</span></div>
+  <!--<a onclick='dwebget("myDiv", "block","b","SHA3256B64URL.50GNWgUQ9GgrVfMvpedEg77ByMRYkUgPRU9P1gWaNF8=");'>Get snippet</a>-->
 </body>
 </html>
+

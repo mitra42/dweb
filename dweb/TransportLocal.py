@@ -10,7 +10,7 @@ class TransportLocal(Transport):
     TransportLocal is a subclasss of Transport providing local file and sqlite storage to facilitate local testing.
     """
 
-    tables = "mb", "signed", "b", "sb", "signedby"
+    tables = "mb", "signed", "b", "sb", "signedby", "mbm"
 
     def __init__(self, dir=None, **options):
         """

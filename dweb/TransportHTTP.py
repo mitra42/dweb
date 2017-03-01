@@ -116,10 +116,14 @@ class TransportHTTP(Transport):
         return res.json()
 
 
-    def url(self, obj, command=None, **options):
+    def url(self, obj, command=None, hash=None, type=None, **options):
         """
 
         :return: HTTP style URL to access this resource - not sure what this works on yet.
         """
-        return "http://%s:%s/%s/%s/%s"  % (self.ipandport[0], self.ipandport[1], command or obj.transportcommand, obj.table, obj.hash)
-
+        # Identical to ServerHTTP.url
+        url =  "http://%s:%s/%s/%s/%s"  \
+               % (self.ipandport[0], self.ipandport[1], command or obj.transportcommand, obj.table, hash or obj.hash)
+        if type:
+            url += "/" + urllib.quote(type,safe='')
+        return url

@@ -1,6 +1,7 @@
 # encoding: utf-8
 from datetime import datetime
 import unittest
+import os
 
 from misc import filecontent
 from CryptoLib import CryptoLib
@@ -106,19 +107,19 @@ class Testing(unittest.TestCase):
         sb = StructuredBlock(data=content, **{"Content-type":"text/html"})
         sbhash = sb.store()
         sburl = sb.url(command="file")
-        print "SBURL=",sburl # For debugging with Curl
+        #print "SBURL=",sburl # For debugging with Curl
         resp = Block.transport._sendGetPost(False, "file", ["sb", sbhash])
         assert resp.text == content, "Should return data stored"
         assert resp.headers["Content-type"] == "text/html", "Should get type"
         # Now test a MutableBlock that uses this content
-        mbm = MutableBlockMaster(key=filecontent(self.exampledir+"sampleprivatekey_rsa"), hash=sbhash)
+        mbm = MutableBlockMaster(key=filecontent(self.exampledir+"index_html_rsa"), hash=sbhash)
         mbm.signandstore(verbose=self.verbose)
         mb = MutableBlock(key=mbm.publickey())
         mb.fetch()      # Just fetches the signatures
         assert mb.content() == mbm.content(), "Should round-trip HTML content"
         mbcontent2 = Block.transport._sendGetPost(False,"file", [MutableBlock.table, mb.hash]).text
         assert mbcontent2 == mbm.content(), "Should fetch MB content via its URL"
-        print "MB URL =", mb.url(command="file")
+        print "index.html MB =", mb.url(command="file")
 
     def test_typeoverride(self):    # See if can override the type on a block
         Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
@@ -139,23 +140,40 @@ class Testing(unittest.TestCase):
         else:
             assert False, "Should raise a TransportBlockNotFound error"
 
+    def _storeas(self, filename, keyname, type):
+        filepath = self.exampledir + filename
+        keypath = self.exampledir + keyname if keyname else None
+        content = filecontent(filepath)
+        sb = StructuredBlock(data=content, **{"Content-type": type})
+        sb.store(verbose=self.verbose)
+        if keypath and not os.path.exists(keypath):
+            CryptoLib.export(CryptoLib.keygen(), private=True, filename=keypath) # Uncomment to get a key
+        #TODO next line fails if dont have a keyname which is ok for now
+        mbm = MutableBlockMaster(key=filecontent(keypath), hash=sb.hash).signandstore()
+        print filename + ":" + mbm.url(command="file")
+        print filename + " editable:" + mbm.privateurl()
+
+
     def test_current(self):     #TODO-URLREFACTOR add url function to objects
         # A set of tools building up to usability for web.
-        Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
-        #print CryptoLib.keygen().exportKey("PEM") # Uncomment to get a key
-        content = filecontent(self.exampledir + "dweb.js")
-        sb = StructuredBlock(data=content, **{"Content-type":"application/json"})
-        sb.store(verbose=self.verbose)
-        print "dweb.js", sb.url(command="file")
-
+        # All the functionality in storeas should have been tested elsewhere.
+        self._storeas("dweb.js", "dweb_js_rsa", "application/json")
+        self._storeas("index.html", "index_html_rsa", "text/html")
+        self._storeas("snippet.html", "snippet_html_rsa", "text/html")
 
         #TODO ====Storing from web editor====
-        #TODO Source JS 1 version from dweb via mb
-        #TODO Util function to store file for mb
-        #TODO LOAD JS WORKING
-        #TODO Source html from dweb
-        #TODO retry cross-browser load
-        #TODO LOAD WORKING
+        #TODO Build save part of lib
+
+        """
+        Think storage part is along lines of ...
+        Page has hash for key/privkey << for now fixed, later can load resource to work on
+        Sends update/mbm/keyhash data
+        It fetches key from keyhash, signs mb, and stores
+        """
+
+
+
+        #TODO How to hold key, how to sign,
         #TODO SAVE WORKING
         #TODO -----
         #TODO think of urls that would be useful e.g. /list/

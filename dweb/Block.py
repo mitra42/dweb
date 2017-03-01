@@ -53,7 +53,7 @@ class Block(object):
         :param hash: Multihash
         :return: Block
         """
-        if verbose: print "Fetching block table=", cls.table, "hash=", hash
+        if verbose: print "Fetching block table=", table or cls.table, "hash=", hash
         data = cls.transport.block(table=table or cls.table, hash=hash)
         if verbose: print "Block returning data len=", len(data)
         return Block(data=data)

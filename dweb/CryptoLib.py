@@ -95,7 +95,7 @@ class CryptoLib(object):
     @staticmethod
     def importpublic(exportedstr):
         """
-        Import a public key, pair with exportpublic().
+        Import a public key, pair with export().
 
         :param exported: Exported public key
         :return: RSAobj containing just the public key
@@ -103,17 +103,25 @@ class CryptoLib(object):
         return RSA.importKey(exportedstr)
 
     @staticmethod
-    def exportpublic(keypair):
+    def export(keypair, private=False, filename=None):
         """
         Export a public key, pair with importpublic
 
         :param keypair: RSA obj - could be private key or public key
         :return: String for export
         """
-        return keypair.publickey().exportKey("PEM")
+        if not private:
+            keypair = keypair.publickey()   # Note this works if keypair is publickey
+        exp = keypair.exportKey("PEM")
+        if filename:
+            with open(filename, 'wb') as f:
+                f.write(exp)
+        else:
+            return exp
+
+
 
     # See http://stackoverflow.com/questions/28426102/python-crypto-rsa-public-private-key-with-large-file
-
 
 def json_default(obj):
     """

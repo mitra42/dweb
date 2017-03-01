@@ -28,6 +28,10 @@ class HTTPargrequiredException(MyBaseException):
     httperror = 400     # Unimplemented
     msg = "HTTP request {req} requires {arg}"
 
+class DWEBMalformedURLException(MyBaseException):
+    httperror = 400
+    msg = "Malformed URL {path}"
+
 class MyHTTPRequestHandler(BaseHTTPRequestHandler):
     """
     Generic HTTPRequestHandler, extends BaseHTTPRequestHandler, to make it easier to use
@@ -61,6 +65,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         """
         Support function - dispatch the function found with postparams &/or URL arguments (former take precedence)
         Special argument vars["data"] has posted data or JSON
+        Exception: DWEBMalformedURLException if URL bad
 
         :param vars: dictionary of vars - typically from post, but also data="..."
         :return:
@@ -86,6 +91,8 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
                 if func.arglist:
                     # Override any of the args specified in arglist by the fields of the URL in order
                     for i in range(len(urlargs)):
+                        if i >= len(func.arglist):
+                            raise DWEBMalformedURLException(path=self.path)
                         argvars[func.arglist[i]]=urlargs[i]
                     for arg in func.arglist:
                         if arg not in argvars:
@@ -114,7 +121,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
             if data:
                 self.wfile.write(data)                   # Write content of result if applicable
-        except TransportBlockNotFound as e:         # Gentle errors, entry in log is sufficient (note line is app specific)
+        except (TransportBlockNotFound, DWEBMalformedURLException) as e:         # Gentle errors, entry in log is sufficient (note line is app specific)
             self.send_error(e.httperror, str(e))    # Send an error response
         except Exception as e:
             traceback.print_exc(limit=None)  # unfortunately only prints to try above so need to raise

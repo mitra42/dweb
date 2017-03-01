@@ -20,13 +20,13 @@ class MutableBlock(object):
 
     @property
     def hash(self):
-        return self._hash or (self._key and CryptoLib.urlhash(CryptoLib.exportpublic(self._key.publickey()))) or None
+        return self._hash or (self._key and CryptoLib.urlhash(CryptoLib.export(self._key.publickey()))) or None
 
     def __getattr__(self, name):
         if name and name[0] == "_":
             return self.__dict__.get(name, None)    # Get _current, _key, _prev etc locally
         else:
-            return self._current.__getattr__(name, None)
+            return self._current.__getattr__(name)
 
     def __repr__(self):
         return "%s(%s)" % (self.__class__.__name__, self.__dict__)
@@ -85,15 +85,15 @@ class MutableBlockMaster(MutableBlock):
     """
     # TODO-MUTABLE add variants for publishing & reading Lists (e.g. Blogs) or  Single Items,
 
-    def __init__(self, key=None, **options): # Note hash is of data
+    def __init__(self, key=None, hash=None, **options): # Note hash is of data
         """
 
         :param key:
         :param hash: optional hash of data to initialize with NOT hash of the key.
         :param options:
         """
-        super(MutableBlockMaster,self).__init__(key=key, **options)
-        self._current = SignedBlock(**options)  # Create a place to hold content, options could load content
+        super(MutableBlockMaster,self).__init__(key=key, **options) # Dont pass hash here, will be seen as hash of key
+        self._current = SignedBlock(hash=hash, **options)  # Create a place to hold content, pass hash to load content
 
     def __setattr__(self, name, value):
         if name and name[0] == "_":
@@ -104,14 +104,30 @@ class MutableBlockMaster(MutableBlock):
     def signandstore(self, verbose=False, **options):
         """
         Sign and Store a version, or entry in MutableBlockMaster
+        Exceptions: SignedBlockEmptyException if neither hash nor structuredblock defined
 
         :return: hash stored under
         """
+        print "XXX@111", self
         self._current.sign(self._key).store(verbose=verbose, **options) # Note this is storing all the sigs, not the content of _current
+        # ERR SignedBlockEmptyException
+        return self # Allow chaining functions e.g. MutableBlock(...).signandstore().xyz()
 
     def publickey(self, exportable=True):
         """
         :param exportable: if True export a string, otherwise a publickey (typically a RSAobj
         :return: key that can be used to fetch this block elsewhere
         """
-        return CryptoLib.exportpublic(self._key) if exportable else self._key.publickey()
+        return CryptoLib.export(self._key) if exportable else self._key.publickey()
+
+    def privateurl(self):
+        """
+        Get a URL that can be used for edits to the resource
+
+        :return:
+        """
+        self._privkeyhash = Block(CryptoLib.export(self._key, private=True)).store(table=self.table)
+        return Block.transport.url(self, command="update", table="mbm", hash=self._privkeyhash, type=self.__getattr__("Content-type"))
+
+
+        #TODO-AUTHENTICATION - this is particularly vulnerable w/o authentication as stores PrivateKey in unencrypted form

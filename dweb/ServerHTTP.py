@@ -1,13 +1,15 @@
 # encoding: utf-8
+import urllib
 from Block import Block
 from StructuredBlock import StructuredBlock
-from MutableBlock import MutableBlock
+from MutableBlock import MutableBlock, MutableBlockMaster
 from MyHTTPServer import MyHTTPRequestHandler, exposed
+from misc import ToBeImplementedException
+
 
 class DwebHTTPRequestHandler(MyHTTPRequestHandler):
+
     defaultipandport = ('localhost', 4243)
-    #TODO get rid of exposed1, make @exposed set it
-    #exposed1 = ["block", "store", "file", "add", "list"]
 
     @exposed
     def block(self, table=None, hash=None, contenttype="application/octet-stream", **kwargs):
@@ -15,11 +17,12 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         Retrieve a block, Paired with TransportHTTP.block
         Exceptions: TransportBlockNotFound if hash invalid
 
+        :param table: Which table to store data in
         :param kwargs: { hash }
         :return: raw data from block
         """
-        return { "Content-type": contenttype,
-                 "data": Block.block(hash=hash, table=table )._data} # Should be raw data returned
+        return {"Content-type": contenttype,
+                "data": Block.block(hash=hash, table=table )._data} # Should be raw data returned
     block.arglist=["table", "hash"]
 
     @exposed
@@ -27,6 +30,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         """
         Retrieve a block, Paired with TransportHTTP.block
 
+        :param table: Which table to use
         :param kwargs: { hash }
         :return: raw data from block
         """
@@ -35,8 +39,8 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
     sblock.arglist=["table", "hash"]
 
     @exposed
-    def store(self, table=None, **kwargs):
-        hash = Block(kwargs["data"]).store(table=table)
+    def store(self, table=None, data=None, **kwargs):
+        hash = Block(data).store(table=table)
         return { "Content-type": "appliction/octet-stream", "data": hash }
     store.arglist=["table", "data"]
 
@@ -60,6 +64,29 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         else:
             raise ToBeImplementedException(name="file for table "+table)
     file.arglist=["table", "hash"]
+
+    @exposed
+    def update(self, table=None, hash=None, type=None, data=None, **kwargs):
+        """
+        Update the content
+
+        :param table:   Which table to put it in, usually mb
+        :param hash:    hash of public key of mb
+        :param kwargs:  Normally would include authentication
+        :return:
+        """
+        #Fetch key from hash
+        verbose=True
+        if verbose: print "DwebHTTPRequestHandler.update",table,hash,data,type
+        privkey = Block.block(table="mb", hash=hash, verbose=verbose)._data #TODO what happens if cant find
+        # Store the data
+        sbhash = StructuredBlock(data=data, verbose=verbose, **{"Content-type": type}).store()
+        #Create Mbm from key; load with data; sign and store
+        print "XXX@84",sbhash
+        mbm = MutableBlockMaster(key=privkey, hash=sbhash, verbose=verbose).signandstore(verbose=verbose)
+        return {"Content-type": "text/plain",
+                "data": self.url(mbm, command="file")}  # Note cant use mbm.url as not valid on TransportLocal
+    update.arglist=["table","hash","type"]
 
     @exposed
     def add(self, **kwargs):
@@ -105,6 +132,14 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         Block.setup(TransportLocal, verbose=False, dir="../cache_http")  # HTTP server is storing locally
         cls.serve_forever(verbose=False)    # Uses defaultipandport
         #TODO-HTTP its printing log, put somewhere instead
+
+    def url(self, obj, command=None, hash=None, type=None, **options):
+        # Identical to TransportHTTP.url
+        url =  "http://%s:%s/%s/%s/%s"  \
+               % (self.ipandport[0], self.ipandport[1], command or obj.transportcommand, obj.table, hash or obj.hash)
+        if type:
+            url += "/" + urllib.quote(type,safe='')
+        return url
 
 if __name__ == "__main__":
     DwebHTTPRequestHandler.HTTPToLocalGateway() # Run local gateway
