@@ -97,7 +97,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
                     for arg in func.arglist:
                         if arg not in argvars:
                             raise HTTPargrequiredException(req=req, arg=arg)  # Will be caught in MyHTTPRequestHandler._dispatch
-                if verbose: print "%s.%s %s" % (self.__class__.__name__, req, kwargs)
+                if verbose: print "%s.%s %s" % (self.__class__.__name__, req, argvars)
                 res = func(**argvars)          # MAIN PART - run method and collect result
             else:
                 if verbose: print "%s.dispatch unimplemented: %s" % (self.__class__.__name__, req)

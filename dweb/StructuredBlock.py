@@ -129,10 +129,11 @@ class StructuredBlock(Block, SmartDict):
         :param hash: Multihash
         :return: Block
         """
-        if verbose: print "Fetching Superblock hash=",hash
-        block = cls.block(table=table, hash=hash)     # Will create a Block (via Block.block) # Will use table=sb or superclass
+        if verbose: print "Fetching StructuredBlock table=",table,"hash=",hash
+        block = cls.block(table=table, hash=hash, verbose=verbose)     # Will create a Block (via Block.block) # Will use table=sb or superclass
         sb = cls(block)              # Create StructuredBlock and initialze
-        if verbose: print "Block returning", str(sb)
+        print "XXX@135 - why isnt it having error if not found"
+        if verbose: print "Block returning", sb
         return sb
 
 

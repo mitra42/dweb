@@ -45,7 +45,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
     store.arglist=["table", "data"]
 
     @exposed
-    def file(self, table=None, hash=None, contenttype=None, **kwargs):
+    def file(self, table=None, hash=None, contenttype=None, verbose=False, **kwargs):
         """
         file is specific to the URL gateway, knows about various kinds of directories, what stored there, and how to return to browser
 
@@ -54,13 +54,16 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         :param kwargs:
         :return: Dict suitable for looking for headers.
         """
+        if verbose: print "file",table,hash,contenttype,kwargs
         if table == "sb":
             b = StructuredBlock.sblock(table=table, hash=hash, **kwargs)
             return b.__dict__
         elif table == "mb": # Its a Mutable Block, fetch the sigs, then get latest, then fetch its content.
-            mb = MutableBlock(hash=hash)
-            mb.fetch()  # Get the sigs
-            return mb._current._sb().__dict__  # Pass teh StructuredBlock which should have the Content-type field etc.
+            mb = MutableBlock(hash=hash, verbose=verbose)
+            print "XXX@63",mb
+            mb.fetch(verbose=verbose)  # Get the sigs
+            print "XXX@65",mb
+            return mb._current._sb(verbose=verbose).__dict__  # Pass teh StructuredBlock which should have the Content-type field etc.
         elif table == "b":
             return {"Content-type": contenttype,
                 "data": Block.block(hash=hash, table=table, **kwargs )._data} # Should be raw data returned

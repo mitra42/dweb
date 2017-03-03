@@ -167,6 +167,7 @@ class Testing(unittest.TestCase):
         # A set of tools building up to usability for web.
         # All the functionality in storeas should have been tested elsewhere.
         self._storeas("dweb.js", "dweb_js_rsa", "application/javascript")
+        self._storeas("jquery-3.1.1.js", None, "application/javascript")
         self._storeas("index.html", "index_html_rsa", "text/html")
         self._storeas("snippet.html", "snippet_html_rsa", "text/html")
         self._storeas("WrenchIcon.png", None, "image/png")
