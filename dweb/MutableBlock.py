@@ -9,8 +9,8 @@ from SignedBlock import SignedBlock, SignedBlocks
 class MutableBlock(object):
     """
     Encapsulates a block that can change, or a list of blocks.
-
-    Get/Set non-private attributes writes to the SignedBlock at _current
+    Get/Set non-private attributes writes to the SignedBlock at _current.
+    Partially copied to dweb.js.
 
     { _key: KeyPair, _current: SignedBlock, _prev: [ SignedBlock* ] }
 
@@ -34,6 +34,7 @@ class MutableBlock(object):
     def __init__(self, key=None, hash=None, **options):
         """
         Create and initialize a MutableBlockMaster
+        Adapted to dweb.js.MutableBlock.constructor
 
         :param key:
         :param options: # Can indicate how to initialize content
@@ -53,7 +54,8 @@ class MutableBlock(object):
 
     def fetch(self, verbose=False, **options):
         """
-        Still experimental - may split MutableBlock and MutableBlockMaster
+        Still experimental - may split MutableBlock and MutableBlockMaster.
+        Copied to dweb.js.
 
         :param verbose:
         :param options:
@@ -82,6 +84,7 @@ class MutableBlockMaster(MutableBlock):
     { _key: KeyPair, _current: SignedBlock, _prev: [ SignedBlock* ] }
 
     """
+    table = "mbm"   # Note separate table, holds private keys
     # TODO-MUTABLE add variants for publishing & reading Lists (e.g. Blogs) or  Single Items,
 
     def __init__(self, key=None, hash=None, **options): # Note hash is of data

@@ -23,6 +23,7 @@ class SignedBlockEmptyException(MyBaseException):
 class Signature(SmartDict):
     """
     Encapsulate a signature - part of a SignedBlock
+    Partial mirror of this is in dweb.js
     """
     pass
 
@@ -108,7 +109,8 @@ class SignedBlock(object):
 
     def __init__(self, hash=None, structuredblock=None, signatures=None, verbose=False, **options):
         """
-        Create a signedblock - but dont sign it yet
+        Create a signedblock - but dont sign it yet.
+        Adapted into dweb.js
 
         :param hash: hash of block - will retrieve structuredblock if reqd
         :param structuredblock: dict, JSON string or StructuredBlock
@@ -178,6 +180,16 @@ class SignedBlocks(list):
 
     @classmethod
     def fetch(cls, publickey=None, hash=None, verbose=False, **options):
+        """
+        FInd all the related Signatures.
+        Adapted to dweb.js fetch_hash and fetch_publickey
+
+        :param publickey:
+        :param hash:
+        :param verbose:
+        :param options:
+        :return: SignedBlocks which is a list of SignedBlock
+        """
         lines = StructuredBlock.transport.list("signedby", hash=hash, verbose=verbose,
                                                key=CryptoLib.export(publickey) if publickey is not None else None,
                                                **options)

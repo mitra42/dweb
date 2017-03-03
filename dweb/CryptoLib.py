@@ -81,6 +81,10 @@ class CryptoLib(object):
         :param data:    Any
         :return: JSON string that can be deterministically hashed or compared
         """
+        # ensure_ascii = False was set otherwise if try and read binary content, and embed as "data" in StructuredBlock then complains
+        # if it cant convert it to UTF8. (This was an example for the Wrenchicon), but loads couldnt handle return anyway.
+        # sort_keys = True so that dict always returned same way so can be hashed
+        # separators = (,:) gets the most compact representation
         return dumps(data, sort_keys=True, separators=(',', ':'), default=json_default)
 
     @staticmethod

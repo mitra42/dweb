@@ -103,7 +103,8 @@ class TransportHTTP(Transport):
 
     def list(self, table=None, hash=None, verbose=False, **options):
         """
-        Method that should always be subclassed to retrieve record(s) matching a key
+        Method that should always be subclassed to retrieve record(s) matching a key.
+        Copied to dweb.py
 
         :param table: Table to look for key in
         :param key: Key to be retrieved (embedded in options for easier pass through)
