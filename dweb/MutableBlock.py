@@ -124,11 +124,12 @@ class MutableBlockMaster(MutableBlock):
     def privateurl(self):
         """
         Get a URL that can be used for edits to the resource
+        Side effect of storing the key
 
         :return:
         """
         self._privkeyhash = Block(CryptoLib.export(self._key, private=True)).store(table=self.table)
-        return Block.transport.url(self, command="update", table="mbm", hash=self._privkeyhash, type=self.__getattr__("Content-type"))
+        return Block.transport.url(self, command="update", table="mbm", hash=self._privkeyhash, contenttype=self.__getattr__("Content-type"))
 
 
         #TODO-AUTHENTICATION - this is particularly vulnerable w/o authentication as stores PrivateKey in unencrypted form

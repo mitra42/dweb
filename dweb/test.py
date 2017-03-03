@@ -140,39 +140,48 @@ class Testing(unittest.TestCase):
         else:
             assert False, "Should raise a TransportBlockNotFound error"
 
-    def _storeas(self, filename, keyname, type):
+    def _storeas(self, filename, keyname, contenttype, **options):
         filepath = self.exampledir + filename
         keypath = self.exampledir + keyname if keyname else None
-        content = filecontent(filepath)
-        sb = StructuredBlock(data=content, **{"Content-type": type})
-        sb.store(verbose=self.verbose)
-        if keypath and not os.path.exists(keypath):
-            CryptoLib.export(CryptoLib.keygen(), private=True, filename=keypath) # Uncomment to get a key
-        #TODO next line fails if dont have a keyname which is ok for now
-        mbm = MutableBlockMaster(key=filecontent(keypath), hash=sb.hash).signandstore()
-        print filename + ":" + mbm.url(command="file")
-        print filename + " editable:" + mbm.privateurl()
+        content = filecontent(filepath) # This is a string, but it might be binary
+        if "image" in contenttype:
+            b = Block(content)  # Store raw
+            hash = b.store(verbose=self.verbose)
+            print filename + ":" + b.url(command="file", contenttype="image/png")  # Should be block, b, hash, params={"contenttype": "image/png"}
+        else:
+            sb = StructuredBlock(data=content, **{"Content-type": contenttype})
+            sb.store(verbose=self.verbose)
+            # Note combination of image and keyname not valid currently (would probavly need to store as block inside structuredblock
+            if keypath:
+                if not os.path.exists(keypath):
+                    CryptoLib.export(CryptoLib.keygen(), private=True, filename=keypath) # Uncomment to get a key
+                    #TODO next line fails if dont have a keyname which is ok for now
+                mbm = MutableBlockMaster(key=filecontent(keypath), hash=sb.hash).signandstore()
+                print filename + " editable:" + mbm.privateurl()    # Side effect of storing
+                print filename + ":" + mbm.url(command="file", table="mb")
+            else:
+                print filename + ":" + sb.url(command="file")
 
 
     def test_current(self):     #TODO-URLREFACTOR add url function to objects
         # A set of tools building up to usability for web.
         # All the functionality in storeas should have been tested elsewhere.
-        self._storeas("dweb.js", "dweb_js_rsa", "application/json")
+        self._storeas("dweb.js", "dweb_js_rsa", "application/javascript")
         self._storeas("index.html", "index_html_rsa", "text/html")
         self._storeas("snippet.html", "snippet_html_rsa", "text/html")
+        self._storeas("WrenchIcon.png", None, "image/png")
+        self._storeas("DWebArchitecture.png", "DwebArchitecture_png_rsa","image/png")
 
-        #TODO think of urls that would be useful e.g. /list/
+        #TODO initialize content of MCE Editor
+        #TODO-LIST--------
+        #TODO-LIST Add a Ajax library call to get it and dump into div
+        #TODO-LIST Add to index so can see all of them - e.g. for content
+        #TODO-LIST Add a Ajax list to sample page that loads structured data e.g. for editing old versions
+        #TODO-LIST--------
+        #TODO think of urls that would be useful
         #TODO upload some other things e.g. an image
-        #TODO Relative URL handler on HTTPServer using same logic as IPFS - look for "/" in request
+        #TODO Relative URL handler on HTTPServer using same logic as IPFS - look for "/" in request; Test on mcetiny
         #TODO Test relative URL on index page to image
-        #TODO Add a Ajax list to sample page that loads raw content
-        #TODO Add a Ajax list to sample page that loads structured data
-        #TODO Javascript library running in sample web page
-        #TODO Javascript library to be able to ....
+        #TODO Build a trivial file uploader in JS (may req URL refactor but prob not)
 
-        #TODO Build a trivial uploader (reqs URL refactor)
-
-    #TODO Think about tools for URL handling to make play nice with web pages
-    #TODO open question - store html in such a way that "block" understands, or retrieve as "html"
-
-    #TODO-EDITOR image uploading https://www.tinymce.com/docs/get-started/upload-images/
+        #TODO-EDITOR image uploading https://www.tinymce.com/docs/get-started/upload-images/

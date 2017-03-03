@@ -114,6 +114,7 @@ class TransportLocal(Transport):
         :return: list of dictionaries for each item retrieved
         """
         if verbose: print "TransportLocal.list", table, key
+        if table in ("mb", "mbm"): table = "signedby"            # Look for Signatures for mb table in signedby table
         filename = self._filename(table, key=key, hash=hash, verbose=verbose, **options)
         try:
             f = open(filename, 'rb')

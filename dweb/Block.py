@@ -39,9 +39,9 @@ class Block(object):
         :return: hash of data
         """
         if verbose: print "Storing len=", len(self._data)
-        hash = self.transport.store(table=table or self.table, data=self._data)
+        self.hash = self.transport.store(table=table or self.table, data=self._data)
         if verbose: print "Block.store: Hash=", hash
-        return hash
+        return self.hash
 
     @classmethod
     def block(cls, hash, table=None, verbose=False, **options):
@@ -58,4 +58,9 @@ class Block(object):
         if verbose: print "Block returning data len=", len(data)
         return Block(data=data)
 
-
+    def url(self, **options):
+        """
+        Get the body of a URL based on the transport just used.
+        :return:
+        """
+        return self.transport.url(self, **options)

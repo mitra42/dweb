@@ -45,7 +45,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
     store.arglist=["table", "data"]
 
     @exposed
-    def file(self, table=None, hash=None, **kwargs):
+    def file(self, table=None, hash=None, contenttype=None, **kwargs):
         """
         file is specific to the URL gateway, knows about various kinds of directories, what stored there, and how to return to browser
 
@@ -61,12 +61,15 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
             mb = MutableBlock(hash=hash)
             mb.fetch()  # Get the sigs
             return mb._current._sb().__dict__  # Pass teh StructuredBlock which should have the Content-type field etc.
+        elif table == "b":
+            return {"Content-type": contenttype,
+                "data": Block.block(hash=hash, table=table, **kwargs )._data} # Should be raw data returned
         else:
             raise ToBeImplementedException(name="file for table "+table)
     file.arglist=["table", "hash"]
 
     @exposed
-    def update(self, table=None, hash=None, type=None, data=None, **kwargs):
+    def update(self, table=None, hash=None, contenttype=None, data=None, **kwargs):
         """
         Update the content
 
@@ -78,14 +81,14 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         #Fetch key from hash
         verbose=True
         if verbose: print "DwebHTTPRequestHandler.update",table,hash,data,type
-        privkey = Block.block(table="mb", hash=hash, verbose=verbose)._data #TODO what happens if cant find
+        privkey = Block.block(table="mbm", hash=hash, verbose=verbose)._data #TODO what happens if cant find
         # Store the data
-        sbhash = StructuredBlock(data=data, verbose=verbose, **{"Content-type": type}).store()
+        sbhash = StructuredBlock(data=data, verbose=verbose, **{"Content-type": contenttype}).store()
         #Create Mbm from key; load with data; sign and store
         mbm = MutableBlockMaster(key=privkey, hash=sbhash, verbose=verbose).signandstore(verbose=verbose)
-        return {"Content-type": "text/plain",
-                "data": self.url(mbm, command="file")}  # Note cant use mbm.url as not valid on TransportLocal
-    update.arglist=["table","hash","type"]
+        return {"Content-type": "text/plain",       # Always returning plain text as the URL whatever type stored
+                "data": self.url(mbm, command="file", table="mb")}  # Note cant use mbm.url as not valid on TransportLocal
+    update.arglist=["table","hash","contenttype"]
 
     @exposed
     def add(self, **kwargs):
@@ -132,12 +135,12 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         cls.serve_forever(verbose=False)    # Uses defaultipandport
         #TODO-HTTP its printing log, put somewhere instead
 
-    def url(self, obj, command=None, hash=None, type=None, **options):
+    def url(self, obj, command=None, hash=None, contenttype=None, table=None, **options):
         # Identical to TransportHTTP.url
         url =  "http://%s:%s/%s/%s/%s"  \
-               % (self.ipandport[0], self.ipandport[1], command or obj.transportcommand, obj.table, hash or obj.hash)
-        if type:
-            url += "/" + urllib.quote(type,safe='')
+               % (self.ipandport[0], self.ipandport[1], command or obj.transportcommand, table or obj.table, hash or obj.hash)
+        if contenttype:
+            url += "/" + urllib.quote(contenttype,safe='')
         return url
 
 if __name__ == "__main__":

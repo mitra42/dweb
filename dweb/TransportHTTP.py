@@ -3,7 +3,7 @@
 from sys import version as python_version
 import requests             # For outgoing HTTP http://docs.python-requests.org/en/master/
 from Transport import Transport, TransportBlockNotFound
-from misc import ToBeImplementedException
+#from misc import ToBeImplementedException
 from CryptoLib import CryptoLib
 import urllib
 
@@ -117,14 +117,17 @@ class TransportHTTP(Transport):
         return res.json()
 
 
-    def url(self, obj, command=None, hash=None, type=None, **options):
+    def url(self, obj, command=None, hash=None, table=None, contenttype=None, **options):
         """
 
         :return: HTTP style URL to access this resource - not sure what this works on yet.
         """
         # Identical to ServerHTTP.url
         url =  "http://%s:%s/%s/%s/%s"  \
-               % (self.ipandport[0], self.ipandport[1], command or obj.transportcommand, obj.table, hash or obj.hash)
-        if type:
-            url += "/" + urllib.quote(type,safe='')
+               % (self.ipandport[0], self.ipandport[1], command or obj.transportcommand, table or obj.table, hash or obj.hash)
+        if contenttype:
+            if command in ("update",):  # Some commands allow type as URL parameter
+                url += "/" + urllib.quote(contenttype, safe='')
+            else:
+                url += "?contenttype=" + urllib.quote(contenttype, safe='')
         return url
