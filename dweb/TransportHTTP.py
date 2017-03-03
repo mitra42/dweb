@@ -98,6 +98,7 @@ class TransportHTTP(Transport):
         :param options:
         :return:
         """
+        #TODO rename key to hash in Transport.add
         if options.get("verbose",None): print "add",table, key, value, options
         res = self._sendGetPost(True, "add", urlargs = [table], headers={"Content-Type": "application/octet-stream"}, params={"key": key}, data=CryptoLib.dumps(value))
 

@@ -14,7 +14,9 @@ Locking the Web Open
    Integration
    Storage and Retrieval
    Applications
+   ScalableAPI
    Roadmap
+   Design
    Modules
    Glossary
 
