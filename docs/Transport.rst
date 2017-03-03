@@ -14,7 +14,7 @@ The Transport API is implemented via a few simple primitives.
 
 Conceptually it is implemented on a DistributedDatabase consisting of a set of Distributed Hash Tables (DHT).
 
-setup(**args)
+setup(args)
     Instantiate a transport object, parameters to this are transport specific.
 
 block(table, hash, options)

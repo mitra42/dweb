@@ -33,12 +33,13 @@ See :ref:design_url: for logic behind this.
 Suggest ...
 Feature
 
-======      ======================   =================
-Object      URL                      Stored as
-======      ======================   =================
+==========  ======================  =================
+Object      URL                     Stored as
+==========  ======================  =================
 Mutable     mb/SHA3256.111222       mb/...
 Signed      signed/SHA3256.111222   signed/...
 Structured  sb/SHA3256.111222       sb/...
+==========  ======================  =================
 
 If want to access some part then need to pass further args e.g.
 
