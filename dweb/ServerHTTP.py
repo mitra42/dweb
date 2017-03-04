@@ -9,7 +9,7 @@ from misc import ToBeImplementedException
 
 class DwebHTTPRequestHandler(MyHTTPRequestHandler):
 
-    defaultipandport = ('localhost', 4243)
+    defaultipandport = ('192.168.1.156', 4243)
 
     @exposed
     def block(self, table=None, hash=None, contenttype="application/octet-stream", **kwargs):

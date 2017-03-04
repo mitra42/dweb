@@ -3,13 +3,14 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>Test page for Dweb</title>
-    <!--<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>-->
-    <script src="http://localhost:4243/file/sb/SHA3256B64URL.BDCbn_l9rrlCdVkB9o6qozSP84HBCGors5dBLxdyro8="></script><!-- jquery-3.1.1.js-->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script><!-- get JQUERY from google -->
+    <!--<script src="http://localhost:4243/file/sb/SHA3256B64URL.BDCbn_l9rrlCdVkB9o6qozSP84HBCGors5dBLxdyro8="></script><!-- jquery-3.1.1.js-->
     <!--<script src="http://localhost:4243/file/mb/SHA3256B64URL.OylzjhbKQK5VOVMbvdK9Dkb4UDfOEHU8uCeSnzqiseE="></script>--><!-- dweb.js -->
     <script>
         // This is code intended to go in library when working
         // ====== IN PROGRESS BELOW HERE
-        var dwebserver = 'localhost'
+        var dwebserver = '192.168.1.156'
+        //var dwebserver = 'localhost'
         var dwebport = '4243'
 
         class TransportHttp {
@@ -43,7 +44,7 @@
             block(table, verbose, options) {
                 // table: overrides table of class
                 // options: { dom_id:   id to put data retrieved.
-                //TODO probably move this into transportHttp but leave success and failure out passing as parameters
+                //TODO probably move this into transportHttp but leave success and failure out passing object to call as parameter
                 // Based on python except table is reqd parameter (null not acceptable)
                 // Locate and return a block, based on its multihash
                 if (verbose) { console.log("Fetching block: table=", table || this.table, "hash=", this._hash); }
