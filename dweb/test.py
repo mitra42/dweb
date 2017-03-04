@@ -16,7 +16,7 @@ from MutableBlock import MutableBlockMaster, MutableBlock
 class Testing(unittest.TestCase):
     def setUp(self):
         super(Testing, self).setUp()
-        testTransport = TransportHTTP
+        testTransport = TransportHTTP  #TODO change back to TransportHTTP
         self.verbose=False
         self.quickbrownfox =  "The quick brown fox ran over the lazy duck"
         self.dog = "But the clever dog chased the fox"
@@ -36,12 +36,11 @@ class Testing(unittest.TestCase):
         super(Testing, self).tearDown()
 
     def test_Block(self):
-        multihash = Block(self.quickbrownfox).store(verbose=self.verbose)
+        multihash = Block(data=self.quickbrownfox).store(verbose=self.verbose)
         block = Block.block(multihash, verbose=self.verbose)
         assert block._data == self.quickbrownfox, "Should return data stored"
 
     def test_StructuredBlock(self):
-        from StructuredBlock import StructuredBlock
         # Test Structured block
         sblock = StructuredBlock(dict=self.mydic)
         assert sblock.a == self.mydic['a'], "Testing attribute access"
@@ -80,10 +79,10 @@ class Testing(unittest.TestCase):
 
     def test_LongFiles(self):
         from StructuredBlock import StructuredBlock, StructuredLink
-        sblock = StructuredBlock({ "data": self.quickbrownfox})
+        sblock = StructuredBlock({ "data": self.quickbrownfox}) # Note this is data held in the SB, as compared to _data which is data representing the SB
         assert sblock.size(verbose=self.verbose) == len(self.quickbrownfox), "Should get length"
         assert sblock.content(verbose=self.verbose) == self.quickbrownfox, "Should fetch string"
-        multihash = Block(self.dog).store(verbose=self.verbose)
+        multihash = Block(data=self.dog).store(verbose=self.verbose)
         sblock = StructuredBlock({ "hash": multihash})
         assert sblock.content(verbose=self.verbose) == self.dog, "Should fetch dog string"
         assert sblock.size(verbose=self.verbose) == len(self.dog), "Should get length"
@@ -98,7 +97,7 @@ class Testing(unittest.TestCase):
     def test_http(self):
         # Run python -m ServerHTTP; before this
         Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
-        multihash = Block(self.quickbrownfox).store(verbose=self.verbose)
+        multihash = Block(data=self.quickbrownfox).store(verbose=self.verbose)
         block = Block.block(multihash, verbose=self.verbose)
         assert block._data == self.quickbrownfox, "Should return data stored"
 
@@ -126,7 +125,7 @@ class Testing(unittest.TestCase):
         Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         # Store the wrench icon
         content = filecontent(self.exampledir + "WrenchIcon.png")
-        wrenchhash = Block(content).store(verbose=self.verbose)
+        wrenchhash = Block(data=content).store(verbose=self.verbose)
         # And check it got there
         resp = Block.transport._sendGetPost(False, "block", [ Block.table, wrenchhash], params={"contenttype": "image/png"})
         assert resp.headers["Content-type"] == "image/png", "Should get type"
@@ -146,18 +145,18 @@ class Testing(unittest.TestCase):
         keypath = self.exampledir + keyname if keyname else None
         content = filecontent(filepath) # This is a string, but it might be binary
         if "image" in contenttype:
-            b = Block(content)  # Store raw
+            b = Block(data=content)  # Store raw
             hash = b.store(verbose=self.verbose)
             print filename + ":" + b.url(command="file", contenttype="image/png")  # Should be block, b, hash, params={"contenttype": "image/png"}
         else:
             sb = StructuredBlock(data=content, **{"Content-type": contenttype})
-            sb.store(verbose=self.verbose)
+            sb.store(verbose=self.verbose)  # This will have data and _hash, the _hash reflects the SB not the data
             # Note combination of image and keyname not valid currently (would probavly need to store as block inside structuredblock
             if keypath:
                 if not os.path.exists(keypath):
                     CryptoLib.export(CryptoLib.keygen(), private=True, filename=keypath) # Uncomment to get a key
                     #TODO next line fails if dont have a keyname which is ok for now
-                mbm = MutableBlockMaster(key=filecontent(keypath), hash=sb.hash).signandstore()
+                mbm = MutableBlockMaster(key=filecontent(keypath), hash=sb._hash, verbose=self.verbose).signandstore(verbose=self.verbose)
                 print filename + " editable:" + mbm.privateurl()    # Side effect of storing
                 print filename + ":" + mbm.url(command="file", table="mb")
             else:

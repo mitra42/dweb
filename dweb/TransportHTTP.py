@@ -124,9 +124,11 @@ class TransportHTTP(Transport):
 
         :return: HTTP style URL to access this resource - not sure what this works on yet.
         """
+        from MutableBlock import MutableBlock
         # Identical to ServerHTTP.url
+        hash = hash or ( obj.hash if isinstance(obj, MutableBlock) else obj._hash)
         url =  "http://%s:%s/%s/%s/%s"  \
-               % (self.ipandport[0], self.ipandport[1], command or obj.transportcommand, table or obj.table, hash or obj.hash)
+               % (self.ipandport[0], self.ipandport[1], command or obj.transportcommand, table or obj.table, hash)
         if contenttype:
             if command in ("update",):  # Some commands allow type as URL parameter
                 url += "/" + urllib.quote(contenttype, safe='')

@@ -34,7 +34,6 @@
         var transport = TransportHttp.setup([dwebserver, dwebport], {});
 
         class Block {
-
             constructor(hash, data) {
                 this._hash = hash;  // Maybe null
                 this._data = data;  // Maybe null
@@ -63,6 +62,23 @@
                     },
                 });
             }
+        }
+
+        class StructuredBlock {
+            //TODO build StructuredBlock and allow fetch of data to div
+        }
+        class SignedBlock {
+            // TODO Build Signed Block - allow retrieval of SB from it
+        }
+        class SignedBlocks {
+            // TODO Build SignedBlocks - allow to produce list of SigB and fetching them
+        }
+        class MutableBlock {
+            // TODO Build MutableBlock - allow fetch of signatures, and fetching them
+            // TODO allow fetching of most recent
+        }
+        class MutableBlockMaster {
+            // TODO Build MutableBlockMaster - allow to drive editor (MCE)
         }
 
     </script>

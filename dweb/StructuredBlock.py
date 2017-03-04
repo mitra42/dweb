@@ -65,6 +65,7 @@ class StructuredLink(SmartDict):
         """
         :return: Size of content, or None if cant calculate
         """
+        if verbose: print "SL size:",self
         return (
             self.__dict__.get("size", None) or
             (self.data and len(self.data)) or
@@ -74,7 +75,9 @@ class StructuredLink(SmartDict):
 
 class StructuredBlock(Block, SmartDict):
     """
-    Encapsulates an JSON Dict and stores / retrieves over transports
+    Encapsulates an JSON Dict and stores / retrieves over transports.
+    Note that data is data contained *in* the SB, while _data is data representation *of* the SB.
+    Similarly hash is a pointer to data contained *in* the SB, while _hash is the the hash of the data representing the SB.
     """
     table="sb"
     transportcommand="block"
@@ -115,11 +118,11 @@ class StructuredBlock(Block, SmartDict):
 
         :return: hash of data
         """
-        #store accesses the data via _data above
-        hash = super(StructuredBlock, self).store(**options) # Will use table=sb
+        #store the block, it calls Block.store which uses self._data to get data - the "data" property above returns the dumps of the __dict__
+        hash = super(StructuredBlock, self).store(verbose=verbose, **options) # Will use table=sb - this will set _hash #TODO which should be overridden below
         if verbose: print "Structured Block.store: Hash=",hash
-        self.hash = hash
-        return hash
+        self._hash = hash
+        return self._hash
 
     @classmethod
     def sblock(cls, hash=hash, table=None, verbose=False, **options):
@@ -142,6 +145,8 @@ class StructuredBlock(Block, SmartDict):
 
     def content(self, verbose=False, **options):
         """
+        Return the content of the SB.
+        Note that this has to use the hash or data fields to get the content held, rather than _hash or _data which represents the SB itself.
         :return: content of block, fetching links (possibly recursively) if required
         """
         return (
@@ -152,8 +157,12 @@ class StructuredBlock(Block, SmartDict):
 
     def size(self, verbose=False, **options):
         """
+        Return the length of the content of the SB.
+        Note that this has to use the hash or data fields to get the content held, rather than _hash or _data which represents the SB itself.
+
         :return: Size of content, or None if cant calculate
         """
+        if verbose: print "SB.size: size=", self.__dict__.get("size",None), "data=", self.data, "hash=", self.hash, "links=", self.links
         return (
             self.__dict__.get("size",None) or
             (self.data and len(self.data)) or

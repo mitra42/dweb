@@ -87,15 +87,15 @@ class MutableBlockMaster(MutableBlock):
     table = "mbm"   # Note separate table, holds private keys
     # TODO-MUTABLE add variants for publishing & reading Lists (e.g. Blogs) or  Single Items,
 
-    def __init__(self, key=None, hash=None, **options): # Note hash is of data
+    def __init__(self, key=None, hash=None, verbose=False, **options): # Note hash is of data
         """
 
         :param key:
         :param hash: optional hash of data to initialize with NOT hash of the key.
         :param options:
         """
-        super(MutableBlockMaster,self).__init__(key=key, **options) # Dont pass hash here, will be seen as hash of key
-        self._current = SignedBlock(hash=hash, **options)  # Create a place to hold content, pass hash to load content
+        super(MutableBlockMaster,self).__init__(key=key, verbose=verbose, **options) # Dont pass hash here, will be seen as hash of key
+        self._current = SignedBlock(hash=hash, verbose=verbose, **options)  # Create a place to hold content, pass hash to load content
 
     def __setattr__(self, name, value):
         if name and name[0] == "_":
@@ -128,7 +128,7 @@ class MutableBlockMaster(MutableBlock):
 
         :return:
         """
-        self._privkeyhash = Block(CryptoLib.export(self._key, private=True)).store(table=self.table)
+        self._privkeyhash = Block(data=CryptoLib.export(self._key, private=True)).store(table=self.table)
         return Block.transport.url(self, command="update", table="mbm", hash=self._privkeyhash, contenttype=self.__getattr__("Content-type"))
 
 

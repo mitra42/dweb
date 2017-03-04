@@ -10,7 +10,10 @@ class Block(object):
     table = "b"
     transportcommand="block"
 
-    def __init__(self, data=None):
+    def __init__(self, hash=None, data=None):
+        #TODO-BLOCK check calls to __init__ and make sure use dic for hash
+        #TODO-BLOCK make block use _hash rather than hash passed
+        self._hash = hash
         self._data = data
 
     def __repr__(self):
@@ -39,9 +42,9 @@ class Block(object):
         :return: hash of data
         """
         if verbose: print "Storing len=", len(self._data)
-        self.hash = self.transport.store(table=table or self.table, data=self._data)
-        if verbose: print "Block.store: Hash=", hash
-        return self.hash
+        self._hash = self.transport.store(table=table or self.table, data=self._data)
+        if verbose: print "Block.store: Hash=", self._hash
+        return self._hash
 
     @classmethod
     def block(cls, hash, table=None, verbose=False, **options):
@@ -55,7 +58,7 @@ class Block(object):
         :return: Block
         """
         if verbose: print "Fetching block table=", table or cls.table, "hash=", hash
-        data = cls.transport.block(table=table or cls.table, hash=hash)
+        data = cls.transport.block(table=table or cls.table, hash=hash or self._hash)
         if verbose: print "Block returning data len=", len(data)
         return Block(data=data)
 

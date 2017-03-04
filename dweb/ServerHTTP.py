@@ -40,7 +40,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
 
     @exposed
     def store(self, table=None, data=None, **kwargs):
-        hash = Block(data).store(table=table)
+        hash = Block(data=data).store(table=table)
         return { "Content-type": "appliction/octet-stream", "data": hash }
     store.arglist=["table", "data"]
 
@@ -60,9 +60,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
             return b.__dict__
         elif table == "mb": # Its a Mutable Block, fetch the sigs, then get latest, then fetch its content.
             mb = MutableBlock(hash=hash, verbose=verbose)
-            print "XXX@63",mb
             mb.fetch(verbose=verbose)  # Get the sigs
-            print "XXX@65",mb
             return mb._current._sb(verbose=verbose).__dict__  # Pass teh StructuredBlock which should have the Content-type field etc.
         elif table == "b":
             return {"Content-type": contenttype,
@@ -82,7 +80,6 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         :return:
         """
         #Fetch key from hash
-        verbose=True
         if verbose: print "DwebHTTPRequestHandler.update",table,hash,data,type
         privkey = Block.block(table="mbm", hash=hash, verbose=verbose)._data #TODO what happens if cant find
         # Store the data
@@ -141,7 +138,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
     def url(self, obj, command=None, hash=None, contenttype=None, table=None, **options):
         # Identical to TransportHTTP.url
         url =  "http://%s:%s/%s/%s/%s"  \
-               % (self.ipandport[0], self.ipandport[1], command or obj.transportcommand, table or obj.table, hash or obj.hash)
+               % (self.ipandport[0], self.ipandport[1], command or obj.transportcommand, table or obj.table, hash or obj._hash)
         if contenttype:
             url += "/" + urllib.quote(contenttype,safe='')
         return url
