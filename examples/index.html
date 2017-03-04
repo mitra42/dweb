@@ -25,6 +25,12 @@
             }
         });
     </script>
+    <script>
+        // This is my current testing script.
+        foo = new Block("SHA3256B64URL.50GNWgUQ9GgrVfMvpedEg77ByMRYkUgPRU9P1gWaNF8=");
+        // Interface may not look like this
+        foo.load("myList.0");
+    </script>
 </head>
 <body>
 <H1>DWEB Demonstration Web</H1>
@@ -42,7 +48,8 @@
 <h3>Experimental from here on down</h3>
 <p>This is a good place to put links to other tests - working or not.</p>
 <h4>List to be loaded by a button</h4>
-<ul id="myList"></ul>
+<ul id="myList"><li id=myList.0">Initial unreplaced text</li><li id="mylist.1">Dummy text of item1</li></ul>
+
 <a onclick='dweblist("myList", "mb", "SHA3256B64URL.CLw7p4lteb5oxmXBkuk9lDqM89hRic7RPITGWg1AAD4=");'>Get List</a>
 Afer
 </body>

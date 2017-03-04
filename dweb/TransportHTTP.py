@@ -28,7 +28,8 @@ class TransportHTTP(Transport):
     @classmethod
     def setup(cls, ipandport=None, **options):
         """
-        Called to deliver a transport instance of a particular class
+        Called to deliver a transport instance of a particular class.
+        Copied to dweb.js
 
         :param options: Options to subclasses init method
         :return: None

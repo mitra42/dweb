@@ -46,8 +46,9 @@ class Block(object):
     @classmethod
     def block(cls, hash, table=None, verbose=False, **options):
         """
-        Locate and return a block, based on its multihash
-        Exceptions: TransportBlockNotFound if invalid hash
+        Locate and return a block, based on its multihash.
+        Exceptions: TransportBlockNotFound if invalid hash.
+        Copied to dweb.js.
 
         :rtype: Block
         :param hash: Multihash

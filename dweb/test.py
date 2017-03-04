@@ -169,6 +169,7 @@ class Testing(unittest.TestCase):
         self._storeas("dweb.js", "dweb_js_rsa", "application/javascript")
         self._storeas("jquery-3.1.1.js", None, "application/javascript")
         self._storeas("index.html", "index_html_rsa", "text/html")
+        self._storeas("test.html", "test_html_rsa", "text/html")
         self._storeas("snippet.html", "snippet_html_rsa", "text/html")
         self._storeas("WrenchIcon.png", None, "image/png")
         self._storeas("DWebArchitecture.png", "DwebArchitecture_png_rsa","image/png")
@@ -183,6 +184,7 @@ class Testing(unittest.TestCase):
         #TODO upload some other things e.g. an image
         #TODO Relative URL handler on HTTPServer using same logic as IPFS - look for "/" in request; Test on mcetiny
         #TODO Test relative URL on index page to image
+        #TODO make mce work in dweb, i.e. via relative urls
         #TODO Build a trivial file uploader in JS (may req URL refactor but prob not)
 
         #TODO-EDITOR image uploading https://www.tinymce.com/docs/get-started/upload-images/

@@ -37,7 +37,7 @@ class TransportLocal(Transport):
     def setup(cls, dir=None, **options):
         """
         Setup local transport to use dir
-        |Exceptions: TransportBlockNotFound if dir invalid
+        Exceptions: TransportBlockNotFound if dir invalid
 
         :param dir:     Directory to use for storage
         :param options: Unused currently
