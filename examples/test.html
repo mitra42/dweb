@@ -24,7 +24,7 @@
                 return new TransportHttp(ipandport, options);
             }
 
-            TODO_url(command, table, hash) {  //TODO replace with copy from Python
+            url(command, table, hash) {
                 var url = this.baseurl + command + "/" + table + "/" + hash;
                 return url;
             }
@@ -34,17 +34,20 @@
 
         class Block {
 
-            constructor(data) {
-                this._data = data;
+            constructor(hash, data) {
+                this._hash = hash;  // Maybe null
+                this._data = data;  // Maybe null
+                this.table = 'b';
             }
 
-            static block_open(table, hash, verbose, options) {
+            block(table, verbose, options) {
+                // table: overrides table of class
+                // options: { dom_id:   id to put data retrieved.
                 //TODO probably move this into transportHttp but leave success and failure out passing as parameters
-                //TODO probably create block(hash) then make these normal (not static) methods
                 // Based on python except table is reqd parameter (null not acceptable)
                 // Locate and return a block, based on its multihash
-                if (verbose) { console.log("Fetching block: table=", table , "hash=", hash); }
-                let url = transport.TODO_url("block", table || Block.table, hash);
+                if (verbose) { console.log("Fetching block: table=", table || this.table, "hash=", this._hash); }
+                let url = transport.url("block", table || this.table, this._hash);
                 alert(url);
                 if (verbose) { console.log("Fetching block: url=",url); }
                 $.ajax({
@@ -52,7 +55,7 @@
                     url: url,
                     success: function(data) {
                         if (verbose) { console.log("Block returning data len=", data.length); }
-                        alert("TODO Block loaded"+data);
+                        if (options["dom_id"]) { document.getElementById(options["dom_id"]).innerHTML = data; } // TODO make it handle img, or other non-HTML as reqd
                     },
                     error: function(xhr, status, error) {
                         alert("TODO Block failure status="+status+" error="+error);
@@ -60,14 +63,12 @@
                 });
             }
         }
-        Block.table = "b";
 
     </script>
     <script>
         // This is my current testing script.
-        foo = Block.block_open(null, "SHA3256B64URL.50GNWgUQ9GgrVfMvpedEg77ByMRYkUgPRU9P1gWaNF8=", true, {}); //TODO make a method of a block
-        // Interface may not look like this
-        //alert("TODO will load");
+        b = new Block("SHA3256B64URL.50GNWgUQ9GgrVfMvpedEg77ByMRYkUgPRU9P1gWaNF8=", null)
+        b.block(null, true, {"dom_id": "myList.0"});      // Load block in background
         //foo.load("myList.0");
     </script>
 
@@ -77,7 +78,7 @@
 <H1>Test page for DWEB</H1>
 <p>This page is a current test, will just be testing current (usually broken) stuff.</p>
 
-<ul id="myList"><li id=myList.0">Initial unreplaced text</li><li id="mylist.1">Dummy text of item1</li></ul>
+<ul id="myList"><li id="myList.0">Initial unreplaced text</li><li id="mylist.1">Dummy text of item1</li></ul>
 </body>
 </html>
 
