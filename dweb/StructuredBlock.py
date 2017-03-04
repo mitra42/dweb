@@ -79,7 +79,7 @@ class StructuredBlock(Block, SmartDict):
     Note that data is data contained *in* the SB, while _data is data representation *of* the SB.
     Similarly hash is a pointer to data contained *in* the SB, while _hash is the the hash of the data representing the SB.
     """
-    table="sb"
+    table="sb"      #TODO may need to move to _table
     transportcommand="block"
 
     @property
@@ -106,6 +106,7 @@ class StructuredBlock(Block, SmartDict):
         :param dict: Can be a dict, or a json string
         :param options: List of fields to set
         """
+        #TODO allow constructing from hash
         if isinstance(dict, Block):
             dict = dict._data
         SmartDict.__init__(self, dict)   # Cant use "super" as would use Block instead of SmartDic

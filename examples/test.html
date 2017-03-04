@@ -37,7 +37,15 @@
             constructor(hash, data) {
                 this._hash = hash;  // Maybe null
                 this._data = data;  // Maybe null
-                this.table = 'b';
+                this._table = 'b';
+            }
+
+            onloaded(verbose, options) {
+                // Called after block succeeds, can pass options through
+                if (verbose) { console.log("Block:onloaded:Storing _data to", options["dom_id"]); }
+                if (options["dom_id"]) {
+                            document.getElementById(options["dom_id"]).innerHTML = this._data;
+                } // TODO make it handle img, or other non-HTML as reqd
             }
 
             block(table, verbose, options) {
@@ -46,16 +54,17 @@
                 //TODO probably move this into transportHttp but leave success and failure out passing object to call as parameter
                 // Based on python except table is reqd parameter (null not acceptable)
                 // Locate and return a block, based on its multihash
-                if (verbose) { console.log("Fetching block: table=", table || this.table, "hash=", this._hash); }
-                let url = transport.url("block", table || this.table, this._hash);
-                alert(url);
+                if (verbose) { console.log("Fetching block: table=", table || this._table, "hash=", this._hash); }
+                let url = transport.url("block", table || this._table, this._hash);
                 if (verbose) { console.log("Fetching block: url=",url); }
+                let self = this;    // So can pass to success function
                 $.ajax({
                     type: "GET",
                     url: url,
                     success: function(data) {
                         if (verbose) { console.log("Block returning data len=", data.length); }
-                        if (options["dom_id"]) { document.getElementById(options["dom_id"]).innerHTML = data; } // TODO make it handle img, or other non-HTML as reqd
+                        self._data = data;
+                        self.onloaded(verbose, options);
                     },
                     error: function(xhr, status, error) {
                         alert("TODO Block failure status="+status+" error="+error);
@@ -64,8 +73,24 @@
             }
         }
 
-        class StructuredBlock {
-            //TODO build StructuredBlock and allow fetch of data to div
+        class StructuredBlock extends Block { //TODO can subclass SmartDict if used elsewhere
+            constructor(hash) { //TODO support other things in construction
+                super(hash, null); // _hash is _hash of SB, not of data
+                this._table = "sb"; // Note this is cls.table on python but need to separate from dictionary
+            }
+            sblock(verbose, options) {
+                // Locate and return a block, based on its multihash
+                if (verbose) { console.log("Fetching StructuredBlock table=",this._table,"hash=",this._hash); }
+                this.block(null, verbose, options);
+                // Block fetched in the background - dont assume loaded here
+            }
+            onloaded(verbose, options) {
+                this._dict = JSON.parse(this._data);
+                if (options["dom_id"]) {
+                    if (verbose) { console.log("StructuredBlock:onloaded:Storing data to", options["dom_id"]); }
+                    document.getElementById(options["dom_id"]).innerHTML = this._dict["data"];
+                } // TODO make it handle img, or other non-HTML as reqd based on this._dict["Content-type"]
+            }
         }
         class SignedBlock {
             // TODO Build Signed Block - allow retrieval of SB from it
@@ -83,9 +108,12 @@
 
     </script>
     <script>
-        // This is my current testing script.
-        b = new Block("SHA3256B64URL.50GNWgUQ9GgrVfMvpedEg77ByMRYkUgPRU9P1gWaNF8=", null)
+        // This is my current testing script first of block
+        let b = new Block("SHA3256B64URL.50GNWgUQ9GgrVfMvpedEg77ByMRYkUgPRU9P1gWaNF8=", null); // Block with "clever dog..."
         b.block(null, true, {"dom_id": "myList.0"});      // Load block in background
+        // Now of SB
+        let sb = new StructuredBlock("SHA3256B64URL.aX4-6I6Ck0ZX9A2CgNpsBakD-GkRiCC8Aivm_ROegrM=");
+        sb.sblock(true, {"dom_id": "myList.1"} ); // hash of SB containing data containing "I'm a paragraph" // Load SB in background
         //foo.load("myList.0");
     </script>
 
@@ -95,7 +123,7 @@
 <H1>Test page for DWEB</H1>
 <p>This page is a current test, will just be testing current (usually broken) stuff.</p>
 
-<ul id="myList"><li id="myList.0">Initial unreplaced text</li><li id="mylist.1">Dummy text of item1</li></ul>
+<ul id="myList"><li id="myList.0">Initial unreplaced text</li><li id="myList.1">Dummy text of item1</li></ul>
 </body>
 </html>
 
