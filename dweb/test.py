@@ -171,6 +171,7 @@ class Testing(unittest.TestCase):
         self._storeas("index.html", "index_html_rsa", "text/html")
         self._storeas("test.html", "test_html_rsa", "text/html")
         self._storeas("snippet.html", "snippet_html_rsa", "text/html")
+        self._storeas("snippet2.html", "snippet_html_rsa", "text/html")
         self._storeas("WrenchIcon.png", None, "image/png")
         self._storeas("DWebArchitecture.png", "DwebArchitecture_png_rsa","image/png")
 

@@ -1,7 +1,8 @@
 // Javascript library for dweb
 
-var dwebserver = '192.168.1.156'
-var dwebport = '4243'
+//var dwebserver = 'localhost';
+var dwebserver = '192.168.1.156';
+var dwebport = '4243';
 
 // ==== ALL THIS OBJECT ORIENTED JAVASCRIPT IS UNTESTED ===============
 
