@@ -85,7 +85,6 @@ class MutableBlockMaster(MutableBlock):
 
     """
     table = "mbm"   # Note separate table, holds private keys
-    # TODO-MUTABLE add variants for publishing & reading Lists (e.g. Blogs) or  Single Items,
 
     def __init__(self, key=None, hash=None, verbose=False, **options): # Note hash is of data
         """

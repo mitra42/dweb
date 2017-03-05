@@ -16,7 +16,7 @@ from MutableBlock import MutableBlockMaster, MutableBlock
 class Testing(unittest.TestCase):
     def setUp(self):
         super(Testing, self).setUp()
-        testTransport = TransportHTTP  #TODO change back to TransportHTTP
+        testTransport = TransportHTTP  # Can switch between TransportLocal and TransportHTTP to test both
         self.verbose=False
         self.quickbrownfox =  "The quick brown fox ran over the lazy duck"
         self.dog = "But the clever dog chased the fox"
@@ -92,7 +92,6 @@ class Testing(unittest.TestCase):
                                         ]})
         assert slinksblock.content(verbose=self.verbose) == self.quickbrownfox+self.dog, "Should get concatenation"
         assert slinksblock.size(verbose=self.verbose) == len(self.quickbrownfox)+len(self.dog), "Should get length"
-        #TODO add functionality for deleting specific items (via a "deleted" entry), and Clearing a list of all earlier.
 
     def test_http(self):
         # Run python -m ServerHTTP; before this
@@ -163,7 +162,7 @@ class Testing(unittest.TestCase):
                 print filename + ":" + sb.url(command="file")
 
 
-    def test_current(self):     #TODO-URLREFACTOR add url function to objects
+    def test_current(self):
         # A set of tools building up to usability for web.
         # All the functionality in storeas should have been tested elsewhere.
         self._storeas("dweb.js", "dweb_js_rsa", "application/javascript")
@@ -174,18 +173,3 @@ class Testing(unittest.TestCase):
         self._storeas("snippet2.html", "snippet_html_rsa", "text/html")
         self._storeas("WrenchIcon.png", None, "image/png")
         self._storeas("DWebArchitecture.png", "DwebArchitecture_png_rsa","image/png")
-
-        #TODO initialize content of MCE Editor
-        #TODO-LIST--------
-        #TODO-LIST Add a Ajax library call to get it and dump into div
-        #TODO-LIST Add to index so can see all of them - e.g. for content
-        #TODO-LIST Add a Ajax list to sample page that loads structured data e.g. for editing old versions
-        #TODO-LIST--------
-        #TODO think of urls that would be useful
-        #TODO upload some other things e.g. an image
-        #TODO Relative URL handler on HTTPServer using same logic as IPFS - look for "/" in request; Test on mcetiny
-        #TODO Test relative URL on index page to image
-        #TODO make mce work in dweb, i.e. via relative urls
-        #TODO Build a trivial file uploader in JS (may req URL refactor but prob not)
-
-        #TODO-EDITOR image uploading https://www.tinymce.com/docs/get-started/upload-images/
