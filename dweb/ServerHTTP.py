@@ -71,7 +71,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
     file.arglist=["table", "hash"]
 
     @exposed
-    def update(self, table=None, hash=None, contenttype=None, data=None, **kwargs):
+    def update(self, table=None, hash=None, contenttype=None, data=None, verbose=False, **kwargs):
         """
         Update the content
 

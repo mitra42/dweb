@@ -4,8 +4,251 @@
 var dwebserver = '192.168.1.156';
 var dwebport = '4243';
 
-// ==== ALL THIS OBJECT ORIENTED JAVASCRIPT IS UNTESTED ===============
+// ==== OBJECT ORIENTED JAVASCRIPT ===============
 
+class TransportHttp {
+
+    constructor(ipandport, options) {
+        this.ipandport = ipandport;
+        this.options = options; // Dictionary of options, currently unused
+        this.baseurl = "http://" + ipandport[0] + ":" + ipandport[1] + "/";
+    }
+
+    static setup(ipandport, options) {
+        return new TransportHttp(ipandport, options);
+    }
+
+    load(self, command, table, hash, verbose, options) {
+        // obj being loaded
+        // table: overrides table of class
+        // optioms: are passed to class specific onloaded
+        // Locate and return a block, based on its multihash
+        if (verbose) { console.log("TransportHTTP:",command,": table=", table, "hash=", hash); }
+        let url = this.url(command, table, hash);
+        if (verbose) { console.log("TransportHTTP:list: url=",url); }
+        $.ajax({
+            type: "GET",
+            url: url,
+            success: function(data) {
+                if (verbose) { console.log("TransportHTTP:", command, ": returning data len=", data.length); }
+                // Dont appear to need to parse JSON data, its decoded already
+                self.onloaded(data, verbose, options);
+            },
+            error: function(xhr, status, error) {
+                console.log("TransportHTTP:list: error", status, "error=",error);
+                alert("TODO Block failure status="+status+" error="+error);
+            },
+        });
+    }
+
+    block(self, table, hash, verbose, options) {    //TODO merge with transport.list
+        // Locate and return a block, based on its multihash
+        // table: overrides table of class
+        // options: are passed to class specific onloaded
+        // Locate and return a block, based on its multihash
+        this.load(self, "block", table, hash, verbose, options);
+    }
+
+    list(self, table, hash, verbose, options) {
+        // obj being loaded
+        // table: overrides table of class
+        // options: are passed to class specific onloaded
+        // Locate and return a block, based on its multihash
+        this.load(self, "list", table, hash, verbose, options);
+    }
+
+    url(command, table, hash) {
+        var url = this.baseurl + command + "/" + table + "/" + hash;
+        return url;
+    }
+}
+
+var transport = TransportHttp.setup([dwebserver, dwebport], {});
+
+class Block {
+    constructor(hash, data) {
+        this._hash = hash;  // Maybe null
+        this._data = data;  // Maybe null
+        this._table = 'b';
+    }
+
+    block(table, verbose, options) {
+        transport.block(this, table || this._table, this._hash, verbose, options);
+        // Block fetched in the background - dont assume loaded here, see onloaded
+    }
+
+    onloaded(data, verbose, options) {
+        // Called after block succeeds, can pass options through
+        if (verbose) { console.log("Block:onloaded:Storing _data to", options["dom_id"]); }
+        this._data = data;
+        if (options["dom_id"]) {
+                    document.getElementById(options["dom_id"]).innerHTML = this._data;
+        } // TODO make it handle img, or other non-HTML as reqd
+    }
+}
+
+class StructuredBlock extends Block { //TODO can subclass SmartDict if used elsewhere
+    constructor(hash) { //TODO support other things in construction
+        super(hash, null); // _hash is _hash of SB, not of data
+        this._table = "sb"; // Note this is cls.table on python but need to separate from dictionary
+    }
+    load(verbose, options) {
+        // Locate and return a block, based on its multihash
+        if (verbose) { console.log("Fetching StructuredBlock table=",this._table,"hash=",this._hash); }
+        this.block(null, verbose, options);
+        // Block fetched in the background - dont assume loaded here
+    }
+    onloaded(data, verbose, options) {
+        console.log("StructuredBlock:onloaded data len=", data.length, options)
+        this._data = data;
+        this._dict = JSON.parse(data);
+        if (options["dom_id"]) {
+            if (verbose) { console.log("StructuredBlock:onloaded:Storing data to", options["dom_id"]); }
+            document.getElementById(options["dom_id"]).innerHTML = this._dict["data"];
+        } // TODO make it handle img, or other non-HTML as reqd based on this._dict["Content-type"]
+        if (options["elem"]) {
+            if (verbose) { console.log("StructuredBlock:onloaded:Storing data to element"); }
+            options["elem"].innerHTML = this._dict["data"];
+        } // TODO make it handle img, or other non-HTML as reqd based on this._dict["Content-type"]
+    }
+}
+class Signature {
+    constructor(dic) {
+        this.date = dic["date"];
+        this.hash = dic["hash"];
+        this.publickey = dic["publickey"];
+        this.signature = dic["signature"]
+        //console.log("Signature created",this.hash);
+    }
+    //TODO need to be able to verify signatures
+}
+
+class SignedBlock {
+    // TODO Build Signed Block - allow retrieval of SB from it
+
+    constructor(hash) { // Python also handles, structuredblock=None, signatures=None, verbose=False, **options):
+        // Adapted from Python SignedBlock
+        // if structuredblock and not isinstance(structuredblock, StructuredBlock):
+        //     structuredblock = StructuredBlock(structuredblock) # Handles dict or json of dict
+        this._structuredblock = null; // Would be from structuredblock if passed
+        this._hash = hash;              // Hash of structured block
+        this._signatures = new Array(); //Would initialize to Signatures(signatures or [])
+        this._date = null;
+    }
+
+    load(verbose, options) {
+        if (this._structuredblock) {
+            this._structuredblock.onloaded(options);
+        } else {
+            sb = new StructuredBlock(this._hash);
+            sb.load(verbose, options);    // Asynchronous load - calls SB.onloaded
+        }
+    }
+
+
+    earliestdate() {
+        if (!this._signatures) {
+            this._date = null;
+        } else {
+            if (!this._date) {
+                this._date = this._signatures[0]["date"];
+                for (let i = 1; this._signatures.length > i; i++) {
+                    if ( this._date > this._signatures[i]["date"]) {
+                        this._date = this._signatures[i]["date"];
+                    }
+                }
+            }
+        }
+        return this._date;
+    }
+
+    static compare(a, b) {
+        if (a.earliestdate() > b.earliestdate()) { return 1; }
+        if (b.earliestdate() > a.earliestdate()) { return -1; }
+        return 0;
+    }
+}
+
+class MutableBlock {
+    // TODO Build MutableBlock - allow fetch of signatures, and fetching them
+    // TODO allow fetching of most recent
+
+    constructor(hash) {
+        // Note python __init__ also allows constructing with key, or with neither key nor hash
+        this._hash = hash;       // Could be None
+        this._key = null;
+        this._current = null;
+        this._prev = new Array();
+    }
+
+    load(verbose, options) {   // Python can also fetch based on just having key
+        transport.list(this, "signedby", this._hash, verbose, options);
+    }
+
+    onloaded(lines, verbose, options) {
+        let results = {};
+        for (let i in lines) {
+            let s = new Signature(lines[i]);
+            if (! results[s.hash]) {
+                results[s.hash] = new SignedBlock(s.hash);
+            }
+            //TODO turn s.date into java date
+            //if isinstance(s.date, basestring):
+            //    s.date = dateutil.parser.parse(s.date)
+            //TODO verify signature
+            //if CryptoLib.verify(s):
+            results[s.hash]._signatures.push(s);
+        }
+        let sbs = new Array();
+        for (let k in results) {
+            sbs.push(results[k]);      // Array of SignedBlock
+        }
+        //TODO sort list
+        sbs.sort(SignedBlock.compare);
+
+        //sbs.sort(function(a, b) {
+        //    if (a.earliestdate() > b.earliestdate()) { return -1; }
+        //    if (b.earliestdate() > a.earliestdate()) { return 1; }
+        //    return 0; })
+        this._current = sbs.pop();
+        this._prev = sbs;
+        if (options["dom_id"]) {
+            if (verbose) { console.log("MutableBlock:onloaded:Storing data to", options["dom_id"]); }
+            let ul = document.getElementById(options["dom_id"]);
+            this.updatelist(ul, verbose);
+        } // TODO make it handle img, or other non-HTML as reqd based on this._dict["Content-type"]
+    }
+
+    updatelist(ul, verbose) {
+        while (ul.hasChildNodes()) {
+            ul.removeChild(ul.lastChild);
+        }
+        for (let ii in this._prev) {     // Signed Blocks
+            let i = this._prev[ii];
+            let li = document.createElement("li");
+            ul.appendChild(li);
+            i.load(verbose, { "elem": li });
+        }
+        let li = document.createElement("li");
+        ul.appendChild(li);
+        this._current.load(verbose, { "elem": li });
+    }
+}
+
+class MutableBlockMaster {
+    // TODO Build MutableBlockMaster - allow to drive editor (MCE)
+}
+
+class File {
+    constructor(table, hash) {
+        this._table = table;
+        this._hash = hash;
+    }
+    load(verbose, options) {
+        transport.list(this, this._table, this._hash, verbose, options);
+    }
+}
+// ==== NON OBJECT ORIENTED FUNCTIONS - MAY BE OBSOLETE OR SHOULD RUN THRU THE LIBRARY ABOVE ==============
 
 function dweburl(command, table, hash) {
     var url = "http://"+dwebserver+":"+dwebport+"/"+ command + "/" + table + "/" + hash;
@@ -24,17 +267,10 @@ function dweb_return(xmlhttp) {
    return null;
 }
 function dwebfile(div, table, hash) {
-    var xmlhttp = new XMLHttpRequest();
-    xmlhttp.onreadystatechange = function() {
-        var text = dweb_return(xmlhttp);
-        if (text) {
-            document.getElementById(div).innerHTML = text;
-        }
-    };
-    url = dweburl("file", table, hash) // Via dweb
-    xmlhttp.open("GET", url, true);
-    xmlhttp.send();
+    var f = new File(table, hash);
+    f.load(true, {"dom_id": div});
 }
+
 function dwebupdate(div, table, hash, type, data) {
     var xmlhttp = new XMLHttpRequest();
     xmlhttp.onreadystatechange = function() {
@@ -49,26 +285,9 @@ function dwebupdate(div, table, hash, type, data) {
     xmlhttp.send(data);
 }
 
-function dweblist(div, table, hash) {
-    var xmlhttp = new XMLHttpRequest();
-    xmlhttp.onreadystatechange = function() {
-        var text = dweb_return(xmlhttp);
-        if (text) {
-            console.log("dweblist Retrieved",text);
-            jb = JSON.parse(text)
-            signatures = [];
-            //console.log("Found items ", jb.length);
-            for (var i = 0; i < jb.length; i++) {
-                //alert("item"+jb[i]["hash"])
-                signatures[i] = new Signature(jb[i]);
-            }
-            console.log("Found total of signatures=",signatures.length);
-            //document.getElementById(div).innerHTML = text;
-        }
-    };
-    url = dweburl("list", table, hash) // Via dweb
-    xmlhttp.open("GET", url, true);
-    xmlhttp.send();
+function dweblist(div, hash) {
+    var mb = new MutableBlock(hash);
+    mb.load(true, {"dom_id": div});
 }
 
 <!-- alert("dweb.js loaded"); -->
