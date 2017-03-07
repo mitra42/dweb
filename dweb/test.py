@@ -2,6 +2,7 @@
 from datetime import datetime
 import unittest
 import os
+import pathlib
 
 from misc import filecontent
 from CryptoLib import CryptoLib
@@ -161,8 +162,8 @@ class Testing(unittest.TestCase):
                 print filename + ":" + sb.url(command="file")
 
 
-    def test_current(self):
-        # A set of tools building up to usability for web.
+    def test_uploads(self):
+        # A set of tools to upload things so available for testing.
         # All the functionality in storeas should have been tested elsewhere.
         Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         self._storeas("dweb.js", "dweb_js_rsa", "application/javascript")
@@ -173,3 +174,22 @@ class Testing(unittest.TestCase):
         self._storeas("snippet2.html", "snippet_html_rsa", "text/html")
         self._storeas("WrenchIcon.png", None, "image/png")
         self._storeas("DWebArchitecture.png", "DwebArchitecture_png_rsa","image/png")
+
+    def test_current(self):
+        # Current testing of directory uploads
+        dir = "../tinymce/langs"
+        #TODO-PYTHON3 see https://docs.python.org/3/library/pathlib.html
+        # fdir = os.listdir(path)
+        print [p for p in pathlib.Path(dir).iterdir() if p.is_file()]
+        #open dir
+        #sb = StructuredBlock({"links": []}) # Create an empty directory
+        #Iterate over dir
+        #    Upload file (may require recursion)
+        #    Add link to dir
+            sb.links.append(StructuredLink({"name": xxx, "date": yyy, "hash": xxx}))       # Alt "data"
+        #Send StructuredBlock
+        #Get hash
+        #Return or print url of StructuredBlock
+        # TODO move some of this to _storeas and test_uploads
+        # TODO try adding a small link as data, but still respond to URL
+
