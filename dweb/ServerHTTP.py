@@ -57,11 +57,16 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         """
         if verbose: print "file",table,hash,contenttype,kwargs
         if table == "sb":
-            b = StructuredBlock.sblock(table=table, hash=hash, **kwargs)
-            return b.__dict__
+            sb = StructuredBlock.sblock(table=table, hash=hash, **kwargs)
+            if not sb.data and sb.hash:
+                sb.data = sb.content(verbose=verbose, **kwargs)
+            return sb.__dict__
         elif table == "mb": # Its a Mutable Block, fetch the sigs, then get latest, then fetch its content.
             mb = MutableBlock(hash=hash, verbose=verbose)
             mb.fetch(verbose=verbose)  # Get the sigs
+            sb = mb._current._sb(verbose=verbose)
+            if not sb.data and sb.hash:
+                sb.data = sb.content(verbose=verbose, **kwargs)
             return mb._current._sb(verbose=verbose).__dict__  # Pass teh StructuredBlock which should have the Content-type field etc.
         elif table == "b":
             return {"Content-type": contenttype,

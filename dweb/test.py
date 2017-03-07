@@ -4,7 +4,6 @@ import unittest
 import os
 import pathlib
 
-from misc import filecontent
 from CryptoLib import CryptoLib
 from Transport import TransportBlockNotFound
 from TransportLocal import TransportLocal
@@ -12,6 +11,7 @@ from TransportHTTP import TransportHTTP
 from Block import Block
 from StructuredBlock import StructuredBlock
 from MutableBlock import MutableBlockMaster, MutableBlock
+from File import File
 
 
 class Testing(unittest.TestCase):
@@ -103,7 +103,7 @@ class Testing(unittest.TestCase):
 
     def test_file(self):
         Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
-        content = filecontent(self.exampledir + "index.html")
+        content = File.load(filepath=self.exampledir + "index.html").data
         sb = StructuredBlock(data=content, **{"Content-type":"text/html"})
         sbhash = sb.store()
         sburl = sb.url(command="file")
@@ -112,7 +112,7 @@ class Testing(unittest.TestCase):
         assert resp.text == content, "Should return data stored"
         assert resp.headers["Content-type"] == "text/html", "Should get type"
         # Now test a MutableBlock that uses this content
-        mbm = MutableBlockMaster(key=filecontent(self.exampledir+"index_html_rsa"), hash=sbhash)
+        mbm = MutableBlockMaster(key=File.load(filepath=self.exampledir+"index_html_rsa").data, hash=sbhash)
         mbm.signandstore(verbose=self.verbose)
         mb = MutableBlock(key=mbm.publickey())
         mb.fetch()      # Just fetches the signatures
@@ -123,7 +123,7 @@ class Testing(unittest.TestCase):
     def test_typeoverride(self):    # See if can override the type on a block
         Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         # Store the wrench icon
-        content = filecontent(self.exampledir + "WrenchIcon.png")
+        content = File.load(filepath=self.exampledir + "WrenchIcon.png").data
         wrenchhash = Block(data=content).store(verbose=self.verbose)
         # And check it got there
         resp = Block.transport._sendGetPost(False, "block", [ Block.table, wrenchhash], params={"contenttype": "image/png"})
@@ -140,26 +140,19 @@ class Testing(unittest.TestCase):
             assert False, "Should raise a TransportBlockNotFound error"
 
     def _storeas(self, filename, keyname, contenttype, **options):
+        from File import File
         filepath = self.exampledir + filename
+        f = File.upload(filepath, contenttype, self.verbose, **options)
         keypath = self.exampledir + keyname if keyname else None
-        content = filecontent(filepath) # This is a string, but it might be binary
-        if "image" in contenttype:
-            b = Block(data=content)  # Store raw
-            hash = b.store(verbose=self.verbose)
-            print filename + ":" + b.url(command="file", contenttype="image/png")  # Should be block, b, hash, params={"contenttype": "image/png"}
+        if keypath:
+            if not os.path.exists(keypath):
+                CryptoLib.export(CryptoLib.keygen(), private=True, filename=keypath) # Uncomment to get a key
+                #TODO next line fails if dont have a keyname which is ok for now
+            mbm = MutableBlockMaster(key=File.load(filepath=keypath).data, hash=f._hash, verbose=self.verbose).signandstore(verbose=self.verbose)
+            print filename + " editable:" + mbm.privateurl()    # Side effect of storing
+            print filename + ":" + mbm.publicurl(command="file", table="mb")
         else:
-            sb = StructuredBlock(data=content, **{"Content-type": contenttype})
-            sb.store(verbose=self.verbose)  # This will have data and _hash, the _hash reflects the SB not the data
-            # Note combination of image and keyname not valid currently (would probavly need to store as block inside structuredblock
-            if keypath:
-                if not os.path.exists(keypath):
-                    CryptoLib.export(CryptoLib.keygen(), private=True, filename=keypath) # Uncomment to get a key
-                    #TODO next line fails if dont have a keyname which is ok for now
-                mbm = MutableBlockMaster(key=filecontent(keypath), hash=sb._hash, verbose=self.verbose).signandstore(verbose=self.verbose)
-                print filename + " editable:" + mbm.privateurl()    # Side effect of storing
-                print filename + ":" + mbm.publicurl(command="file", table="mb")
-            else:
-                print filename + ":" + sb.url(command="file")
+            print filename + ":" + f.url(command="file")
 
 
     def test_uploads(self):
@@ -177,16 +170,22 @@ class Testing(unittest.TestCase):
 
     def test_current(self):
         # Current testing of directory uploads
-        dir = "../tinymce/langs"
+        self.verbose=True
+        dir = "../tinymce"
         #TODO-PYTHON3 see https://docs.python.org/3/library/pathlib.html
         # fdir = os.listdir(path)
-        print [p for p in pathlib.Path(dir).iterdir() if p.is_file()]
-        #open dir
-        #sb = StructuredBlock({"links": []}) # Create an empty directory
-        #Iterate over dir
-        #    Upload file (may require recursion)
-        #    Add link to dir
-            sb.links.append(StructuredLink({"name": xxx, "date": yyy, "hash": xxx}))       # Alt "data"
+        sb = StructuredBlock({"links": []}) # Create an empty directory
+        for p in pathlib.Path(dir).iterdir():
+            if p.is_file():
+                #TODO need to be able to store a file
+                print p,"is file"
+            elif p.is_dir():
+                #TODO recurse over dirs
+                print p, "is dir"
+            else:
+                print p, "is something else"
+            #    Add link to dir
+            #sb.links.append(StructuredLink({"name": xxx, "date": yyy, "hash": xxx}))       # Alt "data"
         #Send StructuredBlock
         #Get hash
         #Return or print url of StructuredBlock
