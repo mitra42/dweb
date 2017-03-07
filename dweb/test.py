@@ -161,7 +161,7 @@ class Testing(unittest.TestCase):
                 print filename + ":" + sb.url(command="file")
 
 
-    def test_current(self):
+    def test_uploads(self):
         # A set of tools building up to usability for web.
         # All the functionality in storeas should have been tested elsewhere.
         Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
