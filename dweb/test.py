@@ -21,8 +21,8 @@ class Testing(unittest.TestCase):
         self.quickbrownfox =  "The quick brown fox ran over the lazy duck"
         self.dog = "But the clever dog chased the fox"
         self.mydic = { "a": "AAA", "1":100, "B_date": datetime.now()}  # Dic can't contain integer field names
-        #self.ipandport = ('localhost', 4243)  # Serve it via HTTP on all addresses
-        self.ipandport = ('192.168.1.156', 4243)  # Serve it via HTTP on all addresses
+        self.ipandport = ('localhost', 4243)  # Serve it via HTTP on all addresses
+        #self.ipandport = ('192.168.1.156', 4243)  # Serve it via HTTP on all addresses
         self.exampledir = "../examples/"    # Where example files placed
         if testTransport == TransportLocal:
             Block.setup(TransportLocal, verbose=self.verbose, dir="../cache")
