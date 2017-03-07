@@ -84,11 +84,11 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         if verbose: print "DwebHTTPRequestHandler.update",table,hash,data,type
         privkey = Block.block(table="mbm", hash=hash, verbose=verbose)._data #TODO what happens if cant find
         # Store the data
-        sbhash = StructuredBlock(data=data, verbose=verbose, **{"Content-type": contenttype}).store()
+        sbhash = StructuredBlock(data=data, verbose=verbose, **{"Content-type": contenttype}).store(verbose=verbose)
         #Create Mbm from key; load with data; sign and store
         mbm = MutableBlockMaster(key=privkey, hash=sbhash, verbose=verbose).signandstore(verbose=verbose)
         return {"Content-type": "text/plain",       # Always returning plain text as the URL whatever type stored
-                "data": self.url(mbm, command="file", table="mb")}  # Note cant use mbm.url as not valid on TransportLocal
+                "data": self.url(mbm, command="file", table="mb", hash=super(MutableBlockMaster, mbm)._hash)}  # Note cant use mbm.url as not valid on TransportLocal
     update.arglist=["table","hash","contenttype"]
 
     @exposed

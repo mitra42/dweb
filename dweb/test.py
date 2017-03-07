@@ -116,7 +116,7 @@ class Testing(unittest.TestCase):
         mb = MutableBlock(key=mbm.publickey())
         mb.fetch()      # Just fetches the signatures
         assert mb.content() == mbm.content(), "Should round-trip HTML content"
-        mbcontent2 = Block.transport._sendGetPost(False,"file", [MutableBlock.table, mb.hash]).text
+        mbcontent2 = Block.transport._sendGetPost(False,"file", [MutableBlock.table, mb._hash]).text
         assert mbcontent2 == mbm.content(), "Should fetch MB content via its URL"
         print "index.html MB =", mb.url(command="file")
 
@@ -157,7 +157,7 @@ class Testing(unittest.TestCase):
                     #TODO next line fails if dont have a keyname which is ok for now
                 mbm = MutableBlockMaster(key=filecontent(keypath), hash=sb._hash, verbose=self.verbose).signandstore(verbose=self.verbose)
                 print filename + " editable:" + mbm.privateurl()    # Side effect of storing
-                print filename + ":" + mbm.url(command="file", table="mb")
+                print filename + ":" + mbm.publicurl(command="file", table="mb")
             else:
                 print filename + ":" + sb.url(command="file")
 

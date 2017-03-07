@@ -18,12 +18,41 @@ class TransportHttp {
         return new TransportHttp(ipandport, options);
     }
 
+    post(self, command, table, hash, type, data, verbose, options) {
+        // obj being loaded
+        // table: overrides table of class
+        // optioms: are passed to class specific onloaded
+        // Locate and return a block, based on its multihash
+        if (verbose) { console.log("TransportHTTP post:", command,": table=", table, "hash=", hash); }
+        let url = this.url(command, table, hash)  + "/" + type;
+        if (verbose) { console.log("TransportHTTP:post: url=",url); }
+        if (verbose) { console.log("TransportHTTP:post: data=",data); }
+        $.ajax({
+            type: "POST",
+            url: url,
+            data: { "data": data},
+            success: function(msg) {
+                if (verbose) { console.log("TransportHTTP:", command, ": returning data len=", msg.length); }
+                // Dont appear to need to parse JSON data, its decoded already
+                self.onloaded(msg, verbose, options);
+            },
+            error: function(xhr, status, error) {
+                console.log("TransportHTTP:", command, "error", status, "error=",error);
+                alert("TODO post "+command+" failure status="+status+" error="+error);
+            },
+        });
+    }
+
+    update(self, table, hash, type, data, verbose, options) {
+        this.post(self, "update", table, hash, type, data, verbose, options);
+    }
+
     load(self, command, table, hash, verbose, options) {
         // obj being loaded
         // table: overrides table of class
         // optioms: are passed to class specific onloaded
         // Locate and return a block, based on its multihash
-        if (verbose) { console.log("TransportHTTP:",command,": table=", table, "hash=", hash); }
+        if (verbose) { console.log("TransportHTTP load:",command,": table=", table, "hash=", hash); }
         let url = this.url(command, table, hash);
         if (verbose) { console.log("TransportHTTP:list: url=",url); }
         $.ajax({
@@ -35,7 +64,7 @@ class TransportHttp {
                 self.onloaded(data, verbose, options);
             },
             error: function(xhr, status, error) {
-                console.log("TransportHTTP:list: error", status, "error=",error);
+                console.log("TransportHTTP:", command, ": error", status, "error=",error);
                 alert("TODO Block failure status="+status+" error="+error);
             },
         });
@@ -79,6 +108,7 @@ class Block {
 
     onloaded(data, verbose, options) {
         // Called after block succeeds, can pass options through
+        // copies at Block, MutableBlockMaster
         if (verbose) { console.log("Block:onloaded:Storing _data to", options["dom_id"]); }
         this._data = data;
         if (options["dom_id"]) {
@@ -237,6 +267,25 @@ class MutableBlock {
 
 class MutableBlockMaster {
     // TODO Build MutableBlockMaster - allow to drive editor (MCE)
+    constructor(hash) {
+        // Note python __init__ also allows constructing with key, or with neither key nor hash
+        this._hash = hash;       // Could be None
+        this._key = null;
+        this._current = null;
+        this._prev = new Array();
+    }
+    update(table, type, data, verbose, options) {
+        transport.update(this, table, this._hash, type, data, verbose, options);
+    }
+    onloaded(data, verbose, options) {
+        // Called after block succeeds, can pass options through
+        // copies at Block, MutableBlockMaster
+        if (verbose) { console.log("MBM:onloaded:Storing _data to", options["dom_id"]); }
+        this._data = data;
+        if (options["dom_id"]) {
+                    document.getElementById(options["dom_id"]).innerHTML = this._data;
+        } // TODO make it handle img, or other non-HTML as reqd
+    }
 }
 
 class File {
@@ -248,41 +297,16 @@ class File {
         transport.list(this, this._table, this._hash, verbose, options);
     }
 }
-// ==== NON OBJECT ORIENTED FUNCTIONS - MAY BE OBSOLETE OR SHOULD RUN THRU THE LIBRARY ABOVE ==============
+// ==== NON OBJECT ORIENTED FUNCTIONS ==============
 
-function dweburl(command, table, hash) {
-    var url = "http://"+dwebserver+":"+dwebport+"/"+ command + "/" + table + "/" + hash;
-    return url;
-}
-
-function dweb_return(xmlhttp) {
-    // utility function, pull result and return, report on error codes
-    if (xmlhttp.readyState == XMLHttpRequest.DONE ) {
-       if (xmlhttp.status == 200) {
-            return xmlhttp.responseText;
-       } else {
-           alert('Error Status code '+xmlhttp.status);
-       }
-    }
-   return null;
-}
 function dwebfile(div, table, hash) {
     var f = new File(table, hash);
     f.load(true, {"dom_id": div});
 }
 
 function dwebupdate(div, table, hash, type, data) {
-    var xmlhttp = new XMLHttpRequest();
-    xmlhttp.onreadystatechange = function() {
-        var text = dweb_return(xmlhttp);
-        if (text) {
-            document.getElementById(div).innerHTML = text;
-        }
-    };
-    url = dweburl("update", table, hash) + "/" + type;
-    xmlhttp.open("POST", url, true);
-    xmlhttp.setRequestHeader("Content-type", 'application/octet-stream');
-    xmlhttp.send(data);
+    mbm = new MutableBlockMaster(hash);
+    mbm.update(table, type, data, true, {"dom_id": div});
 }
 
 function dweblist(div, hash) {

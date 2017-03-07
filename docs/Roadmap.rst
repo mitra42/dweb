@@ -42,10 +42,7 @@ TODO LIST
 =========
 This list is at a much finer lever of granularity than Roadmap above.
 
-* DEMO: port all example.html/dweb.js into test.html then replace dweb.js
-* META: Find other TODO in test.py and port here
 * REFACTOR: Change "key" in api to be "hash"
-* REFACTOR: Change hash to keyhash when its hash of key, not hash of content
 * REFACTOR: Multihash - find spec, and replace format of hashes
 * DOCS: cover principles like _hash v hash
 * DOCS: Pass through docs, check all current

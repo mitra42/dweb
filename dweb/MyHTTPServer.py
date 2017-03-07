@@ -146,10 +146,12 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
             if ctype == 'multipart/form-data':
                 postvars = parse_multipart(self.rfile, pdict)
             elif ctype == 'application/x-www-form-urlencoded':
+                # This route is taken by browsers using jquery as no easy wayto uploadwith octet-stream
+                # If its just singular like data="foo" then return single values else (unusual) lists
                 length = int(self.headers['content-length'])
-                postvars = parse_qs(
+                postvars = { p: (q[0] if (isinstance(q, list) and len(q)==1) else q) for p,q in parse_qs(
                     self.rfile.read(length),
-                    keep_blank_values=1)
+                    keep_blank_values=1).iteritems() }
             elif ctype == 'application/octet-stream':  # Block sends this
                 length = int(self.headers['content-length'])
                 postvars = {"data": self.rfile.read(length)}

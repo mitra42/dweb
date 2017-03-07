@@ -19,8 +19,11 @@ class MutableBlock(object):
     transportcommand="block"
 
     @property
-    def hash(self):
-        return self._hash or (self._key and CryptoLib.urlhash(CryptoLib.export(self._key.publickey()))) or None
+    def _hash(self):
+        if not self._hashpublickey:
+            # Note this uses MutableBlock.table because could be called under MBM but that table is for PrivateKeys
+            self._hashpublickey = Block(data=CryptoLib.export(self._key, private=False)).store(table=MutableBlock.table)
+        return self._hashpublickey
 
     def __getattr__(self, name):
         if name and name[0] == "_":
@@ -33,13 +36,14 @@ class MutableBlock(object):
 
     def __init__(self, key=None, hash=None, **options):
         """
-        Create and initialize a MutableBlockMaster
+        Create and initialize a MutableBlock
         Adapted to dweb.js.MutableBlock.constructor
 
         :param key:
+        :param hash: of key
         :param options: # Can indicate how to initialize content
         """
-        self._hash = hash        # Could be None
+        self._hashpublickey = hash        # Could be None
         if key:
             if isinstance(key, basestring):
             # Its an exported key string, import it (note could be public or private)
@@ -63,7 +67,7 @@ class MutableBlock(object):
         if self._key:
             signedblocks = SignedBlocks.fetch(publickey=self._key.publickey(), verbose=verbose, **options)
         else:
-            signedblocks = SignedBlocks.fetch(hash=self.hash, verbose=verbose, **options)
+            signedblocks = SignedBlocks.fetch(hash=self._hash, verbose=verbose, **options)
         curr, prev = signedblocks.latestandsorteddeduplicatedrest()
         self._current = curr
         self._prev = prev
@@ -86,6 +90,7 @@ class MutableBlockMaster(MutableBlock):
     """
     table = "mbm"   # Note separate table, holds private keys
 
+
     def __init__(self, key=None, hash=None, verbose=False, **options): # Note hash is of data
         """
 
@@ -93,8 +98,15 @@ class MutableBlockMaster(MutableBlock):
         :param hash: optional hash of data to initialize with NOT hash of the key.
         :param options:
         """
+        self._hashprivatekey = None
         super(MutableBlockMaster,self).__init__(key=key, verbose=verbose, **options) # Dont pass hash here, will be seen as hash of key
         self._current = SignedBlock(hash=hash, verbose=verbose, **options)  # Create a place to hold content, pass hash to load content
+
+    @property
+    def _hash(self):
+        if not self._hashprivatekey:
+            self._hashprivatekey = Block(data=CryptoLib.export(self._key, private=True)).store(table=self.table)
+        return self._hashprivatekey
 
     def __setattr__(self, name, value):
         if name and name[0] == "_":
@@ -107,7 +119,7 @@ class MutableBlockMaster(MutableBlock):
         Sign and Store a version, or entry in MutableBlockMaster
         Exceptions: SignedBlockEmptyException if neither hash nor structuredblock defined
 
-        :return: hash stored under
+        :return: self
         """
         self._current.sign(self._key).store(verbose=verbose, **options) # Note this is storing all the sigs, not the content of _current
         # ERR SignedBlockEmptyException
@@ -120,6 +132,9 @@ class MutableBlockMaster(MutableBlock):
         """
         return CryptoLib.export(self._key) if exportable else self._key.publickey()
 
+    def publicurl(self, command=None, table=None):
+        return Block.transport.url(self, command=command or "list", table=table or MutableBlock.table, hash=super(MutableBlockMaster, self)._hash, contenttype=self.__getattr__("Content-type"))
+
     def privateurl(self):
         """
         Get a URL that can be used for edits to the resource
@@ -127,8 +142,8 @@ class MutableBlockMaster(MutableBlock):
 
         :return:
         """
-        self._privkeyhash = Block(data=CryptoLib.export(self._key, private=True)).store(table=self.table)
-        return Block.transport.url(self, command="update", table="mbm", hash=self._privkeyhash, contenttype=self.__getattr__("Content-type"))
+        self._hashprivatekey = Block(data=CryptoLib.export(self._key, private=True)).store(table=self.table)
+        return Block.transport.url(self, command="update", table="mbm", hash=self._hash, contenttype=self.__getattr__("Content-type"))
 
 
         #TODO-AUTHENTICATION - this is particularly vulnerable w/o authentication as stores PrivateKey in unencrypted form
