@@ -30,6 +30,7 @@ class TransportLocal(Transport):
         self.options = options
 
     def _filename(self, table, hash=None, key=None, verbose=False, **options):
+        # key now obsoleted
         file = hash or CryptoLib.urlhash(key, verbose=verbose, **options)
         return "%s/%s/%s" % (self.dir, table, file)
 
@@ -52,7 +53,7 @@ class TransportLocal(Transport):
         :param data: opaque data to store
         :return: hash of data
         """
-        hash = CryptoLib.urlhash(data)
+        hash = CryptoLib.Curlhash(data)
         filename = self._filename(table, hash, verbose=verbose, **options)
         try:
             f = open(filename, 'wb')
@@ -80,20 +81,20 @@ class TransportLocal(Transport):
         except IOError as e:
             raise TransportBlockNotFound(hash=hash)
 
-    def add(self, table=None, key=None, value=None, verbose=False, **options):
+    def add(self, table=None, hash=None, value=None, verbose=False, **options):
         """
         Store in a DHT
         Exception: IOError if file doesnt exist
 
         :param table:   Table to store in
-        :param key:     Key to store under
+        :param hash:    hash to store under
         :param value:   Value - usually a dict - to store.
         :param verbose: Report on activity
         :param options:
         :return:
         """
-        if verbose: print "TransportLocal.add", table, key, value
-        filename = self._filename(table, key=key, verbose=verbose, **options)
+        if verbose: print "TransportLocal.add", table, hash, value
+        filename = self._filename(table, hash=hash, verbose=verbose, **options)
         try:
             if not isinstance(value, basestring):
                 # Turn into a string if not already
@@ -104,18 +105,18 @@ class TransportLocal(Transport):
         except IOError as e:
             raise TransportBlockNotFound(hash=filename)
 
-    def list(self, table=None, key=None, hash=None, verbose=False, **options):
+    def list(self, table=None, hash=None, verbose=False, **options):
         """
-        Retrieve record(s) matching a key, in this case from a local directory
+        Retrieve record(s) matching a hash (usually the hash of a key), in this case from a local directory
         Exception: IOError if file doesnt exist
 
-        :param table: Table to look for key in
-        :param key: Key to be retrieved
+        :param table: Table to look for hash in
+        :param hash: Hash in table to be retrieved
         :return: list of dictionaries for each item retrieved
         """
-        if verbose: print "TransportLocal.list", table, key
+        if verbose: print "TransportLocal.list", table, hash
         if table in ("mb", "mbm"): table = "signedby"            # Look for Signatures for mb table in signedby table
-        filename = self._filename(table, key=key, hash=hash, verbose=verbose, **options)
+        filename = self._filename(table, hash=hash, verbose=verbose, **options)
         try:
             f = open(filename, 'rb')
             s = [ loads(s) for s in f.readlines() ]

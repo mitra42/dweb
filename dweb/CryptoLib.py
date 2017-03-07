@@ -17,7 +17,7 @@ class CryptoLib(object):
     """
 
     @staticmethod
-    def urlhash(data, hashscheme="SHA3256B64URL", **options):
+    def Curlhash(data, hashscheme="SHA3256B64URL", **options):
         """
         :param data: Any length and combination of bytes
         :return: URL and Filename safe string   hashname.b64encoding

@@ -21,7 +21,6 @@ class TransportHTTP(Transport):
         :param blah:
         """
         self.ipandport = ipandport
-        self.options = options
         self.verbose = verbose
         self.baseurl = "http://%s:%s/" % (ipandport[0], ipandport[1])
 
@@ -88,20 +87,20 @@ class TransportHTTP(Transport):
         res = self._sendGetPost(False, "block", urlargs=[table, hash], params=options)
         return res.text
 
-    def add(self, table=None, key=None, value=None, **options): # Expecting: table, key, value
+    def add(self, table=None, hash=None, value=None, **options): # Expecting: table, key, value
         """
         Store in a DHT
 
         :param table:   Table to store in
-        :param key:     Key to store under
+        :param hash:     Key to store under
         :param value:   Value - usually a dict - to store.
         :param verbose: Report on activity - passed in options so passes through to sendGet
         :param options:
         :return:
         """
         #TODO rename key to hash in Transport.add
-        if options.get("verbose",None): print "add",table, key, value, options
-        res = self._sendGetPost(True, "add", urlargs = [table], headers={"Content-Type": "application/octet-stream"}, params={"key": key}, data=CryptoLib.dumps(value))
+        if options.get("verbose",None): print "add",table, hash, value, options
+        res = self._sendGetPost(True, "add", urlargs = [table], headers={"Content-Type": "application/octet-stream"}, params={"hash": hash}, data=CryptoLib.dumps(value))
 
     def list(self, table=None, hash=None, verbose=False, **options):
         """
@@ -109,12 +108,10 @@ class TransportHTTP(Transport):
         Copied to dweb.py
 
         :param table: Table to look for key in
-        :param key: Key to be retrieved (embedded in options for easier pass through)
+        :param hash: Key to be retrieved (embedded in options for easier pass through)
         :return: list of dictionaries for each item retrieved
         """
         if options.get("verbose",None): print "list",table, options
-        hash = hash or CryptoLib.urlhash(options["key"], verbose=verbose, **options)
-        del(options["key"])
         res = self._sendGetPost(False, "list", urlargs=(table, hash), params=options)
         return res.json()
 

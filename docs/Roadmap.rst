@@ -42,7 +42,6 @@ TODO LIST
 =========
 This list is at a much finer lever of granularity than Roadmap above.
 
-* REFACTOR: Change "key" in api to be "hash"
 * REFACTOR: Multihash - find spec, and replace format of hashes
 * DOCS: cover principles like _hash v hash
 * DOCS: Pass through docs, check all current

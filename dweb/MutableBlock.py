@@ -64,10 +64,9 @@ class MutableBlock(object):
         :param verbose:
         :param options:
         """
-        if self._key:
-            signedblocks = SignedBlocks.fetch(publickey=self._key.publickey(), verbose=verbose, **options)
-        else:
-            signedblocks = SignedBlocks.fetch(hash=self._hash, verbose=verbose, **options)
+        if not self._hash:
+            self._hash = CryptoLib.Curlhash(CryptoLib.export(self._key.publickey()), verbose=verbose, **options)
+        signedblocks = SignedBlocks.fetch(hash=self._hash, verbose=verbose, **options)
         curr, prev = signedblocks.latestandsorteddeduplicatedrest()
         self._current = curr
         self._prev = prev

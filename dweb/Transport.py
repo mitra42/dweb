@@ -63,7 +63,7 @@ class Transport(object):
         """
         raise ToBeImplementedException(name=cls.__name__+".add")
 
-    def list(self, table=None, key=None, hash=hash, verbose=False, **options):
+    def list(self, table=None, hash=None, verbose=False, **options):
         """
         Method that should always be subclassed to retrieve record(s) matching a key
 

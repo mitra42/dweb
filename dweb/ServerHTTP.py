@@ -105,7 +105,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         return  { "Content-type": "appliction/octet-stream",
                   "data":  Block.transport.add(**kwargs)
                 }
-    add.arglist=["table", "key", "data"]
+    add.arglist=["table", "hash", "data"]
 
     @exposed
     def list(self, **kwargs):

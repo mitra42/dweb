@@ -118,7 +118,6 @@ class Testing(unittest.TestCase):
         assert mb.content() == mbm.content(), "Should round-trip HTML content"
         mbcontent2 = Block.transport._sendGetPost(False,"file", [MutableBlock.table, mb._hash]).text
         assert mbcontent2 == mbm.content(), "Should fetch MB content via its URL"
-        print "index.html MB =", mb.url(command="file")
 
     def test_typeoverride(self):    # See if can override the type on a block
         Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
@@ -165,6 +164,7 @@ class Testing(unittest.TestCase):
     def test_current(self):
         # A set of tools building up to usability for web.
         # All the functionality in storeas should have been tested elsewhere.
+        Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         self._storeas("dweb.js", "dweb_js_rsa", "application/javascript")
         self._storeas("jquery-3.1.1.js", None, "application/javascript")
         self._storeas("index.html", "index_html_rsa", "text/html")

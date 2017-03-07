@@ -168,7 +168,8 @@ class SignedBlock(object):
         for s in self._signatures:
             ss = s.copy()
             ss.hash = self._h(verbose=verbose, **options)
-            self._sb().transport.add(table="signedby", key=s.publickey, value=ss, verbose=verbose, **options)
+            keyhash = CryptoLib.Curlhash(s.publickey, **options)   # Store it under the hash of the publickey
+            self._sb().transport.add(table="signedby", hash=keyhash, value=ss, verbose=verbose, **options)
 
     def content(self, **options):
         return self._sb().content()
@@ -179,19 +180,17 @@ class SignedBlocks(list):
     """
 
     @classmethod
-    def fetch(cls, publickey=None, hash=None, verbose=False, **options):
+    def fetch(cls, hash=None, verbose=False, **options):
         """
         FInd all the related Signatures.
-        Adapted to dweb.js fetch_hash and fetch_publickey
 
-        :param publickey:
         :param hash:
         :param verbose:
         :param options:
         :return: SignedBlocks which is a list of SignedBlock
         """
+        #key = CryptoLib.export(publickey) if publickey is not None else None,
         lines = StructuredBlock.transport.list("signedby", hash=hash, verbose=verbose,
-                                               key=CryptoLib.export(publickey) if publickey is not None else None,
                                                **options)
         if verbose: print "SignedBlock.fetch found ",len(lines) if lines else None
         results = {}
