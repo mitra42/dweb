@@ -47,7 +47,6 @@ This list is at a much finer lever of granularity than Roadmap above.
 * DOCS: Pass through docs, check all current
 * DOCS: Find out how to document Javascript in Sphinx / .rst
 * CORE: Directories and relative links
-    * Move filecontent to File as subclass of StructuredBlock
     * Upload directory
         * Python routine (start in test.py) that can accept dir
         * API or class for that routine

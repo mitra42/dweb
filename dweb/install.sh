@@ -6,7 +6,7 @@ fPIPUPGRADE=true
 fMAKECHANGE=true
 fVERBOSE=true
 
-PIPINSTALLS="py-dateutil pycrypto sha3 requests pathlib http"
+PIPINSTALLS="py-dateutil pycrypto sha3 requests pathlib http python-magic"
 # This set are probably builtins but get imported
 # Pip install failed (not allowed) on: os sys json hashlib
 # Pip install failed (cant uninstall predecessr) on: datetime

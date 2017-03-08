@@ -86,6 +86,7 @@ class StructuredBlock(Block, SmartDict):
     def _data(self):
         """
         Override _data property of Block,
+        Exception: UnicodeDecodeError - if its binary
 
         :return: canonical json string that handles dates, and order in dictionaries
         """
@@ -116,6 +117,7 @@ class StructuredBlock(Block, SmartDict):
     def store(self, verbose=False, **options):
         """
         Store this block on the underlying transport, return the hash for future id
+        Exception: UnicodeDecodeError if data is binary
 
         :return: hash of data
         """
