@@ -56,9 +56,17 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         :param kwargs:
         :return: Dict suitable for looking for headers.
         """
+        verbose=True
         if verbose: print "file",table,hash,contenttype,kwargs
-        if table == "sb":
-            sb = StructuredBlock.sblock(table=table, hash=hash, **kwargs)
+
+        if table in ("sb", "mb"):
+            if table == "mb":
+                mb = MutableBlock(hash=hash, verbose=verbose)
+                mb.fetch(verbose=verbose)  # Get the sigs
+                sb = mb._current._sb(verbose=verbose)
+            else: #table == "sb"
+                sb = StructuredBlock.sblock(table=table, hash=hash, **kwargs)
+
             while urlargs:
                 p1 = urlargs.pop(0)
                 sb = sb.link(p1)
@@ -70,13 +78,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
                 return sb.__dict__
             else:
                 ToBeImplementedException(name="file for table sb and content=" + sb.__class__.__name__)
-        elif table == "mb": # Its a Mutable Block, fetch the sigs, then get latest, then fetch its content.
-            mb = MutableBlock(hash=hash, verbose=verbose)
-            mb.fetch(verbose=verbose)  # Get the sigs
-            sb = mb._current._sb(verbose=verbose)
-            if not sb.data and sb.hash:
-                sb.data = sb.content(verbose=verbose, **kwargs)
-            return mb._current._sb(verbose=verbose).__dict__  # Pass teh StructuredBlock which should have the Content-type field etc.
+
         elif table == "b":
             return {"Content-type": contenttype,
                 "data": Block.block(hash=hash, table=table, **kwargs )._data} # Should be raw data returned

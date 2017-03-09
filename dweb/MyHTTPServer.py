@@ -107,8 +107,8 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
             if verbose: print "_dispatch:Result=",res
             # Send the content-type
             self.send_response(200)  # Send an ok response
-            self.send_header('Content-type', res["Content-type"])
-            data = res["data"]
+            self.send_header('Content-type', res.get("Content-type","application/octet-stream"))
+            data = res.get("data","")
             if data:
                 if isinstance(data, (dict, list, tuple)):    # Turn it into JSON
                     data = dumps(data)

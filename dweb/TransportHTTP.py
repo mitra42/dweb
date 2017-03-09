@@ -2,7 +2,7 @@
 
 from sys import version as python_version
 import requests             # For outgoing HTTP http://docs.python-requests.org/en/master/
-from Transport import Transport, TransportBlockNotFound
+from Transport import Transport, TransportURLNotFound
 #from misc import ToBeImplementedException
 from CryptoLib import CryptoLib
 import urllib
@@ -58,7 +58,7 @@ class TransportHTTP(Transport):
             r.raise_for_status()
         except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as e:
             if r is not None and (r.status_code == 404):
-                raise TransportBlockNotFound(hash=str(urlargs)+str(options))
+                raise TransportURLNotFound(url=url, options=options)
             else:
                 print e
                 #TODO-LOGGING: logger.error(e)

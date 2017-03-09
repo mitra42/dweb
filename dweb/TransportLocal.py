@@ -3,7 +3,7 @@
 import os   # For isdir and exists
 from json import loads
 from CryptoLib import CryptoLib
-from Transport import Transport, TransportBlockNotFound
+from Transport import Transport, TransportFileNotFound
 
 class TransportLocal(Transport):
     """
@@ -21,7 +21,7 @@ class TransportLocal(Transport):
         :param options:
         """
         if not os.path.isdir(dir):
-            raise TransportBlockNotFound(hash=dir)
+            raise TransportFileNotFound(file=dir)
         self.dir = dir
         for table in self.tables:
             dirname = "%s/%s" % (self.dir, table)
@@ -61,7 +61,7 @@ class TransportLocal(Transport):
             f.write(data)
             f.close()
         except IOError as e:
-            raise TransportBlockNotFound(hash=hash)
+            raise TransportFileNotFound(file=filename)
         return hash
 
     def block(self, table, hash, verbose=False, **options):
@@ -81,7 +81,7 @@ class TransportLocal(Transport):
                 content = file.read()
             return content
         except IOError as e:
-            raise TransportBlockNotFound(hash=hash)
+            raise TransportFileNotFound(file=filename)
 
     def add(self, table=None, hash=None, value=None, verbose=False, **options):
         """
@@ -106,7 +106,7 @@ class TransportLocal(Transport):
                 f.write(value)
                 f.write("\n")
         except IOError as e:
-            raise TransportBlockNotFound(hash=filename)
+            raise TransportFileNotFound(file=filename)
 
     def list(self, table=None, hash=None, verbose=False, **options):
         """
@@ -127,4 +127,4 @@ class TransportLocal(Transport):
             f.close()
             return s
         except IOError as e:
-            raise TransportBlockNotFound(hash=filename)
+            raise TransportFileNotFound(file=filename)

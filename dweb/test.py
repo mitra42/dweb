@@ -7,7 +7,7 @@ from json import loads, dumps
 
 from misc import _print
 from CryptoLib import CryptoLib
-from Transport import TransportBlockNotFound
+from Transport import TransportBlockNotFound, TransportURLNotFound
 from TransportLocal import TransportLocal
 from TransportHTTP import TransportHTTP
 from Block import Block
@@ -136,10 +136,10 @@ class Testing(unittest.TestCase):
         Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         try:
             resp = Block.transport._sendGetPost(False, "block", [ Block.table, "12345"], params={"contenttype": "image/png"})
-        except TransportBlockNotFound as e:
+        except TransportURLNotFound as e:
             pass
         else:
-            assert False, "Should raise a TransportBlockNotFound error"
+            assert False, "Should raise a TransportURLNotFound error"
 
     def _storeas(self, filename, keyname, contenttype, **options):
         filepath = self.exampledir + filename
@@ -163,6 +163,7 @@ class Testing(unittest.TestCase):
         # A set of tools to upload things so available for testing.
         # All the functionality in storeas should have been tested elsewhere.
         Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
+        b=Block(data=self.dog); b.store(); print self.dog,b.url()
         self._storeas("dweb.js", "dweb_js_rsa", "application/javascript")
         self._storeas("jquery-3.1.1.js", None, "application/javascript")
         self._storeas("index.html", "index_html_rsa", "text/html")
@@ -190,4 +191,4 @@ class Testing(unittest.TestCase):
         resp = Block.transport._sendGetPost(False, "file", [f.table, f._hash,"langs/readme.md"]) # Fails cos no content-type
         assert int(resp.headers["Content-Length"]) == f1sz,"Should match length of readme.md"
         # TODO consider files as a MB rather than SB (i.e. MutableDir)
-
+        # http://localhost:4243/file/mb/SHA3256B64URL.88S-FYlEN1iF3WuDRdXoR8SyMUG6crR5ehM21IvUuS0=/tinymce.min.js
