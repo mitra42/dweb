@@ -9,6 +9,9 @@ mimetypes.init()
 mimetypes.add_type('text/plain','.md')
 
 class File(StructuredBlock):
+    """
+    A Subclass of File that specifically deals with file system objects,
+    """
     maxcontentlen = 10000
 
     def __init__(self, dict=None, **options):

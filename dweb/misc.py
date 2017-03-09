@@ -28,3 +28,12 @@ class ToBeImplementedException(MyBaseException):
     httperror = 501
     msg = "{name} needs implementing"
 
+def _print(*foos, **kwargs):
+    import textwrap
+    first = True
+    width = kwargs.get("width", 120)
+    for foo in foos:
+        for line in textwrap.wrap(unicode(foo), width=width):
+            print ("    " if not first else "") + line
+            first=False
+

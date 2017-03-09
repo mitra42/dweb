@@ -44,35 +44,6 @@ class SmartDict(object):
     def copy(self):
         return self.__class__(self.__dict__.copy())
 
-class StructuredLink(SmartDict):
-    """
-    A link inside the links field of a StructuredBlock
-
-    { date: datetime, size: int, [ data: string | hash: multihash | links: [ link ]* }
-    """
-
-    def content(self, verbose=False, **options):
-        """
-        :return: content of block, fetching links (possibly recursively) if required
-        """
-        return (
-            self.data or
-            (self.hash and Block.block(self.hash, verbose=verbose, **options)._data) or     # Will use table=sb or superclass
-            (self.links and "".join(d.content(verbose=verbose, **options) for d in self.links)) or
-            "")
-
-    def size(self, verbose=False, **options):
-        """
-        :return: Size of content, or None if cant calculate
-        """
-        if verbose: print "SL size:",self
-        return (
-            self.__dict__.get("size", None) or
-            (self.data and len(self.data)) or
-            (self.hash and Block.block(self.hash, verbose=verbose, **options).size(verbose=verbose, **options)) or # Will use table=sb or superclass
-            (self.links and sum(d.size(verbose=verbose, **options) for d in self.links)) or
-            None)
-
 class StructuredBlock(Block, SmartDict):
     """
     Encapsulates an JSON Dict and stores / retrieves over transports.
@@ -111,6 +82,8 @@ class StructuredBlock(Block, SmartDict):
         if isinstance(dict, Block):
             dict = dict._data
         SmartDict.__init__(self, dict)   # Cant use "super" as would use Block instead of SmartDic
+        if self.links:
+            self.links = [l if isinstance(l, StructuredBlock) else StructuredBlock(l) for l in self.links ]
         for k in options:
             self.__setattr__(k, options[k])
 
@@ -145,6 +118,21 @@ class StructuredBlock(Block, SmartDict):
     #---------------------------------------------------------------------------------------------------------
     #METHODS TO DEAL WITH FILES, WHICH ARE STRUCTURED BLOCKS BUT DONT HAVE OWN TYPE AS INCLUDED BY OTHER THINGS
     #---------------------------------------------------------------------------------------------------------
+
+    def link(self, item):
+        """
+        Find a link of a SB either by integer or by name
+
+        :param item: int or string
+        :return:
+        """
+        if isinstance(item, int):
+            return self.links[item]
+        else:
+            for sl in self.links:
+                if sl.name == item:
+                    return sl
+        return None
 
     def content(self, verbose=False, **options):
         """

@@ -38,6 +38,7 @@ class Transport(object):
         :param data: opaque data to store
         :return: hash of data
         """
+        #TODO-RELATIVE may need to add relative paths, but haven't found a use case yet
         raise ToBeImplementedException(name=cls.__name__+".store")
 
     #@abstractclassmethod   # Only works in Python 3.3
@@ -48,6 +49,7 @@ class Transport(object):
         :param hash: multihash of block to return
         :return:
         """
+        #TODO-RELATIVE may need to add relative paths, but haven't found a use case yet
         raise ToBeImplementedException(name=cls.__name__+".block")
 
     def add(self, table=None, key=None, value=None, **options):
@@ -61,6 +63,7 @@ class Transport(object):
         :param options:
         :return:
         """
+        #TODO-RELATIVE may need to add relative paths, but haven't found a use case yet
         raise ToBeImplementedException(name=cls.__name__+".add")
 
     def list(self, table=None, hash=None, verbose=False, **options):
@@ -72,3 +75,4 @@ class Transport(object):
         :return: list of dictionaries for each item retrieved
         """
         raise ToBeImplementedException(name=self.__class__.__name__+".list")
+        #TODO-RELATIVE may need to add relative paths, but haven't found a use case yet

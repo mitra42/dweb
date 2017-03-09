@@ -1,5 +1,6 @@
 # encoding: utf-8
 import urllib
+from misc import _print
 from Block import Block
 from StructuredBlock import StructuredBlock
 from MutableBlock import MutableBlock, MutableBlockMaster
@@ -46,7 +47,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
     store.arglist=["table", "data"]
 
     @exposed
-    def file(self, table=None, hash=None, contenttype=None, verbose=False, **kwargs):
+    def file(self, table=None, hash=None, urlargs=None, contenttype=None, verbose=False, **kwargs):
         """
         file is specific to the URL gateway, knows about various kinds of directories, what stored there, and how to return to browser
 
@@ -58,9 +59,17 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         if verbose: print "file",table,hash,contenttype,kwargs
         if table == "sb":
             sb = StructuredBlock.sblock(table=table, hash=hash, **kwargs)
-            if not sb.data and sb.hash:
-                sb.data = sb.content(verbose=verbose, **kwargs)
-            return sb.__dict__
+            while urlargs:
+                p1 = urlargs.pop(0)
+                sb = sb.link(p1)
+            if isinstance(sb, basestring):
+                return { "data": sb }
+            elif isinstance(sb, StructuredBlock):
+                if not sb.data and sb.hash:
+                    sb.data = sb.content(verbose=verbose, **kwargs)
+                return sb.__dict__
+            else:
+                ToBeImplementedException(name="file for table sb and content=" + sb.__class__.__name__)
         elif table == "mb": # Its a Mutable Block, fetch the sigs, then get latest, then fetch its content.
             mb = MutableBlock(hash=hash, verbose=verbose)
             mb.fetch(verbose=verbose)  # Get the sigs

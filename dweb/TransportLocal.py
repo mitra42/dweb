@@ -53,6 +53,7 @@ class TransportLocal(Transport):
         :param data: opaque data to store
         :return: hash of data
         """
+        #TODO-RELATIVE may need to add relative paths, but haven't found a use case yet
         hash = CryptoLib.Curlhash(data)
         filename = self._filename(table, hash, verbose=verbose, **options)
         try:
@@ -72,6 +73,7 @@ class TransportLocal(Transport):
         :param options:
         :return:
         """
+        #TODO-RELATIVE may need to add relative paths, but haven't found a use case yet
         try:
             filename = self._filename(table, hash)
             if verbose: print "Opening" + filename
@@ -93,6 +95,7 @@ class TransportLocal(Transport):
         :param options:
         :return:
         """
+        #TODO-RELATIVE may need to add relative paths, but haven't found a use case yet
         if verbose: print "TransportLocal.add", table, hash, value
         filename = self._filename(table, hash=hash, verbose=verbose, **options)
         try:
@@ -114,6 +117,7 @@ class TransportLocal(Transport):
         :param hash: Hash in table to be retrieved
         :return: list of dictionaries for each item retrieved
         """
+        #TODO-RELATIVE may need to add relative paths, but haven't found a use case yet
         if verbose: print "TransportLocal.list", table, hash
         if table in ("mb", "mbm"): table = "signedby"            # Look for Signatures for mb table in signedby table
         filename = self._filename(table, hash=hash, verbose=verbose, **options)

@@ -4,8 +4,8 @@ import unittest
 import os
 from pathlib2 import Path
 from json import loads, dumps
-import textwrap
 
+from misc import _print
 from CryptoLib import CryptoLib
 from Transport import TransportBlockNotFound
 from TransportLocal import TransportLocal
@@ -14,12 +14,6 @@ from Block import Block
 from StructuredBlock import StructuredBlock
 from MutableBlock import MutableBlockMaster, MutableBlock
 from File import File, Dir
-
-def _print(foo, width=120):
-    first = True
-    for line in textwrap.wrap(foo, width=width):
-        print ("    " if not first else "") + line
-        first=False
 
 
 class Testing(unittest.TestCase):
@@ -87,7 +81,7 @@ class Testing(unittest.TestCase):
         assert mblock._prev[0]._hash == testhash0, "Prev list should hold first stored"
 
     def test_LongFiles(self):
-        from StructuredBlock import StructuredBlock, StructuredLink
+        from StructuredBlock import StructuredBlock
         sblock = StructuredBlock({ "data": self.quickbrownfox}) # Note this is data held in the SB, as compared to _data which is data representing the SB
         assert sblock.size(verbose=self.verbose) == len(self.quickbrownfox), "Should get length"
         assert sblock.content(verbose=self.verbose) == self.quickbrownfox, "Should fetch string"
@@ -96,8 +90,8 @@ class Testing(unittest.TestCase):
         assert sblock.content(verbose=self.verbose) == self.dog, "Should fetch dog string"
         assert sblock.size(verbose=self.verbose) == len(self.dog), "Should get length"
         slinksblock = StructuredBlock({ "links": [
-                                            StructuredLink({ "data": self.quickbrownfox}),
-                                            StructuredLink({ "hash": multihash}),
+                                            StructuredBlock({ "data": self.quickbrownfox}),
+                                            StructuredBlock({ "hash": multihash}),
                                         ]})
         assert slinksblock.content(verbose=self.verbose) == self.quickbrownfox+self.dog, "Should get concatenation"
         assert slinksblock.size(verbose=self.verbose) == len(self.quickbrownfox)+len(self.dog), "Should get length"
@@ -181,12 +175,19 @@ class Testing(unittest.TestCase):
 
     def test_current(self):
         Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
-        f = Dir.load(filepath=dirpath, upload=True, verbose=self.verbose, option=options)
-        print f.url()
+        f1sz = File.load("../tinymce/langs/readme.md").size
+        f = Dir.load(filepath="../tinymce/langs", upload=True, verbose=self.verbose,)
+        #print f.url()  # url of sb at top of directory
+        sb = StructuredBlock.sblock(table=f.table, hash=f._hash, verbose=self.verbose)
+        assert len(sb.links) == 1, "tinymce/langs has 1 files"
+        resp = Block.transport._sendGetPost(False, "file", [f.table, f._hash,"readme.md"]) # Fails cos no content-type
+        assert int(resp.headers["Content-Length"]) == f1sz,"Should match length of readme.md"
+        # Now try multi-level directory
+        f = Dir.load(filepath="../tinymce", upload=True, verbose=self.verbose,)
+        #print f.url()  # url of sb at top of directory
         sb = StructuredBlock.sblock(table=f.table, hash=f._hash, verbose=self.verbose)
         assert len(sb.links) == 8, "tinymce has 8 files"
-
-        #Return or print url of StructuredBlock
-        # TODO try adding a small link as data, but still respond to URL
-        # TODO consider files as a MB rather than SB
+        resp = Block.transport._sendGetPost(False, "file", [f.table, f._hash,"langs/readme.md"]) # Fails cos no content-type
+        assert int(resp.headers["Content-Length"]) == f1sz,"Should match length of readme.md"
+        # TODO consider files as a MB rather than SB (i.e. MutableDir)
 

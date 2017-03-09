@@ -48,13 +48,8 @@ This list is at a much finer lever of granularity than Roadmap above.
 * DOCS: Find out how to document Javascript in Sphinx / .rst
 * CORE: Directories and relative links
     * Upload directory
-        * Python routine (start in test.py) that can accept dir
-        * API or class for that routine
-        * Build into TransportHTTP, TransportLocal, ServerHTTP
         * Javascript version of above - library based
         * Javascript version URL based
-    * Retrieve relative URLs
-        * Requires URL handler on HTTPServer to recognize relative URLs e.g. hash/relative
     * Demo
         * Demo on index.html with a relative image
     * Cleanup
@@ -76,6 +71,7 @@ This list is at a much finer lever of granularity than Roadmap above.
 * JAVASCRIPT: Turn incoming dates in JSON into JS date (though can compare strings)
 * SECURITY: Verify signatures in JS
 * APP: Browser plugin that recognizes URLs
+* REFACTOR StructuredBlock has to handle different kinds of sub-pointers which means "hash" may need table and hash in .hash
 
 Waiting on
 ----------

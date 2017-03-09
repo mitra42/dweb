@@ -92,13 +92,15 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
                     # Override any of the args specified in arglist by the fields of the URL in order
                     for i in range(len(urlargs)):
                         if i >= len(func.arglist):
-                            raise DWEBMalformedURLException(path=self.path)
-                        argvars[func.arglist[i]]=urlargs[i]
+                            break
+                        argname = func.arglist[i]
+                        argvars[argname]=urlargs.pop(0)
+                    # urlargs contain any beyond the
                     for arg in func.arglist:
                         if arg not in argvars:
                             raise HTTPargrequiredException(req=req, arg=arg)  # Will be caught in MyHTTPRequestHandler._dispatch
                 if verbose: print "%s.%s %s" % (self.__class__.__name__, req, argvars)
-                res = func(**argvars)          # MAIN PART - run method and collect result
+                res = func(urlargs=urlargs, **argvars)          # MAIN PART - run method and collect result
             else:
                 if verbose: print "%s.dispatch unimplemented: %s" % (self.__class__.__name__, req)
                 raise HTTPdispatcherException(req=req)  # Will be caught in MyHTTPRequestHandler._dispatch
