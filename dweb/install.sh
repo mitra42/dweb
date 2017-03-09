@@ -6,8 +6,12 @@ fPIPUPGRADE=true
 fMAKECHANGE=true
 fVERBOSE=true
 
-PIPINSTALLS="py-dateutil pycrypto sha3 requests"
-#OTHER MODULES USE OFTEN : pytz CherryPy lxml xlwt phonenumbers Py-dateutil requests-mock passlib
+PIPINSTALLS="py-dateutil pycrypto sha3 requests pathlib http python-magic"
+# This set are probably builtins but get imported
+# Pip install failed (not allowed) on: os sys json hashlib
+# Pip install failed (cant uninstall predecessr) on: datetime
+# Pip couldnt find - so maybe another name, or builtin: base64 cgi urllib hashlib cgi urllib BaseHTTPServer urlparse traceback unittest abc
+#OTHER MODULES USE OFTEN : pytz CherryPy lxml xlwt phonenumbers requests-mock passlib
 PIPEGREP=`echo $PIPINSTALLS | sed -e 's/ /|/g'`
 DIRS="../cache ../cache_http"
 #GROUP="wheel"  # Define if want all checkAndCreate to use group

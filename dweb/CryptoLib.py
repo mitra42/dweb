@@ -77,6 +77,7 @@ class CryptoLib(object):
         """
         Convert arbitrary data into a JSON string that can be deterministically hashed or compared.
         Must be valid for loading with json.loads (unless change all calls to that).
+        Exception: UnicodeDecodeError if data is binary
 
         :param data:    Any
         :return: JSON string that can be deterministically hashed or compared

@@ -296,6 +296,10 @@ class File {
     load(verbose, options) {
         transport.list(this, this._table, this._hash, verbose, options);
     }
+    onloaded(data, verbose, options) {
+        alert("XXX File onloaded not written yet, probably place .content in dom_id or elem")
+    }
+
 }
 // ==== NON OBJECT ORIENTED FUNCTIONS ==============
 

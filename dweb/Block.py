@@ -37,6 +37,7 @@ class Block(object):
         """
         Store this block on the underlying transport, return the hash for future id
         Uses the table of the class, which might be oerridden in superclass
+        Exception: UnicodeDecodeError - if data is binary
 
         :param table: table to store in
         :return: hash of data
@@ -58,7 +59,7 @@ class Block(object):
         :return: Block
         """
         if verbose: print "Fetching block table=", table or cls.table, "hash=", hash
-        data = cls.transport.block(table=table or cls.table, hash=hash or self._hash)
+        data = cls.transport.block(table=table or cls.table, hash=hash)
         if verbose: print "Block returning data len=", len(data)
         return Block(data=data)
 

@@ -28,14 +28,12 @@ class ToBeImplementedException(MyBaseException):
     httperror = 501
     msg = "{name} needs implementing"
 
-def filecontent(filename):
-    """
-    Utility function to open, read and close a file
-
-    :param filename:
-    :return: contents of file
-    """
-    with open(filename, mode='rb') as file:  # b is important -> binary
-        content = file.read()
-    return content
+def _print(*foos, **kwargs):
+    import textwrap
+    first = True
+    width = kwargs.get("width", 120)
+    for foo in foos:
+        for line in textwrap.wrap(unicode(foo), width=width):
+            print ("    " if not first else "") + line
+            first=False
 

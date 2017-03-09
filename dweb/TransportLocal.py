@@ -3,7 +3,7 @@
 import os   # For isdir and exists
 from json import loads
 from CryptoLib import CryptoLib
-from Transport import Transport, TransportBlockNotFound
+from Transport import Transport, TransportFileNotFound
 
 class TransportLocal(Transport):
     """
@@ -21,7 +21,7 @@ class TransportLocal(Transport):
         :param options:
         """
         if not os.path.isdir(dir):
-            raise TransportBlockNotFound(hash=dir)
+            raise TransportFileNotFound(file=dir)
         self.dir = dir
         for table in self.tables:
             dirname = "%s/%s" % (self.dir, table)
@@ -53,6 +53,7 @@ class TransportLocal(Transport):
         :param data: opaque data to store
         :return: hash of data
         """
+        #TODO-RELATIVE may need to add relative paths, but haven't found a use case yet
         hash = CryptoLib.Curlhash(data)
         filename = self._filename(table, hash, verbose=verbose, **options)
         try:
@@ -60,7 +61,7 @@ class TransportLocal(Transport):
             f.write(data)
             f.close()
         except IOError as e:
-            raise TransportBlockNotFound(hash=hash)
+            raise TransportFileNotFound(file=filename)
         return hash
 
     def block(self, table, hash, verbose=False, **options):
@@ -72,6 +73,7 @@ class TransportLocal(Transport):
         :param options:
         :return:
         """
+        #TODO-RELATIVE may need to add relative paths, but haven't found a use case yet
         try:
             filename = self._filename(table, hash)
             if verbose: print "Opening" + filename
@@ -79,7 +81,7 @@ class TransportLocal(Transport):
                 content = file.read()
             return content
         except IOError as e:
-            raise TransportBlockNotFound(hash=hash)
+            raise TransportFileNotFound(file=filename)
 
     def add(self, table=None, hash=None, value=None, verbose=False, **options):
         """
@@ -93,6 +95,7 @@ class TransportLocal(Transport):
         :param options:
         :return:
         """
+        #TODO-RELATIVE may need to add relative paths, but haven't found a use case yet
         if verbose: print "TransportLocal.add", table, hash, value
         filename = self._filename(table, hash=hash, verbose=verbose, **options)
         try:
@@ -103,7 +106,7 @@ class TransportLocal(Transport):
                 f.write(value)
                 f.write("\n")
         except IOError as e:
-            raise TransportBlockNotFound(hash=filename)
+            raise TransportFileNotFound(file=filename)
 
     def list(self, table=None, hash=None, verbose=False, **options):
         """
@@ -114,6 +117,7 @@ class TransportLocal(Transport):
         :param hash: Hash in table to be retrieved
         :return: list of dictionaries for each item retrieved
         """
+        #TODO-RELATIVE may need to add relative paths, but haven't found a use case yet
         if verbose: print "TransportLocal.list", table, hash
         if table in ("mb", "mbm"): table = "signedby"            # Look for Signatures for mb table in signedby table
         filename = self._filename(table, hash=hash, verbose=verbose, **options)
@@ -123,4 +127,4 @@ class TransportLocal(Transport):
             f.close()
             return s
         except IOError as e:
-            raise TransportBlockNotFound(hash=filename)
+            raise TransportFileNotFound(file=filename)

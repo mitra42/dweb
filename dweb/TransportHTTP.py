@@ -2,7 +2,7 @@
 
 from sys import version as python_version
 import requests             # For outgoing HTTP http://docs.python-requests.org/en/master/
-from Transport import Transport, TransportBlockNotFound
+from Transport import Transport, TransportURLNotFound
 #from misc import ToBeImplementedException
 from CryptoLib import CryptoLib
 import urllib
@@ -58,7 +58,7 @@ class TransportHTTP(Transport):
             r.raise_for_status()
         except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as e:
             if r is not None and (r.status_code == 404):
-                raise TransportBlockNotFound(hash=str(urlargs)+str(options))
+                raise TransportURLNotFound(url=url, options=options)
             else:
                 print e
                 #TODO-LOGGING: logger.error(e)
@@ -73,6 +73,7 @@ class TransportHTTP(Transport):
         :param data: opaque data to store
         :return: hash of data
         """
+        #TODO-RELATIVE may need to add relative paths, but haven't found a use case yet
         res = self._sendGetPost(True, "store", headers={"Content-Type": "application/octet-stream"}, urlargs=[table], data=data )
         return str(res.text) # Should be the hash - need to return a str, not unicode which isn't supported by decode
 
@@ -84,6 +85,7 @@ class TransportHTTP(Transport):
         :param options: parameters to block, must include "hash"
         :return:
         """
+        #TODO-RELATIVE may need to add relative paths, but haven't found a use case yet
         res = self._sendGetPost(False, "block", urlargs=[table, hash], params=options)
         return res.text
 
@@ -98,7 +100,7 @@ class TransportHTTP(Transport):
         :param options:
         :return:
         """
-        #TODO rename key to hash in Transport.add
+        #TODO-RELATIVE may need to add relative paths, but haven't found a use case yet
         if options.get("verbose",None): print "add",table, hash, value, options
         res = self._sendGetPost(True, "add", urlargs = [table], headers={"Content-Type": "application/octet-stream"}, params={"hash": hash}, data=CryptoLib.dumps(value))
 
@@ -111,6 +113,7 @@ class TransportHTTP(Transport):
         :param hash: Key to be retrieved (embedded in options for easier pass through)
         :return: list of dictionaries for each item retrieved
         """
+        #TODO-RELATIVE may need to add relative paths, but haven't found a use case yet
         if options.get("verbose",None): print "list",table, options
         res = self._sendGetPost(False, "list", urlargs=(table, hash), params=options)
         return res.json()

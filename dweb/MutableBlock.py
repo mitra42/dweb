@@ -132,7 +132,7 @@ class MutableBlockMaster(MutableBlock):
         return CryptoLib.export(self._key) if exportable else self._key.publickey()
 
     def publicurl(self, command=None, table=None):
-        return Block.transport.url(self, command=command or "list", table=table or MutableBlock.table, hash=super(MutableBlockMaster, self)._hash, contenttype=self.__getattr__("Content-type"))
+        return Block.transport.url(self, command=command or "list", table=table or MutableBlock.table, hash=super(MutableBlockMaster, self)._hash) #, contenttype=self.__getattr__("Content-type"))
 
     def privateurl(self):
         """

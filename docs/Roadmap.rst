@@ -47,9 +47,13 @@ This list is at a much finer lever of granularity than Roadmap above.
 * DOCS: Pass through docs, check all current
 * DOCS: Find out how to document Javascript in Sphinx / .rst
 * CORE: Directories and relative links
-    * Requires URL handler on HTTPServer to recognize relative URLs e.g. hash/relative
-    * Then See section below waiting on this
-    * Demo on index.html with a relative image
+    * Upload directory
+        * Javascript version of above - library based
+        * Javascript version URL based
+    * Demo
+        * Demo on index.html with a relative image
+    * Cleanup
+        * Then See section below waiting on this
 * FUNCTIONALITY: Work with P2P transport, probably IPFS
 * FUNCTIONALITY: Add authentication layer
 * DEMO: Improve visuals of MCE demo
@@ -67,6 +71,7 @@ This list is at a much finer lever of granularity than Roadmap above.
 * JAVASCRIPT: Turn incoming dates in JSON into JS date (though can compare strings)
 * SECURITY: Verify signatures in JS
 * APP: Browser plugin that recognizes URLs
+* REFACTOR StructuredBlock has to handle different kinds of sub-pointers which means "hash" may need table and hash in .hash
 
 Waiting on
 ----------

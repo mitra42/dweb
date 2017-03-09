@@ -2,15 +2,18 @@
 from datetime import datetime
 import unittest
 import os
+from pathlib2 import Path
+from json import loads, dumps
 
-from misc import filecontent
+from misc import _print
 from CryptoLib import CryptoLib
-from Transport import TransportBlockNotFound
+from Transport import TransportBlockNotFound, TransportURLNotFound
 from TransportLocal import TransportLocal
 from TransportHTTP import TransportHTTP
 from Block import Block
 from StructuredBlock import StructuredBlock
 from MutableBlock import MutableBlockMaster, MutableBlock
+from File import File, Dir
 
 
 class Testing(unittest.TestCase):
@@ -78,7 +81,7 @@ class Testing(unittest.TestCase):
         assert mblock._prev[0]._hash == testhash0, "Prev list should hold first stored"
 
     def test_LongFiles(self):
-        from StructuredBlock import StructuredBlock, StructuredLink
+        from StructuredBlock import StructuredBlock
         sblock = StructuredBlock({ "data": self.quickbrownfox}) # Note this is data held in the SB, as compared to _data which is data representing the SB
         assert sblock.size(verbose=self.verbose) == len(self.quickbrownfox), "Should get length"
         assert sblock.content(verbose=self.verbose) == self.quickbrownfox, "Should fetch string"
@@ -87,8 +90,8 @@ class Testing(unittest.TestCase):
         assert sblock.content(verbose=self.verbose) == self.dog, "Should fetch dog string"
         assert sblock.size(verbose=self.verbose) == len(self.dog), "Should get length"
         slinksblock = StructuredBlock({ "links": [
-                                            StructuredLink({ "data": self.quickbrownfox}),
-                                            StructuredLink({ "hash": multihash}),
+                                            StructuredBlock({ "data": self.quickbrownfox}),
+                                            StructuredBlock({ "hash": multihash}),
                                         ]})
         assert slinksblock.content(verbose=self.verbose) == self.quickbrownfox+self.dog, "Should get concatenation"
         assert slinksblock.size(verbose=self.verbose) == len(self.quickbrownfox)+len(self.dog), "Should get length"
@@ -102,7 +105,7 @@ class Testing(unittest.TestCase):
 
     def test_file(self):
         Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
-        content = filecontent(self.exampledir + "index.html")
+        content = File.load(filepath=self.exampledir + "index.html").content()
         sb = StructuredBlock(data=content, **{"Content-type":"text/html"})
         sbhash = sb.store()
         sburl = sb.url(command="file")
@@ -111,7 +114,7 @@ class Testing(unittest.TestCase):
         assert resp.text == content, "Should return data stored"
         assert resp.headers["Content-type"] == "text/html", "Should get type"
         # Now test a MutableBlock that uses this content
-        mbm = MutableBlockMaster(key=filecontent(self.exampledir+"index_html_rsa"), hash=sbhash)
+        mbm = MutableBlockMaster(key=File.load(filepath=self.exampledir+"index_html_rsa").content(), hash=sbhash)
         mbm.signandstore(verbose=self.verbose)
         mb = MutableBlock(key=mbm.publickey())
         mb.fetch()      # Just fetches the signatures
@@ -122,7 +125,7 @@ class Testing(unittest.TestCase):
     def test_typeoverride(self):    # See if can override the type on a block
         Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         # Store the wrench icon
-        content = filecontent(self.exampledir + "WrenchIcon.png")
+        content = File.load(filepath=self.exampledir + "WrenchIcon.png").content()
         wrenchhash = Block(data=content).store(verbose=self.verbose)
         # And check it got there
         resp = Block.transport._sendGetPost(False, "block", [ Block.table, wrenchhash], params={"contenttype": "image/png"})
@@ -133,38 +136,34 @@ class Testing(unittest.TestCase):
         Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         try:
             resp = Block.transport._sendGetPost(False, "block", [ Block.table, "12345"], params={"contenttype": "image/png"})
-        except TransportBlockNotFound as e:
+        except TransportURLNotFound as e:
             pass
         else:
-            assert False, "Should raise a TransportBlockNotFound error"
+            assert False, "Should raise a TransportURLNotFound error"
 
     def _storeas(self, filename, keyname, contenttype, **options):
         filepath = self.exampledir + filename
-        keypath = self.exampledir + keyname if keyname else None
-        content = filecontent(filepath) # This is a string, but it might be binary
-        if "image" in contenttype:
-            b = Block(data=content)  # Store raw
-            hash = b.store(verbose=self.verbose)
-            print filename + ":" + b.url(command="file", contenttype="image/png")  # Should be block, b, hash, params={"contenttype": "image/png"}
+        if os.path.isdir(filepath):
+            f = Dir.load(filepath=filepath, upload=True, verbose=self.verbose, option=options)
         else:
-            sb = StructuredBlock(data=content, **{"Content-type": contenttype})
-            sb.store(verbose=self.verbose)  # This will have data and _hash, the _hash reflects the SB not the data
-            # Note combination of image and keyname not valid currently (would probavly need to store as block inside structuredblock
-            if keypath:
-                if not os.path.exists(keypath):
-                    CryptoLib.export(CryptoLib.keygen(), private=True, filename=keypath) # Uncomment to get a key
-                    #TODO next line fails if dont have a keyname which is ok for now
-                mbm = MutableBlockMaster(key=filecontent(keypath), hash=sb._hash, verbose=self.verbose).signandstore(verbose=self.verbose)
-                print filename + " editable:" + mbm.privateurl()    # Side effect of storing
-                print filename + ":" + mbm.publicurl(command="file", table="mb")
-            else:
-                print filename + ":" + sb.url(command="file")
+            f = File.load(filepath=filepath, contenttype=contenttype, upload=True, verbose=self.verbose, **options)
+        keypath = self.exampledir + keyname if keyname else None
+        if keypath:
+            if not os.path.exists(keypath):
+                CryptoLib.export(CryptoLib.keygen(), private=True, filename=keypath) # Uncomment to get a key
+                #TODO next line fails if dont have a keyname which is ok for now
+            mbm = MutableBlockMaster(key=File.load(filepath=keypath).content(), hash=f._hash, verbose=self.verbose).signandstore(verbose=self.verbose)
+            print filename + " editable:" + mbm.privateurl()    # Side effect of storing
+            print filename + ":" + mbm.publicurl(command="file", table="mb")
+        else:
+            print filename + ":" + f.url(command="file")
 
 
     def test_uploads(self):
-        # A set of tools building up to usability for web.
+        # A set of tools to upload things so available for testing.
         # All the functionality in storeas should have been tested elsewhere.
         Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
+        b=Block(data=self.dog); b.store(); print self.dog,b.url()
         self._storeas("dweb.js", "dweb_js_rsa", "application/javascript")
         self._storeas("jquery-3.1.1.js", None, "application/javascript")
         self._storeas("index.html", "index_html_rsa", "text/html")
@@ -173,3 +172,23 @@ class Testing(unittest.TestCase):
         self._storeas("snippet2.html", "snippet_html_rsa", "text/html")
         self._storeas("WrenchIcon.png", None, "image/png")
         self._storeas("DWebArchitecture.png", "DwebArchitecture_png_rsa","image/png")
+        self._storeas("../tinymce", "tinymce_rsa", None)
+
+    def test_current(self):
+        Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
+        f1sz = File.load("../tinymce/langs/readme.md").size
+        f = Dir.load(filepath="../tinymce/langs", upload=True, verbose=self.verbose,)
+        #print f.url()  # url of sb at top of directory
+        sb = StructuredBlock.sblock(table=f.table, hash=f._hash, verbose=self.verbose)
+        assert len(sb.links) == 1, "tinymce/langs has 1 files"
+        resp = Block.transport._sendGetPost(False, "file", [f.table, f._hash,"readme.md"]) # Fails cos no content-type
+        assert int(resp.headers["Content-Length"]) == f1sz,"Should match length of readme.md"
+        # Now try multi-level directory
+        f = Dir.load(filepath="../tinymce", upload=True, verbose=self.verbose,)
+        #print f.url()  # url of sb at top of directory
+        sb = StructuredBlock.sblock(table=f.table, hash=f._hash, verbose=self.verbose)
+        assert len(sb.links) == 8, "tinymce has 8 files"
+        resp = Block.transport._sendGetPost(False, "file", [f.table, f._hash,"langs/readme.md"]) # Fails cos no content-type
+        assert int(resp.headers["Content-Length"]) == f1sz,"Should match length of readme.md"
+        # TODO consider files as a MB rather than SB (i.e. MutableDir)
+        # http://localhost:4243/file/mb/SHA3256B64URL.88S-FYlEN1iF3WuDRdXoR8SyMUG6crR5ehM21IvUuS0=/tinymce.min.js
