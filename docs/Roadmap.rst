@@ -47,13 +47,9 @@ This list is at a much finer lever of granularity than Roadmap above.
 * DOCS: Pass through docs, check all current
 * DOCS: Find out how to document Javascript in Sphinx / .rst
 * CORE: Directories and relative links
-    * Upload directory
-        * Javascript version of above - library based
-        * Javascript version URL based
-    * Demo
-        * Demo on index.html with a relative image
-    * Cleanup
-        * Then See section below waiting on this
+    * Javascript version of above - library based
+    * Javascript version URL based
+    * Then See section below waiting on this
 * FUNCTIONALITY: Work with P2P transport, probably IPFS
 * FUNCTIONALITY: Add authentication layer
 * DEMO: Improve visuals of MCE demo
