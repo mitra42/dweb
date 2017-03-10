@@ -47,12 +47,13 @@ class TransportHttp {
         this.post(self, "update", table, hash, type, data, verbose, options);
     }
 
-    load(self, command, table, hash, verbose, options) {
+    load(self, command, table, hash, path, verbose, options) {
         // obj being loaded
         // table: overrides table of class
         // optioms: are passed to class specific onloaded
         // Locate and return a block, based on its multihash
-        if (verbose) { console.log("TransportHTTP load:",command,": table=", table, "hash=", hash); }
+        verbose=true;
+        if (verbose) { console.log("TransportHTTP load:",command,": table=", table, "hash=", hash, "path=", path, "options=", options); }
         let url = this.url(command, table, hash);
         if (verbose) { console.log("TransportHTTP:list: url=",url); }
         $.ajax({
@@ -75,7 +76,7 @@ class TransportHttp {
         // table: overrides table of class
         // options: are passed to class specific onloaded
         // Locate and return a block, based on its multihash
-        this.load(self, "block", table, hash, verbose, options);
+        this.load(self, "block", table, hash, [], verbose, options);    //TODO-PATH
     }
 
     list(self, table, hash, verbose, options) {
@@ -83,7 +84,7 @@ class TransportHttp {
         // table: overrides table of class
         // options: are passed to class specific onloaded
         // Locate and return a block, based on its multihash
-        this.load(self, "list", table, hash, verbose, options);
+        this.load(self, "list", table, hash, [], verbose, options); //TODO-PATH
     }
 
     url(command, table, hash) {
@@ -96,9 +97,9 @@ var transport = TransportHttp.setup([dwebserver, dwebport], {});
 
 class Block {
     constructor(hash, data) {
-        this._hash = hash;  // Maybe null
-        this._data = data;  // Maybe null
-        this._table = 'b';
+        this._hash = hash;  // Hash of the _data
+        this._data = data;  // The data being stored
+        this._table = 'b';  // Table hash found in, TODO might want to move to _table python
     }
 
     block(table, verbose, options) {
@@ -122,6 +123,31 @@ class StructuredBlock extends Block { //TODO can subclass SmartDict if used else
         super(hash, null); // _hash is _hash of SB, not of data
         this._table = "sb"; // Note this is cls.table on python but need to separate from dictionary
     }
+    _setproperties(dict) {
+        for (let prop in dict) {
+            if (prop == "links") {  // Assume its a SB TODO make dependent on which table
+                let links = dict[prop];
+                for (let len = links.length, i=0; i<len; i++) {
+                    let sb = new StructuredBlock();
+                    sb._setproperties(links[i]);    // Can recurse down the path
+                    links[i] = sb;
+                }
+                this[prop] = links;
+            } else {
+                this[prop] = dict[prop];
+            }
+        }
+    }
+    link(name) {
+        let links = this.links;
+        for (let len = links.length, i=0; i<len; i++) {
+            if (links[i].name == name) {
+                return links[i]
+            }
+        }
+        console.log("Didn't find",name);
+        return null;    // If not found
+    }
     load(verbose, options) {
         // Locate and return a block, based on its multihash
         if (verbose) { console.log("Fetching StructuredBlock table=",this._table,"hash=",this._hash); }
@@ -131,15 +157,21 @@ class StructuredBlock extends Block { //TODO can subclass SmartDict if used else
     onloaded(data, verbose, options) {
         console.log("StructuredBlock:onloaded data len=", data.length, options)
         this._data = data;
-        this._dict = JSON.parse(data);
-        if (options["dom_id"]) {
-            if (verbose) { console.log("StructuredBlock:onloaded:Storing data to", options["dom_id"]); }
-            document.getElementById(options["dom_id"]).innerHTML = this._dict["data"];
-        } // TODO make it handle img, or other non-HTML as reqd based on this._dict["Content-type"]
-        if (options["elem"]) {
-            if (verbose) { console.log("StructuredBlock:onloaded:Storing data to element"); }
-            options["elem"].innerHTML = this._dict["data"];
-        } // TODO make it handle img, or other non-HTML as reqd based on this._dict["Content-type"]
+        this._setproperties(JSON.parse(data));
+        if (options.path && options.path.length) {  //TODO-PATH unclear if want a path or a list - start with a list
+            let next = options["path"].shift(); // Takes first element of path, leaves path as rest
+            let sb = this.link(next);   //TODO handle error of not found
+            sb.load(verbose, options);  // passes shorter path and any dom arg load and to its onloaded
+        } else { // dom_id etc are done on the leaf, not the intermediaries
+            if (options["dom_id"]) {
+                if (verbose) { console.log("StructuredBlock:onloaded:Storing data to", options["dom_id"]); }
+                document.getElementById(options["dom_id"]).innerHTML = this.data;
+            } // TODO make it handle img, or other non-HTML as reqd based on this["Content-type"]
+            if (options["elem"]) {
+                if (verbose) { console.log("StructuredBlock:onloaded:Storing data to element"); }
+                options["elem"].innerHTML = this.data;
+            } // TODO make it handle img, or other non-HTML as reqd based on this["Content-type"]
+        }
     }
 }
 class Signature {
@@ -170,7 +202,7 @@ class SignedBlock {
         if (this._structuredblock) {
             this._structuredblock.onloaded(options);
         } else {
-            sb = new StructuredBlock(this._hash);
+            let sb = new StructuredBlock(this._hash);
             sb.load(verbose, options);    // Asynchronous load - calls SB.onloaded
         }
     }
@@ -202,6 +234,7 @@ class SignedBlock {
 class MutableBlock {
     // TODO Build MutableBlock - allow fetch of signatures, and fetching them
     // TODO allow fetching of most recent
+    // { _hash, _key, _current: SignedBlock, _prev: [ SignedBlock*]
 
     constructor(hash) {
         // Note python __init__ also allows constructing with key, or with neither key nor hash
@@ -216,9 +249,9 @@ class MutableBlock {
     }
 
     onloaded(lines, verbose, options) {
-        let results = {};
+        let results = {};   // Dictionary of { SHA... : SignedBlock(hash=SHA... _signatures:[Signature*] ] ) }
         for (let i in lines) {
-            let s = new Signature(lines[i]);
+            let s = new Signature(lines[i]);        // Signature ::= {date, hash, privatekey etc }
             if (! results[s.hash]) {
                 results[s.hash] = new SignedBlock(s.hash);
             }
@@ -229,24 +262,23 @@ class MutableBlock {
             //if CryptoLib.verify(s):
             results[s.hash]._signatures.push(s);
         }
-        let sbs = new Array();
+        let sbs = new Array();      // [ SignedBlock* ]
         for (let k in results) {
             sbs.push(results[k]);      // Array of SignedBlock
         }
         //TODO sort list
-        sbs.sort(SignedBlock.compare);
-
-        //sbs.sort(function(a, b) {
-        //    if (a.earliestdate() > b.earliestdate()) { return -1; }
-        //    if (b.earliestdate() > a.earliestdate()) { return 1; }
-        //    return 0; })
+        sbs.sort(SignedBlock.compare); // Could inline: sbs.sort(function(a, b) { ... }
         this._current = sbs.pop();
         this._prev = sbs;
-        if (options["dom_id"]) {
-            if (verbose) { console.log("MutableBlock:onloaded:Storing data to", options["dom_id"]); }
-            let ul = document.getElementById(options["dom_id"]);
-            this.updatelist(ul, verbose);
-        } // TODO make it handle img, or other non-HTML as reqd based on this._dict["Content-type"]
+        if (options.path && options.path.length) {  //TODO-PATH unclear if want a path or a list - start with a list
+            this._current.load(verbose, options);
+        } else { // dom_id etc are done on the leaf, not the intermediaries
+            if (options["dom_id"]) {
+                if (verbose) { console.log("MutableBlock:onloaded:Storing data to", options["dom_id"]); }
+                let ul = document.getElementById(options["dom_id"]);
+                this.updatelist(ul, verbose);
+            } // TODO make it handle img, or other non-HTML as reqd based on this._dict["Content-type"]
+        }
     }
 
     updatelist(ul, verbose) {

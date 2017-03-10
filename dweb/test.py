@@ -174,21 +174,19 @@ class Testing(unittest.TestCase):
         self._storeas("DWebArchitecture.png", "DwebArchitecture_png_rsa","image/png")
         self._storeas("../tinymce", "tinymce_rsa", None)
 
-    def test_current(self):
+    def test_uploadandrelativepaths(self):
+        # Test that a directory can be uploaded and then accessed by a relative path
         Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         f1sz = File.load("../tinymce/langs/readme.md").size
-        f = Dir.load(filepath="../tinymce/langs", upload=True, verbose=self.verbose,)
-        #print f.url()  # url of sb at top of directory
-        sb = StructuredBlock.sblock(table=f.table, hash=f._hash, verbose=self.verbose)
-        assert len(sb.links) == 1, "tinymce/langs has 1 files"
-        resp = Block.transport._sendGetPost(False, "file", [f.table, f._hash,"readme.md"]) # Fails cos no content-type
-        assert int(resp.headers["Content-Length"]) == f1sz,"Should match length of readme.md"
-        # Now try multi-level directory
+        # Upload a multi-level directory
         f = Dir.load(filepath="../tinymce", upload=True, verbose=self.verbose,)
         #print f.url()  # url of sb at top of directory
         sb = StructuredBlock.sblock(table=f.table, hash=f._hash, verbose=self.verbose)
         assert len(sb.links) == 8, "tinymce has 8 files"
-        resp = Block.transport._sendGetPost(False, "file", [f.table, f._hash,"langs/readme.md"]) # Fails cos no content-type
+        resp = Block.transport._sendGetPost(False, "file", [f.table, f._hash,"langs/readme.md"])
         assert int(resp.headers["Content-Length"]) == f1sz,"Should match length of readme.md"
-        # TODO consider files as a MB rather than SB (i.e. MutableDir)
         # http://localhost:4243/file/mb/SHA3256B64URL.88S-FYlEN1iF3WuDRdXoR8SyMUG6crR5ehM21IvUuS0=/tinymce.min.js
+
+    def test_current(self):
+        pass
+    
