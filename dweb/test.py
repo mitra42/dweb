@@ -189,4 +189,3 @@ class Testing(unittest.TestCase):
 
     def test_current(self):
         pass
-    
