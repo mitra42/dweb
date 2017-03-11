@@ -8,18 +8,33 @@
     <script src="/file/mb/SHA3256B64URL.OylzjhbKQK5VOVMbvdK9Dkb4UDfOEHU8uCeSnzqiseE="></script><!-- dweb.js -->
     <script>
         // This is my current testing script first of block
-        console.log("StructuredBlock=======");
-        let sb = new StructuredBlock("SHA3256B64URL.5xMdQpGDhxZYOpuf6q1ElOr19LBO47WZV8Sjn5uPGY0=");
-        sb.load(true, {"path": ["langs","readme.md"], "dom_id": "myList.0"} );
-        console.log("MutableBlock=======");
-        <!-- also works with /file/mb/SHA3256B64URL.88S-FYlEN1iF3WuDRdXoR8SyMUG6crR5ehM21IvUuS0=/langs/readme.md -->
-        let mb = new MutableBlock("SHA3256B64URL.88S-FYlEN1iF3WuDRdXoR8SyMUG6crR5ehM21IvUuS0=");
-        mb.load(true, {"path": ["langs","readme.md"], "dom_id": "myList.1"} );
+    </script>
+    <script>
+        // This is a script that previously worked
+        function working() {
+            console.log("StructuredBlock=======");
+            sbhash="SHA3256B64URL.5xMdQpGDhxZYOpuf6q1ElOr19LBO47WZV8Sjn5uPGY0="
+            let sb = new StructuredBlock(sbhash);
+            sb.load(true, {"path": ["langs","readme.md"], "dom_id": "myList.0"} );
+            console.log("MutableBlock=======");
+            <!-- also works with /file/mb/SHA3256B64URL.88S-FYlEN1iF3WuDRdXoR8SyMUG6crR5ehM21IvUuS0=/langs/readme.md -->
+            mbhash = "SHA3256B64URL.88S-FYlEN1iF3WuDRdXoR8SyMUG6crR5ehM21IvUuS0=";
+            let mb = new MutableBlock(mbhash);
+            mb.load(true, {"path": ["langs","readme.md"], "dom_id": "myList.1"}  );
+            <!-- Now test path using dwebfile -->
+            dwebfile("sb", sbhash, "langs/readme.md", {  "dom_id": "myList.2"});
+            <!-- Now test path using dwebfile -->
+            dwebfile("mb", mbhash, "langs/readme.md", {  "dom_id": "myList.3"});
+        }
+        working(); // Can comment this line out when debugging
     </script>
 
 </head>
 <body>
+<h4>Each line of this list should be replaced by a line starting "This is where language"</h4>
 <ul>
-    <li id="myList.0">zero</li>
-    <li id="myList.1">one</li>
+    <li id="myList.0">Failed to load sb via StructuredBlock</li>
+    <li id="myList.1">Failed to load mb via MutableBlock</li>
+    <li id="myList.2">Failed to load sb via dwebfile</li>
+    <li id="myList.3">Failed to load mb via dwebfile</li>
 </ul>

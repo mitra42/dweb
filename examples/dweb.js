@@ -6,6 +6,8 @@ var dwebport = '4243';
 
 // ==== OBJECT ORIENTED JAVASCRIPT ===============
 
+//TODO document from here down
+
 class TransportHttp {
 
     constructor(ipandport, options) {
@@ -163,14 +165,7 @@ class StructuredBlock extends Block { //TODO can subclass SmartDict if used else
             let sb = this.link(next);   //TODO handle error of not found
             sb.load(verbose, options);  // passes shorter path and any dom arg load and to its onloaded
         } else { // dom_id etc are done on the leaf, not the intermediaries
-            if (options["dom_id"]) {
-                if (verbose) { console.log("StructuredBlock:onloaded:Storing data to", options["dom_id"]); }
-                document.getElementById(options["dom_id"]).innerHTML = this.data;
-            } // TODO make it handle img, or other non-HTML as reqd based on this["Content-type"]
-            if (options["elem"]) {
-                if (verbose) { console.log("StructuredBlock:onloaded:Storing data to element"); }
-                options["elem"].innerHTML = this.data;
-            } // TODO make it handle img, or other non-HTML as reqd based on this["Content-type"]
+                storeto(this.data, verbose, options)  // See if options say to store in a DIV for example
         }
     }
 }
@@ -314,35 +309,46 @@ class MutableBlockMaster {
         // copies at Block, MutableBlockMaster
         if (verbose) { console.log("MBM:onloaded:Storing _data to", options["dom_id"]); }
         this._data = data;
-        if (options["dom_id"]) {
-                    document.getElementById(options["dom_id"]).innerHTML = this._data;
-        } // TODO make it handle img, or other non-HTML as reqd
+        storeto(data, verbose, options)  // See if options say to store in a DIV for example
     }
 }
 
-class File {
-    constructor(table, hash) {
-        this._table = table;
-        this._hash = hash;
-    }
-    load(verbose, options) {
-        transport.list(this, this._table, this._hash, verbose, options);
-    }
-    onloaded(data, verbose, options) {
-        alert("XXX File onloaded not written yet, probably place .content in dom_id or elem")
-    }
-
+// ==== LIBRARY FUNCTIONS =======================
+function storeto(data, verbose, options) {
+    //TODO replace parts above that check dom_id
+    // Can be called to check if options have instructions what to do with data
+    // Its perfectly legitimate to call this, and nothing gets done with the data
+    if (options.dom_id) {
+        if (verbose) { console.log("onloaded:Storing data to", options.dom_id); }
+        document.getElementById(options.dom_id).innerHTML = data;
+    } // TODO make it handle img, or other non-HTML as reqd based on this["Content-type"]
+    if (options.elem) {
+        if (verbose) { console.log("onloaded:Storing data to element"); }
+        options.elem.innerHTML = data;
+    } // TODO make it handle img, or other non-HTML as reqd based on this["Content-type"]
 }
+
+
 // ==== NON OBJECT ORIENTED FUNCTIONS ==============
 
-function dwebfile(div, table, hash) {
-    var f = new File(table, hash);
-    f.load(true, {"dom_id": div});
+function dwebfile(table, hash, path, options) {
+    // Simple utility function to load into a hash without dealing with individual objects
+    if (path && (path.length > 0)) {
+        options.path = path.split('/');
+    }
+    if (table == "mb") {
+        var MorSb = new MutableBlock(hash);
+    } else if (table == "sb") {
+        var MorSb = new StructuredBlock(hash);
+    } else {
+        alert("dwebfile called with invalid table="+table);
+    }
+    MorSb.load(true, options);
 }
 
-function dwebupdate(div, table, hash, type, data) {
+function dwebupdate(table, hash, type, data, options) {
     mbm = new MutableBlockMaster(hash);
-    mbm.update(table, type, data, true, {"dom_id": div});
+    mbm.update(table, type, data, true, options);
 }
 
 function dweblist(div, hash) {

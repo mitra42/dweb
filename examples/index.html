@@ -22,7 +22,7 @@
                 hash = "SHA3256B64URL.hqPCPdsFLTaaWBgyySJmOyvVan80bBGVdyWTSESIFUw="; // Make a parameter
                 // alert(content);
                 type = "text%2Fhtml";
-                dwebupdate("myDiv", "mbm", hash, type, content);  // Post to Dweb and store URL at myDiv
+                dwebupdate("mbm", hash, type, content, {"dom_id": "myDiv"});  // Post to Dweb and store URL at myDiv
             }
         });
 
@@ -62,7 +62,8 @@
 <div>Last saved to:<span id="myDiv" name="myDiv">Unreplaced text</span></div>
 <h3>Experimental from here on down</h3>
 <p>This is a good place to put links to other tests - working or not.</p>
-<a href="http://192.168.1.156:4243/file/mb/SHA3256B64URL.46sb60oNrFKWXHSVAor2Tt4MZxR4M2G_DSLGuFAiq44=/index.html">Documentation in Sphinx</a>
+<a href="/file/mb/SHA3256B64URL.46sb60oNrFKWXHSVAor2Tt4MZxR4M2G_DSLGuFAiq44=/index.html">Documentation in Sphinx</a>
+<a href="/file/mb/SHA3256B64URL.QuepEpTZ_-2vg4TWTYW_Kok39ylvqIzIJDSSP9dmYCU=">test.html</a>
 <h4>List to be loaded by a button</h4>
 
 <p>This page is a current test, will just be testing current (usually broken) stuff.</p>
