@@ -42,14 +42,12 @@ TODO LIST
 =========
 This list is at a much finer lever of granularity than Roadmap above.
 
-* REFACTOR: Multihash - find spec, and replace format of hashes
-* DOCS: cover principles like _hash v hash
-* DOCS: Pass through docs, check all current
 * DOCS: Find out how to document Javascript in Sphinx / .rst
-* CORE: Directories and relative links
-    * Javascript version URL based
-    * Then See section below waiting on this
+    * https://sphinx-js-howto.readthedocs.io/en/latest/
+    * http://www.sphinx-doc.org/en/stable/domains.html#the-javascript-domain
+    * .. code-block:: js
 * CLEANUP dweb.js.extracted
+* DOCS: Pass through docs, check all current  (done API-API)
 * FUNCTIONALITY: Work with P2P transport, probably IPFS
 * FUNCTIONALITY: Add authentication layer
 * DEMO: Improve visuals of MCE demo
@@ -68,19 +66,21 @@ This list is at a much finer lever of granularity than Roadmap above.
 * SECURITY: Verify signatures in JS
 * APP: Browser plugin that recognizes URLs
 * REFACTOR StructuredBlock has to handle different kinds of sub-pointers which means "hash" may need table and hash in .hash
+* FUNCTIONALITY: JS/Browser Uploader for a directory.
+* APP: Drop-to-upload an icon, that runs maybe the python library that you can drop a file or directory on
+* APP: Blog like function, building on editor.
+    * Including: Smarter formating of SB's (e.g. who/when/what in a blog entry)
+* DOCS: Explain block, store, list, fetch in StructuredAPI.rst
+* DOCS: Write README.rst
 
 Waiting on
 ----------
-Waiting on directories and relative links
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-* FUNCTIONALITY: MCE running in the Dweb
-    * Reqs: Directories+Relative
-* FUNCTIONALITY: Uploader for a directory.
-    * Reqs: Directories+Relative
-* APP: Drop-to-upload an icon, that runs maybe the python library that you can drop a file or directory on
-    * Reqs: Directories & relative links; Uploader for a directory
-* APP: Blog like function, building on editor.
-    * Reqs: Smarter formating of SB's (e.g. who/when/what in a blog entry)
+
+Waiting on External factors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* REFACTOR: Multihash - find spec, and replace format of hashes
+    * Several broken aspects of it need fixing first - wont work with Sha3; doesnt handle >127 chars
+
 
 Waiting on Authentication
 ~~~~~~~~~~~~~~~~~~~~~~~~~

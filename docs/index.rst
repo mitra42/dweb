@@ -10,6 +10,7 @@ Locking the Web Open
    :maxdepth: 2
    :caption: Contents:
 
+   README
    API
    Integration
    Storage and Retrieval
@@ -19,6 +20,7 @@ Locking the Web Open
    Roadmap
    Design
    Modules
+   Javascript
    Glossary
 
 

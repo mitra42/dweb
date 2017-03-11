@@ -14,6 +14,16 @@ Abstract class for Transport, and subclasses for local and other transport metho
 .. automodule:: dweb.TransportLocal
     :members:
 
+.. automodule:: dweb.MyHTTPServer
+    :members:
+
+.. automodule:: dweb.ServerHTTP
+    :members:
+
+.. automodule:: dweb.TransportHTTP
+    :members:
+
+
 Storage
 =======
 Set of storage classes building on each other.
@@ -44,3 +54,5 @@ Everything that doesnt' fit elsewhere
 .. automodule:: dweb.misc
     :members:
 
+.. automodule:: dweb.File
+    :members:

@@ -1,3 +1,5 @@
+.. _Integration:
+
 Integration
 ===========
 This section describes how the Decentralized Web (:any:`dWeb`) interacts with the Old Web (:any:`oWeb`).
@@ -18,7 +20,7 @@ So for example ``https://dweb.net/block/12345678`` could be a syntax for retriev
   This might involve redirections.
 * Modified browsers recognize the URL and use their own dWeb clients to retrieve it.
 * Any dweb URL should work at any server so ``https://dweb.archive.org/block/12345678`` would provide exactly the same contents as above.
-* A gateway needs to be built that can server these URLs  *<DEV>*
+* A gateway needs to be built that can server these URLs.  *<DEV>*
 
 .. _Web page, Javascript integration:
 

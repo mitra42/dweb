@@ -30,7 +30,7 @@ Glossary
         A graph that assumes nothing refers to anything higher up the graph.
         Note that the hashes used in IPNS are acyclic, as cannot put a link to the top in a node.
 
-    oWeb - Old Web
+    oWeb: Old Web
         A shorthand for how things are done now, existing browsers and servers etc.
 
     SCTP: Stream Control Transmission Protocol
