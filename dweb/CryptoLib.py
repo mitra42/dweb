@@ -9,6 +9,7 @@ from Crypto.PublicKey import RSA
 #from Crypto.Cipher import AES, PKCS1_OAEP
 from misc import ToBeImplementedException
 import sha3 # To add to hashlib
+from multihash import encode, SHA1,SHA2_256, SHA2_512, SHA3
 
 class CryptoLib(object):
     """
@@ -17,8 +18,12 @@ class CryptoLib(object):
     """
 
     @staticmethod
+    #def Curlhash(data, hashscheme="SHA3256B64URL", **options):
     def Curlhash(data, hashscheme="SHA3256B64URL", **options):
+
         """
+        Obsolete version pre multihash
+
         :param data: Any length and combination of bytes
         :return: URL and Filename safe string   hashname.b64encoding
         """
@@ -27,9 +32,29 @@ class CryptoLib(object):
         elif hashscheme == "SHA3256B64URL":
             return "SHA3256B64URL." + base64.urlsafe_b64encode(hashlib.sha3_256(data).digest())
         elif hashscheme == "SHA3512B64URL":
-            return "SHA3512256B64URL." + base64.urlsafe_b64encode(hashlib.sha3_512(data).digest())
+            return "SHA3512B64URL." + base64.urlsafe_b64encode(hashlib.sha3_512(data).digest())
         else:
             raise ToBeImplementedException(name="CryptoLib.urlhash for hashscheme="+hashscheme)
+
+    @staticmethod
+    def Multihash_Curlhash(data, hashscheme="SHA2256B64URL", **options):
+
+        """
+        This version uses multihash, which unfortunately doesnt work on larger than 127 strings or on SHA3
+
+        :param data: Any length and combination of bytes
+        :return: URL and Filename safe string   hashname.b64encoding
+        """
+        if hashscheme == "SHA2256B64URL":
+            return "SHA1B64URL." + base64.urlsafe_b64encode(encode(data, SHA1))
+        elif hashscheme == "SHA2256B64URL":
+            return "SHA2256B64URL." + base64.urlsafe_b64encode(encode(data, SHA2_256))
+        elif hashscheme == "SHA2512B64URL":
+            return "SHA2512B64URL." + base64.urlsafe_b64encode(encode(data, SHA2_512))
+        elif hashscheme == "SHA3512B64URL":
+            return "SHA3512B64URL." + base64.urlsafe_b64encode(encode(data, SHA3))
+        else:
+            raise ToBeImplementedException(name="CryptoLib.urlhash for hashscheme=" + hashscheme)
 
     @staticmethod
     def _signable(date, data):
