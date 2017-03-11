@@ -42,17 +42,13 @@ TODO LIST
 =========
 This list is at a much finer lever of granularity than Roadmap above.
 
-* DOCS: Find out how to document Javascript in Sphinx / .rst
-    * https://sphinx-js-howto.readthedocs.io/en/latest/
-    * http://www.sphinx-doc.org/en/stable/domains.html#the-javascript-domain
-    * .. code-block:: js
-* CLEANUP dweb.js.extracted
 * DOCS: Pass through docs, check all current  (done API-API)
 * FUNCTIONALITY: Work with P2P transport, probably IPFS
 * FUNCTIONALITY: Add authentication layer
 * DEMO: Improve visuals of MCE demo
 * DEMO: Initialize content of MCE Editor to thing it is editing.
 * DEMO: Add a refresh button, and attach to list.
+* DOCS: Document Javascript.rst in Sphinx  (done functions, need classes)
 * REFACTOR: Python Transport API to use threads and callbacks
 * DEMO: Ability to upload an image (from a File selection box) and get URL
 * DEMO: Ability to upload in MCE (see https://www.tinymce.com/docs/get-started/upload-images/)
