@@ -56,7 +56,6 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         :param kwargs:
         :return: Dict suitable for looking for headers.
         """
-        verbose=True
         if verbose: print "file",table,hash,contenttype,kwargs
 
         if table in ("sb", "mb"):

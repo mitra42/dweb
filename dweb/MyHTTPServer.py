@@ -60,6 +60,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         cls.options = options
         if verbose: print "Setup server at",cls.ipandport
         BaseHTTPServer.HTTPServer( cls.ipandport, cls).serve_forever() # Start http server
+        print "Server exited" # It never should
 
     def _dispatch(self, **vars):
         """
@@ -122,6 +123,8 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
                 self.send_header('Content-Length', str(len(data)) if data else 0)
             self.end_headers()
             if data:
+                if isinstance(data, unicode):
+                    data = data.encode("utf-8") # Needed to make sure any unicode in data converted to utf8 BUT wont work for intended binary
                 self.wfile.write(data)                   # Write content of result if applicable
         except (TransportBlockNotFound, DWEBMalformedURLException) as e:         # Gentle errors, entry in log is sufficient (note line is app specific)
             self.send_error(e.httperror, str(e))    # Send an error response

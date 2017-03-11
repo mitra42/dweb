@@ -47,11 +47,6 @@ This list is at a much finer lever of granularity than Roadmap above.
 * DOCS: Pass through docs, check all current
 * DOCS: Find out how to document Javascript in Sphinx / .rst
 * CORE: Directories and relative links
-    * Javascript version of above - library based
-        * Figure out how/when handle path
-        * Maybe can create SB with top path, path(x/y) gets sub SB then load would walk tree and get leaf
-            * challenge is that need to trigger onloaded at each path step then d load
-        * Alt load(path: x/y/z, dom) -> loads, finds x then does load(path=y/z, dom) -> load(path=z, dom)
     * Javascript version URL based
     * Then See section below waiting on this
 * CLEANUP dweb.js.extracted

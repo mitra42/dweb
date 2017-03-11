@@ -188,4 +188,7 @@ class Testing(unittest.TestCase):
         # /file/mb/SHA3256B64URL.88S-FYlEN1iF3WuDRdXoR8SyMUG6crR5ehM21IvUuS0=/tinymce.min.js
 
     def test_current(self):
-        pass
+        self._storeas("../docs/_build/html", "doc_build_html_rsa", None)
+        hash = "SHA3256B64URL.46sb60oNrFKWXHSVAor2Tt4MZxR4M2G_DSLGuFAiq44="
+        mbcontent2 = Block.transport._sendGetPost(False,"file", [MutableBlock.table, hash, "index.html"]).text
+        print mbcontent2
