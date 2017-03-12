@@ -17,6 +17,7 @@ Locking the Web Open
    Applications
    Transport
    ScalableAPI
+   Authentication
    Roadmap
    Design
    Modules

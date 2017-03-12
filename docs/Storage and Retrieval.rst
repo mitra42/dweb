@@ -140,7 +140,7 @@ This allows a range of applications all based on the ability to retrieve a list 
 .. parsed-literal::
 
     MutableBlock { _key: :std:token:`KeyPair`, _current: :std:token:`SignedBlock`,
-                   _prev: [ :std:token:`SignedBlock` ]* }
+                   _list: [ :std:token:`SignedBlock` ]* }
 
 Chain linking
 -------------
@@ -155,10 +155,7 @@ Functional level
     store(:std:token:`MutableReferenceMaster`, :std:token:`MutableListEntry`) -> :std:token:`Multihash`
 
 .. productionlist::
-    MutableBlockMaster: `MutableReferenceMaster` `SignedBlock` [ `SignedBlock` ]*
-    MutableBlock: `MutableReference` `SignedBlock` [ `SignedBlock` ]*
-    MutableReference: `PublicKey` `MutableOptions`
-    MutableReferenceMaster: `KeyPair` `MutableOptions`
+    MutableBlock: [PrivateKey] PublicKey `MutableOptions` `SignedBlock` [ `SignedBlock` ]*
     MutableOptions: "options": "LAST" | "ALL"  [ int ]
 
 Comparisom to IPFS/IPNS

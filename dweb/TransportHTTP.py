@@ -126,7 +126,7 @@ class TransportHTTP(Transport):
         """
         from MutableBlock import MutableBlock
         # Identical to ServerHTTP.url
-        hash = hash or ( obj.hash if isinstance(obj, MutableBlock) else obj._hash)
+        hash = hash or obj._hash
         url =  "http://%s:%s/%s/%s/%s"  \
                % (self.ipandport[0], self.ipandport[1], command or obj.transportcommand, table or obj.table, hash)
         if contenttype:

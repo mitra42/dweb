@@ -12,7 +12,7 @@ from TransportLocal import TransportLocal
 from TransportHTTP import TransportHTTP
 from Block import Block
 from StructuredBlock import StructuredBlock
-from MutableBlock import MutableBlockMaster, MutableBlock
+from MutableBlock import MutableBlock
 from File import File, Dir
 
 
@@ -63,9 +63,8 @@ class Testing(unittest.TestCase):
         assert not signedblock.verify(verify_atleastone=True, verbose=self.verbose), "Should fail"
 
     def test_MutableBlocks(self):
-        from MutableBlock import MutableBlockMaster, MutableBlock
         # Mutable Blocks
-        mblockm = MutableBlockMaster(verbose=self.verbose)      # Create a new block with a new key
+        mblockm = MutableBlock(master=True, verbose=self.verbose)      # Create a new block with a new key
         mblockm.data = self.quickbrownfox                       # Put some data in it (goes in the SignedBlock
         mblockm.signandstore(verbose=self.verbose)              # Sign it - this publishes it
         testhash0 = mblockm._current._hash                      # Get a pointer to that version
@@ -78,7 +77,7 @@ class Testing(unittest.TestCase):
         mblock = MutableBlock(key=publickey)                    # Setup a copy (not Master) via the publickey
         mblock.fetch(verbose=self.verbose)                      # Fetch the content
         assert mblock._current._hash == testhash, "Should match hash stored above"
-        assert mblock._prev[0]._hash == testhash0, "Prev list should hold first stored"
+        assert mblock._list[0]._hash == testhash0, "Prev list should hold first stored"
 
     def test_LongFiles(self):
         from StructuredBlock import StructuredBlock
@@ -114,12 +113,12 @@ class Testing(unittest.TestCase):
         assert resp.text == content, "Should return data stored"
         assert resp.headers["Content-type"] == "text/html", "Should get type"
         # Now test a MutableBlock that uses this content
-        mbm = MutableBlockMaster(key=File.load(filepath=self.exampledir+"index_html_rsa").content(), hash=sbhash)
+        mbm = MutableBlock(master=True, key=File.load(filepath=self.exampledir+"index_html_rsa").content(), contenthash=sbhash)
         mbm.signandstore(verbose=self.verbose)
         mb = MutableBlock(key=mbm.publickey())
         mb.fetch()      # Just fetches the signatures
         assert mb.content() == mbm.content(), "Should round-trip HTML content"
-        mbcontent2 = Block.transport._sendGetPost(False,"file", [MutableBlock.table, mb._hash]).text
+        mbcontent2 = Block.transport._sendGetPost(False,"file", ["mb", mb._hash]).text
         assert mbcontent2 == mbm.content(), "Should fetch MB content via its URL"
 
     def test_typeoverride(self):    # See if can override the type on a block
@@ -152,7 +151,7 @@ class Testing(unittest.TestCase):
             if not os.path.exists(keypath):
                 CryptoLib.export(CryptoLib.keygen(), private=True, filename=keypath) # Uncomment to get a key
                 #TODO next line fails if dont have a keyname which is ok for now
-            mbm = MutableBlockMaster(key=File.load(filepath=keypath).content(), hash=f._hash, verbose=self.verbose).signandstore(verbose=self.verbose)
+            mbm = MutableBlock(master=True, key=File.load(filepath=keypath).content(), contenthash=f._hash, verbose=self.verbose).signandstore(verbose=self.verbose)
             print filename + " editable:" + mbm.privateurl()    # Side effect of storing
             print filename + ":" + mbm.publicurl(command="file", table="mb")
         else:
@@ -188,7 +187,4 @@ class Testing(unittest.TestCase):
         # /file/mb/SHA3256B64URL.88S-FYlEN1iF3WuDRdXoR8SyMUG6crR5ehM21IvUuS0=/tinymce.min.js
 
     def test_current(self):
-        self._storeas("../docs/_build/html", "doc_build_html_rsa", None)
-        hash = "SHA3256B64URL.46sb60oNrFKWXHSVAor2Tt4MZxR4M2G_DSLGuFAiq44="
-        mbcontent2 = Block.transport._sendGetPost(False,"file", [MutableBlock.table, hash, "index.html"]).text
-        print mbcontent2
+        self._storeas("dweb.js", "dweb_js_rsa", "application/javascript")

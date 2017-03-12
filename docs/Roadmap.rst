@@ -42,9 +42,10 @@ TODO LIST
 =========
 This list is at a much finer lever of granularity than Roadmap above.
 
+* FUNCTIONALITY: Add authentication layer
+    * See Authentication.rst
 * DOCS: Pass through docs, check all current  (done API-API)
 * FUNCTIONALITY: Work with P2P transport, probably IPFS
-* FUNCTIONALITY: Add authentication layer
 * DEMO: Improve visuals of MCE demo
 * DEMO: Initialize content of MCE Editor to thing it is editing.
 * DEMO: Add a refresh button, and attach to list.

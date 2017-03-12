@@ -111,7 +111,7 @@ class Block {
 
     onloaded(data, verbose, options) {
         // Called after block succeeds, can pass options through
-        // copies at Block, MutableBlockMaster
+        // copies at Block, MutableBlock
         if (verbose) { console.log("Block:onloaded:Storing _data to", options["dom_id"]); }
         this._data = data;
         if (options["dom_id"]) {
@@ -229,14 +229,14 @@ class SignedBlock {
 class MutableBlock {
     // TODO Build MutableBlock - allow fetch of signatures, and fetching them
     // TODO allow fetching of most recent
-    // { _hash, _key, _current: SignedBlock, _prev: [ SignedBlock*]
+    // { _hash, _key, _current: SignedBlock, _list: [ SignedBlock*]
 
     constructor(hash) {
         // Note python __init__ also allows constructing with key, or with neither key nor hash
         this._hash = hash;       // Could be None
         this._key = null;
         this._current = null;
-        this._prev = new Array();
+        this._list = new Array();
     }
 
     load(verbose, options) {   // Python can also fetch based on just having key
@@ -263,8 +263,8 @@ class MutableBlock {
         }
         //TODO sort list
         sbs.sort(SignedBlock.compare); // Could inline: sbs.sort(function(a, b) { ... }
-        this._current = sbs.pop();
-        this._prev = sbs;
+        this._current = sbs[sbs.length-1];
+        this._list = sbs;
         if (options.path && options.path.length) {  //TODO-PATH unclear if want a path or a list - start with a list
             this._current.load(verbose, options);
         } else { // dom_id etc are done on the leaf, not the intermediaries
@@ -280,33 +280,30 @@ class MutableBlock {
         while (ul.hasChildNodes()) {
             ul.removeChild(ul.lastChild);
         }
-        for (let ii in this._prev) {     // Signed Blocks
-            let i = this._prev[ii];
+        for (let ii in this._list) {     // Signed Blocks
+            let i = this._list[ii];
             let li = document.createElement("li");
             ul.appendChild(li);
             i.load(verbose, { "elem": li });
         }
-        let li = document.createElement("li");
-        ul.appendChild(li);
-        this._current.load(verbose, { "elem": li });
     }
 }
 
 class MutableBlockMaster {
-    // TODO Build MutableBlockMaster - allow to drive editor (MCE)
+    // TODO - allow to drive editor (MCE)
     constructor(hash) {
         // Note python __init__ also allows constructing with key, or with neither key nor hash
         this._hash = hash;       // Could be None
         this._key = null;
         this._current = null;
-        this._prev = new Array();
+        this._list = new Array();
     }
     update(table, type, data, verbose, options) {
         transport.update(this, table, this._hash, type, data, verbose, options);
     }
     onloaded(data, verbose, options) {
         // Called after block succeeds, can pass options through
-        // copies at Block, MutableBlockMaster
+        // copies at Block, MutableBlock
         if (verbose) { console.log("MBM:onloaded:Storing _data to", options["dom_id"]); }
         this._data = data;
         storeto(data, verbose, options)  // See if options say to store in a DIV for example

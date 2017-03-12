@@ -213,7 +213,7 @@ class SignedBlocks(list):
         latest = max(key for key in dated)      # Find date of SB with latest first sig
         return dated[latest]
 
-    def latestandsorteddeduplicatedrest(self):
+    def sorteddeduplicated(self):
         """
         Extract the latest, and return a deduplicated, ordered list of rest
         :return: latest signed block, [ signed blocks in date order excluding latest ]*
@@ -221,5 +221,4 @@ class SignedBlocks(list):
         dated = {sb.date(): sb for sb in self}  # Extract date of first sig of each block
         sorted = dated.keys()
         sorted.sort()       # Earliest first
-        latestdate = sorted.pop()   # Get latest, leave rest
-        return dated[latestdate], [ dated[date] for date in sorted ]
+        return [ dated[date] for date in sorted ]
