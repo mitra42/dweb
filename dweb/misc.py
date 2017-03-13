@@ -9,7 +9,7 @@ class MyBaseException(Exception):
     __str__ Returns msg expanded with msgparms
     """
     errno=0
-    httperror = 500
+    httperror = 500         # See BaseHTTPRequestHandler for list of errors
     msg="Generic Model Exception"   #: Parameterised string for message
     def __init__(self, **kwargs):
         self.msgargs=kwargs # Store arbitrary dict of message args (can be used ot output msg from template
@@ -27,6 +27,11 @@ class ToBeImplementedException(MyBaseException):
     """
     httperror = 501
     msg = "{name} needs implementing"
+
+
+class ForbiddenException(MyBaseException):
+    httperror = 403     # Forbidden (Authentication won't help)
+    msg = "Not allowed: {what}"
 
 def _print(*foos, **kwargs):
     import textwrap

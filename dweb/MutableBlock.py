@@ -1,7 +1,7 @@
 # encoding: utf-8
 from datetime import datetime
 
-from misc import ToBeImplementedException
+from misc import ToBeImplementedException, ForbiddenException
 from CryptoLib import CryptoLib # Suite of functions for hashing, signing, encrypting
 from Block import Block
 from SignedBlock import SignedBlock, SignedBlocks
@@ -56,7 +56,7 @@ class CommonList(object):
         if key:
             if isinstance(key, basestring):
             # Its an exported key string, import it (note could be public or private)
-                key = CryptoLib.importpublic(key)  # Works on public or private
+                key = CryptoLib.importpublicorprivate(key)  # Works on public or private
                 self._key = key
         else:
             self._key = None
@@ -107,6 +107,22 @@ class CommonList(object):
         self._hash # Side effect of generating hashes
         return Block.transport.url(self, command="update", table=self.table, hash=self._hashprivatekey, contenttype=self.__getattr__("Content-type"))
         #TODO-AUTHENTICATION - this is particularly vulnerable w/o authentication as stores PrivateKey in unencrypted form
+
+
+    def signandstore(self, obj, verbose=False, **options):
+        """
+        Sign and store a SignedBlock on a list
+
+        :param obj:
+        :param verbose:
+        :param options:
+        :return:
+        """
+        if not self._master:
+            raise ForbiddenException("Signing a new entry when not a master list")
+        obj.sign(self._key).store(verbose=verbose, **options)
+        return self
+
 
 class MutableBlock(CommonList):
     """
@@ -163,14 +179,11 @@ class MutableBlock(CommonList):
     def signandstore(self, verbose=False, **options):
         """
         Sign and Store a version, or entry in MutableBlock master
-        Exceptions: SignedBlockEmptyException if neither hash nor structuredblock defined
+        Exceptions: SignedBlockEmptyException if neither hash nor structuredblock defined, ForbiddenException if !master
 
-        :return: self
+        :return: self to allow chaining of functions
         """
-        #TODO should fail if !master
-        self._current.sign(self._key).store(verbose=verbose, **options) # Note this is storing all the sigs, not the content of _current
-        # ERR SignedBlockEmptyException
-        return self # Allow chaining functions e.g. MutableBlock(...).signandstore().xyz()
+        return self.signandstore(self._current, verbose=verbose, **options) # ERR SignedBlockEmptyException, ForbiddenException
 
 
 def AccessControlList(CommonList):
