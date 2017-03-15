@@ -29,6 +29,13 @@ class ToBeImplementedException(MyBaseException):
     msg = "{name} needs implementing"
 
 
+class AssertionFail(MyBaseException):
+    """
+    Raised when something that should be true isn't - usually a coding failure or some change not propogated fully
+    """
+    httperror = 500
+    msg = "{message}"
+
 class ForbiddenException(MyBaseException):
     httperror = 403     # Forbidden (Authentication won't help)
     msg = "Not allowed: {what}"

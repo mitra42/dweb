@@ -62,7 +62,12 @@ class StructuredBlock(Block, SmartDict):
         :return: canonical json string that handles dates, and order in dictionaries
         """
         #TODO need to check that this doesnt have internal e.g. _* fields that might get stored, if so strip
-        return CryptoLib.dumps(self.__dict__)
+        try:
+            return CryptoLib.dumps(self.__dict__)
+        except UnicodeDecodeError as e:
+            print "Unicode error in StructuredBlock"
+            print self.__dict__
+            raise e
 
     def url(self, **options):
         """

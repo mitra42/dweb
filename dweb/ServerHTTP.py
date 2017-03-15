@@ -10,8 +10,8 @@ from misc import ToBeImplementedException
 
 class DwebHTTPRequestHandler(MyHTTPRequestHandler):
 
-    defaultipandport = ('192.168.1.156', 4243)
-    #defaultipandport = ('localhost', 4243)
+    #defaultipandport = ('192.168.1.156', 4243)
+    defaultipandport = ('localhost', 4243)
 
     @exposed
     def block(self, table=None, hash=None, contenttype="application/octet-stream", **kwargs):
@@ -97,14 +97,13 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         """
         #Fetch key from hash
         if verbose: print "DwebHTTPRequestHandler.update",table,hash,data,type
-        privkey = Block.block(table="mbm", hash=hash, verbose=verbose)._data #TODO what happens if cant find
+
         # Store the data
         sbhash = StructuredBlock(data=data, verbose=verbose, **{"Content-type": contenttype}).store(verbose=verbose)
         #Create Mbm from key; load with data; sign and store
-        mbm = MutableBlock(master=True, key=privkey, contenthash=sbhash, verbose=verbose).signandstore(verbose=verbose)
-        mbm._hash   # Side effect of initializing _hashprivatekey
+        mbm = MutableBlock(master=True, hash=hash, contenthash=sbhash, verbose=verbose).signandstore(verbose=verbose)
         return {"Content-type": "text/plain",       # Always returning plain text as the URL whatever type stored
-                "data": self.url(mbm, command="file", table="mb", hash=mbm._hashpublickey)}  # Note cant use mbm.url as not valid on TransportLocal
+                "data": self.url(mbm, command="file", table="mb", hash=mbm._keypair.publichash)}  # Note cant use mbm.url as not valid on TransportLocal
     update.arglist=["table","hash","contenttype"]
 
     @exposed

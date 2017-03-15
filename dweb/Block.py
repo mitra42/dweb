@@ -10,13 +10,14 @@ class Block(object):
     table = "b"
     transportcommand="block"
 
-    def __init__(self, hash=None, data=None):
+    def __init__(self, hash=None, data=None, verbose=False):
         #TODO-BLOCK check calls to __init__ and make sure use dic for hash
         #TODO-BLOCK make block use _hash rather than hash passed
         self._hash = hash
         self._data = data
 
     def __repr__(self):
+        #Exception UnicodeDecodeError if data binary
         return "%s('%s')" % (self.__class__.__name__, self._data)
 
     def size(self, verbose=False, **options):
@@ -44,7 +45,7 @@ class Block(object):
         """
         if verbose: print "Storing len=", len(self._data)
         self._hash = self.transport.store(table=table or self.table, data=self._data)
-        if verbose: print "Block.store: Hash=", self._hash
+        if verbose: print "Block.store: Table=", table or self.table, "Hash=", self._hash
         return self._hash
 
     @classmethod

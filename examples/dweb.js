@@ -1,7 +1,7 @@
 // Javascript library for dweb
 
-//var dwebserver = 'localhost';
-var dwebserver = '192.168.1.156';
+var dwebserver = 'localhost';
+//var dwebserver = '192.168.1.156';
 var dwebport = '4243';
 
 // ==== OBJECT ORIENTED JAVASCRIPT ===============
@@ -334,7 +334,7 @@ function dwebfile(table, hash, path, options) {
         options.path = path.split('/');
     }
     if (table == "mb") {
-        var MorSb = new MutableBlock(hash);
+        var MorSb = new MutableBlock(hash); #TODO-KEY check all similar calls to make sure MutableBlock still takes parm 0 = hash
     } else if (table == "sb") {
         var MorSb = new StructuredBlock(hash);
     } else {
@@ -344,12 +344,12 @@ function dwebfile(table, hash, path, options) {
 }
 
 function dwebupdate(table, hash, type, data, options) {
-    mbm = new MutableBlockMaster(hash);
+    mbm = new MutableBlockMaster(hash);  #TODO-KEY check all similar calls to make sure MutableBlock still takes parm 0 = hash
     mbm.update(table, type, data, true, options);
 }
 
 function dweblist(div, hash) {
-    var mb = new MutableBlock(hash);
+    var mb = new MutableBlock(hash);  #TODO-KEY check all similar calls to make sure MutableBlock still takes parm 0 = hash
     mb.load(true, {"dom_id": div});
 }
 

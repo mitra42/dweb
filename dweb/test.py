@@ -6,13 +6,13 @@ from pathlib2 import Path
 from json import loads, dumps
 
 from misc import _print
-from CryptoLib import CryptoLib
+from CryptoLib import CryptoLib, KeyPair
 from Transport import TransportBlockNotFound, TransportURLNotFound
 from TransportLocal import TransportLocal
 from TransportHTTP import TransportHTTP
 from Block import Block
 from StructuredBlock import StructuredBlock
-from MutableBlock import MutableBlock
+from MutableBlock import MutableBlock, AccessControlList #TODO-AUTHENTICATION move to own file
 from File import File, Dir
 
 
@@ -24,8 +24,8 @@ class Testing(unittest.TestCase):
         self.quickbrownfox =  "The quick brown fox ran over the lazy duck"
         self.dog = "But the clever dog chased the fox"
         self.mydic = { "a": "AAA", "1":100, "B_date": datetime.now()}  # Dic can't contain integer field names
-        #self.ipandport = ('localhost', 4243)  # Serve it via HTTP on all addresses
-        self.ipandport = ('192.168.1.156', 4243)  # Serve it via HTTP on all addresses
+        self.ipandport = ('localhost', 4243)  # Serve it via HTTP on all addresses
+        #self.ipandport = ('192.168.1.156', 4243)  # Serve it via HTTP on all addresses
         self.exampledir = "../examples/"    # Where example files placed
         if testTransport == TransportLocal:
             Block.setup(TransportLocal, verbose=self.verbose, dir="../cache")
@@ -37,6 +37,19 @@ class Testing(unittest.TestCase):
 
     def tearDown(self):
         super(Testing, self).tearDown()
+
+    def keyfromfile(self, keyname, private=False):
+        """
+        Load a key from a file, if file doesnt exist then create it with a new randome key.
+        Note that in normal testing, the file will be created when the test is run first, then that key file will end up in git so will be same on all machines.
+        """
+        keypath = self.exampledir + keyname
+        if not os.path.exists(keypath):
+            print "XXX@48",keypath,"doesnt exist"
+            keypair = KeyPair.keygen()
+            File._write(filepath=keypath, data=keypair.privateexport if private else keypair.publicexport)
+        print "XXX@51 loading",keypath
+        return File.load(filepath=keypath).content()
 
     def test_Block(self):
         multihash = Block(data=self.quickbrownfox).store(verbose=self.verbose)
@@ -56,8 +69,8 @@ class Testing(unittest.TestCase):
         from SignedBlock import SignedBlock
         # Test Signatures
         signedblock = SignedBlock(structuredblock=self.mydic)
-        key = CryptoLib.keygen()
-        signedblock.sign(key, verbose=self.verbose)
+        keypair = KeyPair.keygen()
+        signedblock.sign(keypair, verbose=self.verbose)
         assert signedblock.verify(verify_atleastone=True), "Should verify"
         signedblock.a="A++"
         assert not signedblock.verify(verify_atleastone=True, verbose=self.verbose), "Should fail"
@@ -72,9 +85,9 @@ class Testing(unittest.TestCase):
         mblockm.data = self.dog                                 # Put some different content in it
         mblockm.signandstore(verbose=self.verbose)              # Publish new content
         testhash = mblockm._current._hash                       # Get a pointer to the new version
-        publickey = mblockm.publickey()                         # Get the publickey pointer to the block
+        keyhash = mblockm._keypair.store().publichash           # Get the publickey pointer to the block
         # And check it
-        mblock = MutableBlock(key=publickey)                    # Setup a copy (not Master) via the publickey
+        mblock = MutableBlock(hash=keyhash)                     # Setup a copy (not Master) via the publickey
         mblock.fetch(verbose=self.verbose)                      # Fetch the content
         assert mblock._current._hash == testhash, "Should match hash stored above"
         assert mblock._list[0]._hash == testhash0, "Prev list should hold first stored"
@@ -113,9 +126,9 @@ class Testing(unittest.TestCase):
         assert resp.text == content, "Should return data stored"
         assert resp.headers["Content-type"] == "text/html", "Should get type"
         # Now test a MutableBlock that uses this content
-        mbm = MutableBlock(master=True, key=File.load(filepath=self.exampledir+"index_html_rsa").content(), contenthash=sbhash)
-        mbm.signandstore(verbose=self.verbose)
-        mb = MutableBlock(key=mbm.publickey())
+        mbm = MutableBlock(master=True, key=self.keyfromfile("index_html_rsa", private=True), contenthash=sbhash)
+        mbm.store().signandstore(verbose=self.verbose)
+        mb = MutableBlock(hash=mbm._keypair.publichash)
         mb.fetch()      # Just fetches the signatures
         assert mb.content() == mbm.content(), "Should round-trip HTML content"
         mbcontent2 = Block.transport._sendGetPost(False,"file", ["mb", mb._hash]).text
@@ -148,10 +161,7 @@ class Testing(unittest.TestCase):
             f = File.load(filepath=filepath, contenttype=contenttype, upload=True, verbose=self.verbose, **options)
         keypath = self.exampledir + keyname if keyname else None
         if keypath:
-            if not os.path.exists(keypath):
-                CryptoLib.export(CryptoLib.keygen(), private=True, filename=keypath) # Uncomment to get a key
-                #TODO next line fails if dont have a keyname which is ok for now
-            mbm = MutableBlock(master=True, key=File.load(filepath=keypath).content(), contenthash=f._hash, verbose=self.verbose).signandstore(verbose=self.verbose)
+            mbm = MutableBlock(master=True, key=self.keyfromfile(keyname, private=True), contenthash=f._hash, verbose=self.verbose).signandstore(verbose=self.verbose)
             print filename + " editable:" + mbm.privateurl()    # Side effect of storing
             print filename + ":" + mbm.publicurl(command="file", table="mb")
         else:
@@ -187,4 +197,18 @@ class Testing(unittest.TestCase):
         # /file/mb/SHA3256B64URL.88S-FYlEN1iF3WuDRdXoR8SyMUG6crR5ehM21IvUuS0=/tinymce.min.js
 
     def test_current(self):
-        self._storeas("dweb.js", "dweb_js_rsa", "application/javascript")
+        self.verbose = True
+        print "XXX@194"
+
+        acl = AccessControlList(master=True, key=self.keyfromfile("test_acl1_rsa", private=True), verbose=self.verbose)
+        print "XXX@202",acl._keypair.publichash
+        acl.store(verbose=True) # Store public key
+        #TODO Why storing new each time
+        viewerkeypair = KeyPair(key=self.keyfromfile("test_viewer1_rsa")).store()
+
+        viewerkeypair.encrypt(acl._keypair.privateexport)
+
+
+
+        #acl.add(viewerkeypair.publichash)
+        print "XXX@Done"

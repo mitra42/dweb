@@ -6,15 +6,34 @@ import hashlib
 from datetime import datetime
 from Crypto import Random
 from Crypto.PublicKey import RSA
-#from Crypto.Cipher import AES, PKCS1_OAEP
-from misc import ToBeImplementedException
+from Crypto.Cipher import AES, PKCS1_OAEP
+
+from misc import MyBaseException, ToBeImplementedException, AssertionFail
 import sha3 # To add to hashlib
 from multihash import encode, SHA1,SHA2_256, SHA2_512, SHA3
+from Block import Block
+
+
+class PrivateKeyException(MyBaseException):
+    """
+    Raised when some code has not been implemented yet
+    """
+    httperror = 500
+    msg = "Operation requires Private Key, but only Public available."
+
+class AuthenticationException(MyBaseException):
+    """
+    Raised when some code has not been implemented yet
+    """
+    httperror = 500 #TODO-AUTHENTICATON - which code
+    msg = "Authentication Exception: {message}"
 
 class CryptoLib(object):
     """
     Encapsulate all the Crypto functions in one place so can revise independently of rest of dweb
 
+    # See http://stackoverflow.com/questions/28426102/python-crypto-rsa-public-private-key-with-large-file
+    # See http://pycryptodome.readthedocs.io/en/latest/src/examples.html for example using AES+RSA
     """
 
     @staticmethod
@@ -77,7 +96,8 @@ class CryptoLib(object):
         :param date: Date that signing (usually now)
         :return: signature that can be verified with verify
         """
-        return base64.urlsafe_b64encode(keypair.decrypt(CryptoLib._signable(date, data)))
+        #TODO-AUTHENTICATION maybe use keypair's decrypt but didn't work in brief test
+        return base64.urlsafe_b64encode(keypair._key.decrypt(CryptoLib._signable(date, data)))
 
     @staticmethod
     def verify(sig, hash=None): # { publickey=None, signature=None, date=None, hash=None, **unused }
@@ -91,9 +111,10 @@ class CryptoLib(object):
         :param hash: Unsigned to check against sig
         :return:
         """
-        pubkey = CryptoLib.importpublic(sig.publickey)
+        keypair = KeyPair(key=sig.publickey)
         #b64decode requires a str, but signature may be unicode
-        decrypted = pubkey.encrypt(base64.urlsafe_b64decode(str(sig.signature)), 32)[0]
+        #TODO-AUTHENTICATION maybe use keypair's encrypt but didn't work in brief test
+        decrypted = keypair.public.encrypt(base64.urlsafe_b64decode(str(sig.signature)), 32)[0]
         check = CryptoLib._signable(sig.date, hash or sig.hash)
         return check == decrypted
 
@@ -113,45 +134,177 @@ class CryptoLib(object):
         # separators = (,:) gets the most compact representation
         return dumps(data, sort_keys=True, separators=(',', ':'), default=json_default)
 
-    @staticmethod
-    def keygen():
-        """
-        Create a public/private key pair.
 
-        :return: key which has .publickey() method
-        """
-        return RSA.generate(1024, Random.new().read)
+class KeyPair(object):
+    """
+    This uses the CryptoLib functions to encapsulate KeyPairs
+    """
 
-    @staticmethod
-    def importpublic(exportedstr):
-        """
-        Import a public key, pair with export().
-
-        :param exported: Exported public key
-        :return: RSAobj containing just the public key
-        """
-        return RSA.importKey(exportedstr)
-
-    @staticmethod
-    def export(keypair, private=False, filename=None):
-        """
-        Export a public key, pair with importpublic
-
-        :param keypair: RSA obj - could be private key or public key
-        :return: String for export
-        """
-        if not private:
-            keypair = keypair.publickey()   # Note this works if keypair is publickey
-        exp = keypair.exportKey("PEM")
-        if filename:
-            with open(filename, 'wb') as f:
-                f.write(exp)
+    def __init__(self, table=None, hash=None, key=None):
+        self._table=table
+        if key:
+            self.public = key               # Converts if key is an exported string, also works if key is privatekey
+        elif hash:
+            self.publichash = hash          # Side effect of loading from dWeb, note also works if its hash of publickey
         else:
-            return exp
+            self._key = None
 
+    def __repr__(self):
+        return "KeyPair" + repr(self.__dict__)  #TODO only useful for debugging,
 
+    @classmethod
+    def keygen(cls, **options):
+        """
+        Generate a new key
 
-    # See http://stackoverflow.com/questions/28426102/python-crypto-rsa-public-private-key-with-large-file
+        :param options: unused
+        :return: KeyPair
+        """
+        return cls(key=RSA.generate(1024, Random.new().read))
+
+    @property
+    def private(self):
+        """
+
+        :return: Private (RSA) key
+        """
+        if not self._key.has_private:
+            raise PrivateKeyException()
+        return self._key
+
+    @private.setter
+    def private(self, value):
+        """
+        Sets the key from either a string,
+
+        :param value: Either a string from exporting the key, or a RSA key
+        :return:
+        """
+        if isinstance(value, basestring):   # Should be exported string, maybe public or private
+            self._key = RSA.importKey(value)
+        else:
+            self._key = value
+        if not self._key.has_private:   # Check it was really a Private key
+                raise PrivateKeyException()
+
+    @property
+    def public(self):
+        """
+
+        :return: Public (RSA) key
+        """
+        return self._key.publickey() # Note works on pub or private
+
+    @public.setter
+    def public(self, value):
+        """
+        Sets the key from either a string,
+
+        :param value: Either a string from exporting the key, or a RSA key
+        :return:
+        """
+        if isinstance(value, basestring):   # Should be exported string, maybe public or private
+            self._key = RSA.importKey(value)
+        else:
+            self._key = value
+
+    @property
+    def publicexport(self):
+        return self.public.exportKey("PEM")
+
+    @property
+    def privateexport(self):
+        return self.private.exportKey("PEM")
+
+    @property
+    def privatehash(self):
+        return CryptoLib.Curlhash(self.privateexport)
+
+    @privatehash.setter
+    def privatehash(self, value):
+        """
+        Set a privatehash, note this implies where to get the actual data from
+        Note that privatehash and publichash setters are identical
+
+        :param value:
+        :return:
+        """
+        self._key = RSA.importKey(Block.block(table=self._table or "keys", hash=value)._data) #TODO what happens if cant find
+
+    @property
+    def publichash(self):
+        return CryptoLib.Curlhash(self.publicexport)
+
+    @publichash.setter
+    def publichash(self, value):
+        """
+        Set a publichash, note this implies where to get the actual data from
+        Note that privatehash and publichash setters are identical
+
+        :param value:
+        :return:
+        """
+        self._key = RSA.importKey(Block.block(table=self._table or "keys", hash=value)._data)
+        #TODO-AUTHENTICATION what happens if cant find
+        if self.publichash != value:
+            self._key = None    # Blank out bad key
+            raise AuthenticationException("Retrieved key doesnt match hash="+value)
+            #TODO-AUTHENTICATION copy this verification code up to privatehash
+
+    def store(self, private=False, verbose=False):
+        hash = Block(data=self.privateexport if private else self.publicexport, verbose=verbose).store(table=self._table or "keys", verbose=verbose)
+        if hash != (self.privatehash if private else self.publichash):
+            raise AssertionFail("Stored hash of key should match local hash algorithm")
+        return self # For chaining
+
+    def encrypt(self, data):
+        """
+        :param data:
+        :return: str, binary encryption of data
+        """
+        if False:
+            print "XXX@263",len(data)
+            data = data[0:86]       # Can only encrypt 86 bytes!
+            enc = PKCS1_OAEP.new(self.public).encrypt(data)
+            print "XXX@266",len(enc)
+            #return self.public.encrypt(data, 32)[0]    # warnings abound not to use RSA directly
+
+        if False:
+            session_key = Random.get_random_bytes(16)
+            enckey = (PKCS1_OAEP.new(self.public).encrypt(session_key))
+            # Encrypt the data with the AES session key
+            cipher_aes = AES.new(session_key) #, AES.MODE_EAX)
+            ciphertext, tag = cipher_aes.encrypt_and_digest(data)
+            print "XXX@275",[ len(x) for x in (enckey, cipher_aes.nonce, tag, ciphertext)]
+            data = "".join(enckey, cipher_aes.nonce, tag, ciphertext)
+
+        aeskey = Random.new().read(32)
+        iv = Random.new().read(AES.block_size)
+        cipher = AES.new(aeskey, AES.MODE_CFB, iv)
+        msg = iv + cipher.encrypt(data)
+
+        random_generator = Random.new().read
+        rsakey = RSA.generate(1024, random_generator)
+        cipher = PKCS1_OAEP.new(rsakey.publickey())
+        ciphertext = cipher.encrypt(aeskey)
+        return ciphertext + msg         #TODO-AUTHENTICATION need to B64 it
+
+    def decrypt(self, data):
+        #TODO-AUTHENTICATION need to un-B64 it
+        enckey = data[0:128]    # Just the RSA key - 128 bytes
+        data = data[128:]
+        iv2 = data[0:AES.block_size]    # Matches iv that went into first cypher
+        data = data[AES.block_size:]
+        cipher = PKCS1_OAEP.new(self._key)
+        aeskey = cipher.decrypt(enckey)     # Matches aeskey in encrypt
+        cipher = AES.new(aeskey, AES.MODE_CFB, iv)
+        msg = cipher.decrypt(data)
+        return msg
+
+        if False:
+            return PKCS1_OAEP.new(self.private).decrypt(data)
+        #return self.private.decrypt(data)   #  warnings abound not to use RSA directly #TODO-AUTHENTICATE - sig verification was assuming this.
+
 
 def json_default(obj):
     """
@@ -167,3 +320,5 @@ def json_default(obj):
         return obj.dumps()
     except:
         raise TypeError("Type %s not serializable" % obj.__class__.__name__)
+
+

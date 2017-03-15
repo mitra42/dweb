@@ -34,3 +34,5 @@ For V (in posession of V') to access an item encrypt(SB, X")
     ACL_list: "acl" ACL_hash [ ACL_item* ]
     ACL_item: encrypt(ACL_private, Viewer_public) Viewer_hash
     EncryptedSB: encrypt(StructuredBlock, ACL_public) ACL_hash
+
+

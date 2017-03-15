@@ -22,6 +22,12 @@ class File(StructuredBlock):
         super(File, self).__init__(dict, **options)
 
     @staticmethod
+    def _write(filepath, data):
+        if filepath:
+            with open(filepath, 'wb') as f:
+                f.write(data)
+
+    @staticmethod
     def _content(filepath):
         p = filepath if isinstance(filepath, (Path,)) else Path(filepath)
         with p.open(mode='rb') as file:  # b is important -> binary

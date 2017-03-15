@@ -4,7 +4,7 @@ from datetime import datetime
 import dateutil.parser  # pip py-dateutil
 from json import loads
 from misc import MyBaseException
-from CryptoLib import CryptoLib
+from CryptoLib import CryptoLib, KeyPair
 from StructuredBlock import SmartDict, StructuredBlock
 
 """
@@ -31,7 +31,7 @@ class Signature(SmartDict):
     def sign(cls, keypair, hash):
         date = datetime.now()
         signature = CryptoLib.signature(keypair, date, hash)
-        return cls({"date": date, "signature": signature, "publickey": CryptoLib.export(keypair)})
+        return cls({"date": date, "signature": signature, "publickey": keypair.publicexport})
 
     def verify(self, hash=None):
         return CryptoLib.verify(self, hash=hash)
@@ -85,6 +85,7 @@ class SignedBlock(object):
             return self._sb().__getattr__(name)  # Pass to SB - should create if not already there
 
     def __repr__(self):
+        #Exception UnicodeDecodeError if data binary
         return "SignedBlock(%s)" % self.__dict__
 
     def _sb(self, verbose=False, create=False, **options):
@@ -168,7 +169,7 @@ class SignedBlock(object):
         for s in self._signatures:
             ss = s.copy()
             ss.hash = self._h(verbose=verbose, **options)
-            keyhash = CryptoLib.Curlhash(s.publickey, **options)   # Store it under the hash of the publickey
+            keyhash = KeyPair(key=s.publickey).publichash   # Store it under the hash of the publickey
             self._sb().transport.add(table="signedby", hash=keyhash, value=ss, verbose=verbose, **options)
 
     def content(self, **options):

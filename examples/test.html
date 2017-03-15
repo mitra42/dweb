@@ -19,7 +19,7 @@
             console.log("MutableBlock=======");
             <!-- also works with /file/mb/SHA3256B64URL.88S-FYlEN1iF3WuDRdXoR8SyMUG6crR5ehM21IvUuS0=/langs/readme.md -->
             mbhash = "SHA3256B64URL.88S-FYlEN1iF3WuDRdXoR8SyMUG6crR5ehM21IvUuS0=";
-            let mb = new MutableBlock(mbhash);
+            let mb = new MutableBlock(mbhash);  #TODO-KEY check all similar calls to make sure MutableBlock still takes parm 0 = hash
             mb.load(true, {"path": ["langs","readme.md"], "dom_id": "myList.1"}  );
             <!-- Now test path using dwebfile -->
             dwebfile("sb", sbhash, "langs/readme.md", {  "dom_id": "myList.2"});
