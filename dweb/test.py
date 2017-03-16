@@ -10,11 +10,14 @@ from CryptoLib import CryptoLib, KeyPair
 from Transport import TransportBlockNotFound, TransportURLNotFound
 from TransportLocal import TransportLocal
 from TransportHTTP import TransportHTTP
+from CommonBlock import Transportable
 from Block import Block
 from StructuredBlock import StructuredBlock
 from MutableBlock import MutableBlock, AccessControlList #TODO-AUTHENTICATION move to own file
 from File import File, Dir
 
+
+#TODO-REFACTOR need to scan and update this file
 
 class Testing(unittest.TestCase):
     def setUp(self):
@@ -28,10 +31,10 @@ class Testing(unittest.TestCase):
         #self.ipandport = ('192.168.1.156', 4243)  # Serve it via HTTP on all addresses
         self.exampledir = "../examples/"    # Where example files placed
         if testTransport == TransportLocal:
-            Block.setup(TransportLocal, verbose=self.verbose, dir="../cache")
+            Transportable.setup(TransportLocal, verbose=self.verbose, dir="../cache")
         elif testTransport == TransportHTTP:
             # Run python -m ServerHTTP; before this
-            Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
+            Transportable.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         else:
             assert False, "Unimplemented test for Transport "+testTransport.__class__.__name__
 
@@ -45,10 +48,8 @@ class Testing(unittest.TestCase):
         """
         keypath = self.exampledir + keyname
         if not os.path.exists(keypath):
-            print "XXX@48",keypath,"doesnt exist"
             keypair = KeyPair.keygen()
             File._write(filepath=keypath, data=keypair.privateexport if private else keypair.publicexport)
-        print "XXX@51 loading",keypath
         return File.load(filepath=keypath).content()
 
     def test_Block(self):
@@ -58,12 +59,12 @@ class Testing(unittest.TestCase):
 
     def test_StructuredBlock(self):
         # Test Structured block
-        sblock = StructuredBlock(dict=self.mydic)
-        assert sblock.a == self.mydic['a'], "Testing attribute access"
-        multihash = sblock.store(verbose=self.verbose)
-        sblock2 = StructuredBlock.sblock(multihash, verbose=self.verbose)
-        assert sblock2.a == self.mydic['a'], "Testing StructuredBlock round-trip"
-        assert sblock2.B_date == self.mydic["B_date"], "DateTime should survive round trip"
+        sb = StructuredBlock(data=CryptoLib.dumps(self.mydic), verbose=self.verbose)
+        assert sb.a == self.mydic['a'], "Testing attribute access"
+        multihash = sb.store(verbose=self.verbose)
+        sb2 = StructuredBlock.block(hash=multihash, verbose=self.verbose)
+        assert sb2.a == self.mydic['a'], "Testing StructuredBlock round-trip"
+        assert sb2.B_date == self.mydic["B_date"], "DateTime should survive round trip"
 
     def test_Signatures(self):
         from SignedBlock import SignedBlock
@@ -147,7 +148,7 @@ class Testing(unittest.TestCase):
     def test_badblock(self):
         Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         try:
-            resp = Block.transport._sendGetPost(False, "block", [ Block.table, "12345"], params={"contenttype": "image/png"})
+            resp = Block.transport._sendGetPost(False, "block", [ "12345"], params={"contenttype": "image/png"})
         except TransportURLNotFound as e:
             pass
         else:

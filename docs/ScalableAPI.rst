@@ -4,6 +4,8 @@
 Scalable API
 ************
 
+#TODO-REFACTOR need to scan and update this file
+
 The concept of a Scalable API (or UI) is that simple things are easy to do, and ever more complex things are incrementally more complex.
 
 So a higher level API for applications is desirable, which utilizes the lower level layers.
@@ -62,3 +64,35 @@ For the lowest level :ref:`Block` which represents a opaque collection of data, 
 block, store, list, fetch
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 #TODO exapand this section: block, store, list, fetch
+
+Layering
+========
+This section describes how the layers build on each other (since refactor 15 March 2017)
+
+#TODO-REFACTOR - complete this and use to replace other parts of docs
+
+The layers in hte API allow increased levels of abstraction.
+
+* Raw Transport: Transports opaque bytes for blocks, and signature triplets for lists.
+    * A raw block is always stored and retrieved by its multihash, there is no knowledge at this level of what it contains (and it may be encrypted)
+    * A signature is: hash-obj, date, signature(hash-obj + date), hash-publickey. It is stored in list under both the multihash-obj, and hash-publickey
+    * lists can only be appended to, or retrieved.
+* Object layer: Specifies what object we have retrieved and want returned.
+    * e.g. "SB" would specify wanting the opaque data interpreted as a StructuredBlock
+    * This applies to lists as well e.g. retrieving a list of StructuredBlocks
+* Function layer: Specifies what we want done with the data returned
+
+Examples
+~~~~~~~~
+* data/sb/b/123ABC45 says retrieve the bytes at 123ABC45, interpret as JSON into a StructuredBlock, and return the data from the SB
+* size/zb/l/123ABC45 says retrieve the list from 123ABC45, interpret the objects as Signed Blocks, and calculate the size.
+
+Scalable implementation
+-----------------------
+Each layer is (or should be) independantly extendable.
+
+For example to add a new type of object requires
+implementing methods for the operations (like data, size) that it supports
+and writing new and _data property functions to raw blocks.
+
+Adding a new transport layer requires supporting block, list, store, and add.

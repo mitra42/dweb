@@ -1,6 +1,9 @@
 ********
 Glossary
 ********
+
+#TODO-REFACTOR need to scan and update this file
+
 .. glossary::
 
     CAFS - Content Addressable File System

@@ -5,7 +5,9 @@ import dateutil.parser  # pip py-dateutil
 from json import loads
 from misc import MyBaseException
 from CryptoLib import CryptoLib, KeyPair
+from CommonBlock import Transportable
 from StructuredBlock import SmartDict, StructuredBlock
+
 
 """
 A collection of classes that represent objects that are signed, dated, encrypted etc
@@ -31,7 +33,7 @@ class Signature(SmartDict):
     def sign(cls, keypair, hash):
         date = datetime.now()
         signature = CryptoLib.signature(keypair, date, hash)
-        return cls({"date": date, "signature": signature, "publickey": keypair.publicexport})
+        return cls({"date": date, "signature": signature, "signedby": keypair.store().publichash})
 
     def verify(self, hash=None):
         return CryptoLib.verify(self, hash=hash)
@@ -93,7 +95,7 @@ class SignedBlock(object):
         :return: StructuredBlock, retrieve if necessary, can be None
         """
         if not self._structuredblock and self._hash:
-            self._structuredblock = StructuredBlock.sblock(self._hash, verbose=verbose, **options)
+            self._structuredblock = StructuredBlock.block(self._hash, verbose=verbose, **options)
         if create and not self._structuredblock:
             self._structuredblock = StructuredBlock()
         return self._structuredblock
@@ -105,10 +107,10 @@ class SignedBlock(object):
         :return: hash of StructuredBlock suitable for signing, will store block first, may be None
         """
         if not self._hash and self._structuredblock:
-            self._hash = self._structuredblock.store(verbose=verbose, **options)
+            self._hash = self._structuredblock.store(verbose=verbose, **options) #TODO-REFACTOR-STORE
         return self._hash
 
-    def __init__(self, hash=None, structuredblock=None, signatures=None, verbose=False, **options):
+    def __init__(self, hash=None, structuredblock=None, signatures=None, verbose=False, **options): #TODO-REFACTOR strucutredblock = data
         """
         Create a signedblock - but dont sign it yet.
         Adapted into dweb.js
@@ -168,9 +170,8 @@ class SignedBlock(object):
         """
         for s in self._signatures:
             ss = s.copy()
-            ss.hash = self._h(verbose=verbose, **options)
-            keyhash = KeyPair(key=s.publickey).publichash   # Store it under the hash of the publickey
-            self._sb().transport.add(table="signedby", hash=keyhash, value=ss, verbose=verbose, **options)
+            self._sb().transport.add(hash=self._h(verbose=verbose, **options), date = ss.date,
+                                     signature = ss.signature, signedby = ss.signedby, verbose=verbose, **options)
 
     def content(self, **options):
         return self._sb().content()
@@ -183,7 +184,7 @@ class SignedBlocks(list):
     @classmethod
     def fetch(cls, hash=None, verbose=False, **options):
         """
-        FInd all the related Signatures.
+        Find all the related Signatures.
 
         :param hash:
         :param verbose:
@@ -191,8 +192,7 @@ class SignedBlocks(list):
         :return: SignedBlocks which is a list of SignedBlock
         """
         #key = CryptoLib.export(publickey) if publickey is not None else None,
-        lines = StructuredBlock.transport.list("signedby", hash=hash, verbose=verbose,
-                                               **options)
+        lines = Transportable.transport.list(hash=hash, verbose=verbose, **options)
         if verbose: print "SignedBlock.fetch found ",len(lines) if lines else None
         results = {}
         for block in lines:

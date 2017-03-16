@@ -4,6 +4,7 @@ var dwebserver = 'localhost';
 //var dwebserver = '192.168.1.156';
 var dwebport = '4243';
 
+//TODO-REFACTOR to use new urls
 // ==== OBJECT ORIENTED JAVASCRIPT ===============
 
 //TODO document from here down

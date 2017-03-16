@@ -4,6 +4,8 @@
 Javascript Library
 ==================
 
+#TODO-REFACTOR need to scan and update this file
+
 A Javscript library, dweb.js is provided to allow browsers to access the Dweb functionality at the Object level.
 
 Note that browsers can more simply access Dweb resources via URLs.

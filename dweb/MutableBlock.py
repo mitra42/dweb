@@ -1,10 +1,10 @@
 # encoding: utf-8
-from datetime import datetime
 
-from misc import ToBeImplementedException, ForbiddenException
-from CryptoLib import CryptoLib, KeyPair # Suite of functions for hashing, signing, encrypting
 from Block import Block
+from CryptoLib import KeyPair # Suite of functions for hashing, signing, encrypting
 from SignedBlock import SignedBlock, SignedBlocks
+from misc import ForbiddenException
+
 
 class CommonList(object):
     """
@@ -14,7 +14,7 @@ class CommonList(object):
     { _keypair: KeyPair, _list: [ StructredBlock* ] }
 
     """
-    transportcommand="block"
+    transportcommand="block"   #TODO-REFACTOR probably remove transportcommand in all places
 
     @property
     def _hash(self):
@@ -65,17 +65,21 @@ class CommonList(object):
         :param verbose:
         :param options:
         """
+        # TODO-REFACTOR match new list
         self._list = SignedBlocks.fetch(hash=self._keypair.publichash, verbose=verbose, **options).sorteddeduplicated()
 
     def url(self, **options):
+        # TODO-REFACTOR-URL
         return Block.transport.url(self, **options)
 
     #TODO - add metadata to Mutable - and probably others
 
     def publicurl(self, command=None, table=None):
+        # TODO-REFACTOR-URL
         return Block.transport.url(self, command=command or "list", table=table or self.table, hash=self._keypair.publichash) #, contenttype=self.__getattr__("Content-type"))
 
     def privateurl(self):
+        # TODO-REFACTOR-URL
         """
         Get a URL that can be used for edits to the resource
         Side effect of storing the key
@@ -86,6 +90,7 @@ class CommonList(object):
         #TODO-AUTHENTICATION - this is particularly vulnerable w/o authentication as stores PrivateKey in unencrypted form
 
     def store(self, private=False, verbose=False):
+        # TODO-REFACTOR use storage
         """
         Store a list, so can be retrieved by its hash.
         Saves the key, can be subclassed to save other meta-data.
@@ -106,7 +111,8 @@ class CommonList(object):
         :return:
         """
         if not self._master:
-            raise ForbiddenException("Signing a new entry when not a master list")
+            raise ForbiddenException(what="Signing a new entry when not a master list")
+        # TODO-REFACTOR use storage
         obj.sign(self._keypair).store(verbose=verbose, **options)
         return self
 
@@ -131,6 +137,7 @@ class MutableBlock(CommonList):
         """
         # This next line for "hash" is odd, side effect of hash being for content with MB.master and for key with MB.!master
         super(MutableBlock, self).__init__(master=master, keypair=keypair, key=key, hash=hash, verbose=verbose, **options)
+        # TODO-REFACTOR to match new SigB
         self._current = SignedBlock(hash=contenthash, verbose=verbose, **options) if master else None # Create a place to hold content, pass hash to load content
         self.__dict__["table"] = "mbm" if master else "mb"  #TODO should probably refactor table->_table but lots of cases
 
@@ -205,7 +212,7 @@ class AccessControlList(CommonList):
         :param verbose:
         :return:
         """
-        return SignedBlock(structuredblock=fields, verbose=verbose, **options)
+        return SignedBlock(structuredblock=info, verbose=verbose, **options)
 
     def add(self, viewerpublichash, verbose=False, **options):
         """
@@ -217,8 +224,7 @@ class AccessControlList(CommonList):
         :return:
         """
         if not self._master:
-            raise ForbiddenException("Cant add viewers to ACL copy")
-        print "XXX@221 hash=",viewerpublichash
+            raise ForbiddenException(what="Cant add viewers to ACL copy")
         viewerpublickeypair = KeyPair(hash=viewerpublichash)
         aclinfo = {
             "token": viewerpublickeypair.encrypt(self._keypair.privateexport),  #TODO returns binary which is a problem !
@@ -226,5 +232,4 @@ class AccessControlList(CommonList):
             #TODO - recommended to use Crypto.Cipher.PKCS1_OAEP instead
         }
         sb = SignedBlock(structuredblock=aclinfo)
-        print "XXX@228", sb
         self.signandstore(sb, verbose, **options)

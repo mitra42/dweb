@@ -1,5 +1,7 @@
 # encoding: utf-8
 
+#TODO-REFACTOR need to scan and update this file
+
 from json import dumps, loads
 import base64
 import hashlib
@@ -11,8 +13,7 @@ from Crypto.Cipher import AES, PKCS1_OAEP
 from misc import MyBaseException, ToBeImplementedException, AssertionFail
 import sha3 # To add to hashlib
 from multihash import encode, SHA1,SHA2_256, SHA2_512, SHA3
-from Block import Block
-
+from CommonBlock import Transportable
 
 class PrivateKeyException(MyBaseException):
     """
@@ -53,7 +54,7 @@ class CryptoLib(object):
         elif hashscheme == "SHA3512B64URL":
             return "SHA3512B64URL." + base64.urlsafe_b64encode(hashlib.sha3_512(data).digest())
         else:
-            raise ToBeImplementedException(name="CryptoLib.urlhash for hashscheme="+hashscheme)
+            raise ToBeImplementedException(name="CryptoLib.Curlhash for hashscheme="+hashscheme)
 
     @staticmethod
     def Multihash_Curlhash(data, hashscheme="SHA2256B64URL", **options):
@@ -73,7 +74,7 @@ class CryptoLib(object):
         elif hashscheme == "SHA3512B64URL":
             return "SHA3512B64URL." + base64.urlsafe_b64encode(encode(data, SHA3))
         else:
-            raise ToBeImplementedException(name="CryptoLib.urlhash for hashscheme=" + hashscheme)
+            raise ToBeImplementedException(name="CryptoLib.Curlhash for hashscheme=" + hashscheme)
 
     @staticmethod
     def _signable(date, data):
@@ -97,7 +98,7 @@ class CryptoLib(object):
         :return: signature that can be verified with verify
         """
         #TODO-AUTHENTICATION maybe use keypair's decrypt but didn't work in brief test
-        return base64.urlsafe_b64encode(keypair._key.decrypt(CryptoLib._signable(date, data)))
+        return base64.urlsafe_b64encode(keypair.private.decrypt(CryptoLib._signable(date, data)))
 
     @staticmethod
     def verify(sig, hash=None): # { publickey=None, signature=None, date=None, hash=None, **unused }
@@ -111,7 +112,7 @@ class CryptoLib(object):
         :param hash: Unsigned to check against sig
         :return:
         """
-        keypair = KeyPair(key=sig.publickey)
+        keypair = KeyPair(hash=sig.signedby)     # Sideeffect of loading from dweb
         #b64decode requires a str, but signature may be unicode
         #TODO-AUTHENTICATION maybe use keypair's encrypt but didn't work in brief test
         decrypted = keypair.public.encrypt(base64.urlsafe_b64decode(str(sig.signature)), 32)[0]
@@ -134,20 +135,35 @@ class CryptoLib(object):
         # separators = (,:) gets the most compact representation
         return dumps(data, sort_keys=True, separators=(',', ':'), default=json_default)
 
+    @staticmethod
+    def loads(data):
+        """
+        Pair to dumps
 
-class KeyPair(object):
+        :param data:
+        :return: Dict or Array from loading json in data
+        """
+        return loads(data)
+
+
+class KeyPair(Transportable):
     """
     This uses the CryptoLib functions to encapsulate KeyPairs
     """
 
-    def __init__(self, table=None, hash=None, key=None):
-        self._table=table
+    def __init__(self, hash=None, key=None, data=None):
+        if data:                            # Support data kwarg so can call from Transportable.store
+            key = data
         if key:
             self.public = key               # Converts if key is an exported string, also works if key is privatekey
         elif hash:
             self.publichash = hash          # Side effect of loading from dWeb, note also works if its hash of publickey
         else:
             self._key = None
+
+    @property
+    def _data(self):
+        return
 
     def __repr__(self):
         return "KeyPair" + repr(self.__dict__)  #TODO only useful for debugging,
@@ -229,7 +245,8 @@ class KeyPair(object):
         :param value:
         :return:
         """
-        self._key = RSA.importKey(Block.block(table=self._table or "keys", hash=value)._data) #TODO what happens if cant find
+        # TODO-REFACTOR put block in Transportable so doesnt call cls
+        self._key = RSA.importKey(self.transport.block(hash=value)) #TODO what happens if cant find
 
     @property
     def publichash(self):
@@ -244,7 +261,7 @@ class KeyPair(object):
         :param value:
         :return:
         """
-        self._key = RSA.importKey(Block.block(table=self._table or "keys", hash=value)._data)
+        self._key = RSA.importKey(self.transport.block(hash=value)) #TODO-REFACTOR put block in Transportable so doesnt call cls
         #TODO-AUTHENTICATION what happens if cant find
         if self.publichash != value:
             self._key = None    # Blank out bad key
@@ -252,7 +269,8 @@ class KeyPair(object):
             #TODO-AUTHENTICATION copy this verification code up to privatehash
 
     def store(self, private=False, verbose=False):
-        hash = Block(data=self.privateexport if private else self.publicexport, verbose=verbose).store(table=self._table or "keys", verbose=verbose)
+        #TODO-REFACTOR-STORE to return obj, not hash
+        hash = super(KeyPair, self).store(data=self.privateexport if private else self.publicexport, verbose=verbose)
         if hash != (self.privatehash if private else self.publichash):
             raise AssertionFail("Stored hash of key should match local hash algorithm")
         return self # For chaining
@@ -263,10 +281,8 @@ class KeyPair(object):
         :return: str, binary encryption of data
         """
         if False:
-            print "XXX@263",len(data)
             data = data[0:86]       # Can only encrypt 86 bytes!
             enc = PKCS1_OAEP.new(self.public).encrypt(data)
-            print "XXX@266",len(enc)
             #return self.public.encrypt(data, 32)[0]    # warnings abound not to use RSA directly
 
         if False:
@@ -275,7 +291,6 @@ class KeyPair(object):
             # Encrypt the data with the AES session key
             cipher_aes = AES.new(session_key) #, AES.MODE_EAX)
             ciphertext, tag = cipher_aes.encrypt_and_digest(data)
-            print "XXX@275",[ len(x) for x in (enckey, cipher_aes.nonce, tag, ciphertext)]
             data = "".join(enckey, cipher_aes.nonce, tag, ciphertext)
 
         aeskey = Random.new().read(32)
@@ -293,7 +308,7 @@ class KeyPair(object):
         #TODO-AUTHENTICATION need to un-B64 it
         enckey = data[0:128]    # Just the RSA key - 128 bytes
         data = data[128:]
-        iv2 = data[0:AES.block_size]    # Matches iv that went into first cypher
+        iv = data[0:AES.block_size]    # Matches iv that went into first cypher
         data = data[AES.block_size:]
         cipher = PKCS1_OAEP.new(self._key)
         aeskey = cipher.decrypt(enckey)     # Matches aeskey in encrypt

@@ -2,6 +2,8 @@
 Design Thinking
 ***************
 
+#TODO-REFACTOR need to scan and update this file
+
 This page is intended to summarise key design thinkng so that if something is going to be changed the reasoniong behind
 the choices made is more apparant than it might be from just reading the spec.
 

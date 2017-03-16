@@ -4,6 +4,8 @@
 Authentication
 ==============
 
+#TODO-REFACTOR need to scan and update this file
+
 Authentication is implemented vi Access Control Lists (ACL)
 
 A specific ACL (X) is represented by a Private/Public key paid X' X" and the hash of the Public key X°.

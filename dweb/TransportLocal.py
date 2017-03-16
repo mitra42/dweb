@@ -10,7 +10,8 @@ class TransportLocal(Transport):
     TransportLocal is a subclasss of Transport providing local file and sqlite storage to facilitate local testing.
     """
 
-    tables = "mb", "signed", "b", "sb", "signedby", "mbm", "keys"
+    #OBS: tables = "mb", "signed", "b", "sb", "signedby", "mbm", "keys"
+    subdirs = "list", "reverse", "block"
 
     def __init__(self, dir=None, **options):
         """
@@ -23,16 +24,16 @@ class TransportLocal(Transport):
         if not os.path.isdir(dir):
             raise TransportFileNotFound(file=dir)
         self.dir = dir
-        for table in self.tables:
+        for table in self.subdirs:
             dirname = "%s/%s" % (self.dir, table)
             if not os.path.isdir(dirname):
                 os.mkdir(dirname)
         self.options = options
 
-    def _filename(self, table, hash=None, key=None, verbose=False, **options):
+    def _filename(self, subdir, hash=None, key=None, verbose=False, **options):
         # key now obsoleted
-        file = hash or CryptoLib.urlhash(key, verbose=verbose, **options)
-        return "%s/%s/%s" % (self.dir, table, file)
+        file = hash or CryptoLib.Curlhash(key, verbose=verbose, **options)
+        return "%s/%s/%s" % (self.dir, subdir, file)
 
     @classmethod
     def setup(cls, dir=None, **options):
@@ -45,7 +46,7 @@ class TransportLocal(Transport):
         """
         return cls(dir=dir, **options)
 
-    def store(self, table=None, data=None, verbose=False, **options):
+    def store(self, data=None, verbose=False, **options):
         """
         Store the data locally
         Exception: TransportBlockNotFound if file doesnt exist
@@ -53,9 +54,10 @@ class TransportLocal(Transport):
         :param data: opaque data to store
         :return: hash of data
         """
-        #TODO-RELATIVE may need to add relative paths, but haven't found a use case yet
+        if not isinstance(data, basestring):
+            data = data._data
         hash = CryptoLib.Curlhash(data)
-        filename = self._filename(table, hash, verbose=verbose, **options)
+        filename = self._filename("block", hash, verbose=verbose, **options)
         try:
             f = open(filename, 'wb')
             f.write(data)
@@ -64,7 +66,7 @@ class TransportLocal(Transport):
             raise TransportFileNotFound(file=filename)
         return hash
 
-    def block(self, table, hash, verbose=False, **options):
+    def block(self, hash, verbose=False, **options):
         """
         Fetch a block from the local file system
         Exception: IOError if file doesnt exist
@@ -73,9 +75,9 @@ class TransportLocal(Transport):
         :param options:
         :return:
         """
-        #TODO-RELATIVE may need to add relative paths, but haven't found a use case yet
+        filename=None
+        filename = self._filename("block", hash)
         try:
-            filename = self._filename(table, hash)
             if verbose: print "Opening" + filename
             with open(filename, 'rb') as file:
                 content = file.read()
@@ -83,44 +85,42 @@ class TransportLocal(Transport):
         except IOError as e:
             raise TransportFileNotFound(file=filename)
 
-    def add(self, table=None, hash=None, value=None, verbose=False, **options):
+    def add(self, hash=None, date=None, signature=None, signedby=None, verbose=False, **options):
         """
-        Store in a DHT
+        Store a signature in a pair of DHTs
         Exception: IOError if file doesnt exist
 
-        :param table:   Table to store in
         :param hash:    hash to store under
         :param value:   Value - usually a dict - to store.
         :param verbose: Report on activity
         :param options:
         :return:
         """
-        #TODO-RELATIVE may need to add relative paths, but haven't found a use case yet
-        if verbose: print "TransportLocal.add", table, hash, value
-        filename = self._filename(table, hash=hash, verbose=verbose, **options)
+        if verbose: print "TransportLocal.add",  hash, date, signature, signedby, options
+        filenameL = self._filename("list", hash=signedby, verbose=verbose, **options)
+        filenameR = self._filename("reverse", hash=hash, verbose=verbose, **options)
+        value = self._add_value( hash=hash, date=date, signature=signature, signedby=signedby, verbose=verbose, **options)+ "\n"
         try:
-            if not isinstance(value, basestring):
-                # Turn into a string if not already
-                value = CryptoLib.dumps(value)
-            with open(filename, 'ab') as f:
+            with open(filenameL, 'ab') as f:
                 f.write(value)
-                f.write("\n")
         except IOError as e:
-            raise TransportFileNotFound(file=filename)
+            raise TransportFileNotFound(file=filenameL)
+        try:
+            with open(filenameR, 'ab') as f:
+                f.write(value)
+        except IOError as e:
+            raise TransportFileNotFound(file=filenameL)
 
-    def list(self, table=None, hash=None, verbose=False, **options):
+    def _listreverse(self, subdir=None, hash=None, verbose=False, **options):
         """
         Retrieve record(s) matching a hash (usually the hash of a key), in this case from a local directory
         Exception: IOError if file doesnt exist
 
-        :param table: Table to look for hash in
         :param hash: Hash in table to be retrieved
         :return: list of dictionaries for each item retrieved
         """
-        #TODO-RELATIVE may need to add relative paths, but haven't found a use case yet
-        if verbose: print "TransportLocal.list", table, hash
-        if table in ("mb", "mbm"): table = "signedby"            # Look for Signatures for mb table in signedby table
-        filename = self._filename(table, hash=hash, verbose=verbose, **options)
+        if verbose: print "TransportLocal", subdir, hash
+        filename = self._filename(subdir, hash=hash, verbose=verbose, **options)
         try:
             f = open(filename, 'rb')
             s = [ loads(s) for s in f.readlines() ]
@@ -128,3 +128,23 @@ class TransportLocal(Transport):
             return s
         except IOError as e:
             raise TransportFileNotFound(file=filename)
+
+    def list(self, hash=None, verbose=False, **options):
+        """
+        Retrieve record(s) matching a hash (usually the hash of a key), in this case from a local directory
+        Exception: IOError if file doesnt exist
+
+        :param hash: Hash in table to be retrieved
+        :return: list of dictionaries for each item retrieved
+        """
+        return self._listreverse(subdir="list", hash=hash, verbose=False, **options)
+
+    def reverse(self, hash=None, verbose=False, **options):
+        """
+        Retrieve record(s) matching a hash (usually the hash of a key), in this case from a local directory
+        Exception: IOError if file doesnt exist
+
+        :param hash: Hash in table to be retrieved
+        :return: list of dictionaries for each item retrieved
+        """
+        return self._listreverse(subdir="reverse", hash=hash, verbose=False, **options)

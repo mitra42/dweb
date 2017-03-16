@@ -4,6 +4,8 @@
 Storage and retrieval
 *********************
 
+#TODO-REFACTOR need to scan and update this file
+
 Storage and Retrieval breaks down into a number of topics that are mutually interdependent.
 
 * :ref:`Raw Block storage and retrieval` - storing opaque bytes into a DHT

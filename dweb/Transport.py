@@ -39,7 +39,7 @@ class Transport(object):
         raise ToBeImplementedException(name=cls.__name__+".setup")
 
     #@abstractmethod
-    def store(self, table="ERROR", data=None):
+    def store(self, data=None):
         """
         Store the data locally
 
@@ -50,7 +50,7 @@ class Transport(object):
         raise ToBeImplementedException(name=cls.__name__+".store")
 
     #@abstractclassmethod   # Only works in Python 3.3
-    def block(self, table, hash, **options):
+    def block(self, hash, **options):
         """
         Fetch a block
 
@@ -84,3 +84,12 @@ class Transport(object):
         """
         raise ToBeImplementedException(name=self.__class__.__name__+".list")
         #TODO-RELATIVE may need to add relative paths, but haven't found a use case yet
+
+    # ===== Utility functions for use by any subclass =======
+
+    def _add_value(self, hash=None, date=None, signature=None, signedby=None, verbose=False, **options ):
+        from CryptoLib import CryptoLib
+        store = {"hash": hash, "date": date, "signature": signature, "signedby": signedby}
+        return CryptoLib.dumps(store)
+
+

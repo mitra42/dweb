@@ -22,7 +22,7 @@ class TransportHTTP(Transport):
         """
         self.ipandport = ipandport
         self.verbose = verbose
-        self.baseurl = "http://%s:%s/" % (ipandport[0], ipandport[1])
+        self.baseurl = "http://%s:%s/" % (ipandport[0], ipandport[1])   # Note trailing /
 
     @classmethod
     def setup(cls, ipandport=None, **options):
@@ -34,6 +34,8 @@ class TransportHTTP(Transport):
         :return: None
         """
         return cls(ipandport=ipandport, **options)
+
+    # TODO-REFACTOR need to scan and update this file
 
     def _sendGetPost(self, post, command, urlargs=None, verbose=False, **options):
         """
@@ -66,18 +68,19 @@ class TransportHTTP(Transport):
         #print r.status_code, r.text # r.json()
         return r    # r is a response
 
-    def store(self, table=None, data=None):
+    def store(self, data=None, verbose=False, **options):
         """
         Store the data locally
 
-        :param data: opaque data to store
+        :param data: opaque data to store, or obj with _data method
         :return: hash of data
         """
-        #TODO-RELATIVE may need to add relative paths, but haven't found a use case yet
-        res = self._sendGetPost(True, "store", headers={"Content-Type": "application/octet-stream"}, urlargs=[table], data=data )
+        if not isinstance(data, basestring):
+            data = data._data
+        res = self._sendGetPost(True, "store", headers={"Content-Type": "application/octet-stream"}, urlargs=[], data=data )
         return str(res.text) # Should be the hash - need to return a str, not unicode which isn't supported by decode
 
-    def block(self, table=None, hash=None, **options):
+    def block(self, hash=None, **options):
         """
         Fetch a block,
         Paired with DwebDispatcher.block
@@ -85,11 +88,11 @@ class TransportHTTP(Transport):
         :param options: parameters to block, must include "hash"
         :return:
         """
-        #TODO-RELATIVE may need to add relative paths, but haven't found a use case yet
-        res = self._sendGetPost(False, "block", urlargs=[table, hash], params=options)
+        res = self._sendGetPost(False, "block", urlargs=[hash], params=options)
         return res.text
 
-    def add(self, table=None, hash=None, value=None, **options): # Expecting: table, key, value
+    def add(self, hash=None, date=None, signature=None, signedby=None, verbose=False, **options):
+        #TODO fix params docs here and elsewhere in Transport
         """
         Store in a DHT
 
@@ -100,35 +103,35 @@ class TransportHTTP(Transport):
         :param options:
         :return:
         """
-        #TODO-RELATIVE may need to add relative paths, but haven't found a use case yet
-        if options.get("verbose",None): print "add",table, hash, value, options
-        res = self._sendGetPost(True, "add", urlargs = [table], headers={"Content-Type": "application/octet-stream"}, params={"hash": hash}, data=CryptoLib.dumps(value))
+        if options.get("verbose",None): print "add", hash, date, signature, signedby, options
+        value = self._add_value( hash=hash, date=date, signature=signature, signedby=signedby, verbose=verbose, **options)+ "\n"
+        res = self._sendGetPost(True, "add", urlargs = [], headers={"Content-Type": "application/json"}, params={}, data=value)
 
-    def list(self, table=None, hash=None, verbose=False, **options):
+    def list(self, hash=None, verbose=False, **options):
         """
-        Method that should always be subclassed to retrieve record(s) matching a key.
+        Method to retrieve record(s) matching a key.
         Copied to dweb.py
 
         :param table: Table to look for key in
         :param hash: Key to be retrieved (embedded in options for easier pass through)
         :return: list of dictionaries for each item retrieved
         """
-        #TODO-RELATIVE may need to add relative paths, but haven't found a use case yet
-        if options.get("verbose",None): print "list",table, options
-        res = self._sendGetPost(False, "list", urlargs=(table, hash), params=options)
+        if verbose: print "list", hash, options
+        res = self._sendGetPost(False, "list", urlargs=[hash], params=options)
         return res.json()
-
 
     def url(self, obj, command=None, hash=None, table=None, contenttype=None, **options):
         """
 
         :return: HTTP style URL to access this resource - not sure what this works on yet.
         """
+        #TODO-REFACTOR need to fix TransportHTTP.url
         from MutableBlock import MutableBlock
         # Identical to ServerHTTP.url
         hash = hash or obj._hash
         url =  "http://%s:%s/%s/%s/%s"  \
                % (self.ipandport[0], self.ipandport[1], command or obj.transportcommand, table or obj.table, hash)
+        # TODO-REFACTOR probably remove transportcommand in all places
         if contenttype:
             if command in ("update",):  # Some commands allow type as URL parameter
                 url += "/" + urllib.quote(contenttype, safe='')

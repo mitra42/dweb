@@ -1,10 +1,12 @@
 # encoding: utf-8
-from json import dumps
+from json import dumps, loads
 from sys import version as python_version
 from cgi import parse_header, parse_multipart
 import urllib
 import BaseHTTPServer       # See https://docs.python.org/2/library/basehttpserver.html for docs on how servers work
                             # also /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/BaseHTTPServer.py for good error code list
+
+#TODO-REFACTOR need to scan and update this file
 
 if python_version.startswith('3'):
     from urllib.parse import parse_qs, parse_qs, urlparse
@@ -161,7 +163,9 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
                 length = int(self.headers['content-length'])
                 postvars = {"data": self.rfile.read(length)}
             elif ctype == 'application/json':
-                raise ToBeImplementedException(name="do_POST:application/json")
+                length = int(self.headers['content-length'])
+                postvars = {"data": loads(self.rfile.read(length))}
+                #raise ToBeImplementedException(name="do_POST:application/json")
             else:
                 postvars = {}
             self._dispatch(**postvars)

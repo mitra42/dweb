@@ -8,18 +8,20 @@ import mimetypes
 mimetypes.init()
 mimetypes.add_type('text/plain','.md')
 
+#TODO-REFACTOR need to scan and update this file
+
 class File(StructuredBlock):
     """
     A Subclass of File that specifically deals with file system objects,
     """
     maxcontentlen = 10000
 
-    def __init__(self, dict=None, **options):
+    def __init__(self, data=None, **options):
         """
 
         :param dict {filepath}
         """
-        super(File, self).__init__(dict, **options)
+        super(File, self).__init__(data, **options)
 
     @staticmethod
     def _write(filepath, data):
