@@ -1,7 +1,5 @@
 # encoding: utf-8
 
-#TODO-REFACTOR need to scan and update this file
-
 from json import dumps, loads
 import base64
 import hashlib
@@ -245,7 +243,6 @@ class KeyPair(Transportable):
         :param value:
         :return:
         """
-        # TODO-REFACTOR put block in Transportable so doesnt call cls
         self._key = RSA.importKey(self.transport.block(hash=value)) #TODO what happens if cant find
 
     @property
@@ -261,7 +258,7 @@ class KeyPair(Transportable):
         :param value:
         :return:
         """
-        self._key = RSA.importKey(self.transport.block(hash=value)) #TODO-REFACTOR put block in Transportable so doesnt call cls
+        self._key = RSA.importKey(self.transport.block(hash=value))
         #TODO-AUTHENTICATION what happens if cant find
         if self.publichash != value:
             self._key = None    # Blank out bad key

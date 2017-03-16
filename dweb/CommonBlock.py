@@ -5,8 +5,13 @@ import dateutil.parser  # pip py-dateutil
 class Transportable(object):
     """
     Encapsulate any kind of object that can be transported
+
+    Any subclass needs to implement:
+     _data getter and setter to return the data and to load from opaque bytes returned by transport. (Note SmartDict does this)
+     __init__(data=None, hash=None, ...) That can be called after block
+
     """
-    transport = None    #TODO-REFACTOR replace all Block.transport with Transportable.transport, and move setup here
+    transport = None
 
     def __init__(self, data=None, hash=None, verbose=False):
         """
@@ -40,7 +45,7 @@ class Transportable(object):
         if verbose: print "Storing len=", len(data or self._data)
         self._hash = self.transport.store(data=data or self._data)  # Note uses fact that _data will be subclassed
         if verbose: print self.__class__.__name__, ".stored: hash=", self._hash
-        return self._hash   #TODO-REFACTOR change all "store" to return obj, as can access hash via ._hash
+        return self._hash   #TODO-REFACTOR-STORE change all "store" to return obj, as can access hash via ._hash
 
     @classmethod
     def block(cls, hash=hash, verbose=False, **options):

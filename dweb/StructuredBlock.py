@@ -4,20 +4,20 @@ from Block import Block
 from CryptoLib import CryptoLib
 from CommonBlock import Transportable, SmartDict
 
-class StructuredBlock(SmartDict): #TODO-REFACTOR <<< probably single inheritance from SmartDict, check all Block functions may not need ANY
+class StructuredBlock(SmartDict):
     """
     Encapsulates an JSON Dict and stores / retrieves over transports.
     Note that data is data contained *in* the SB, while _data is data representation *of* the SB.
     Similarly hash is a pointer to data contained *in* the SB, while _hash is the the hash of the data representing the SB.
     """
-    OBStable="sb"      #TODO may need to move to _table
-    transportcommand="block"    #TODO-REFACTOR probably remove transportcommand in all places
 
     # Uses SmartDict._data and SmartDict._data.setter from superclass
     # SmartDict.__init__(hash=None, data=None) used, it will call @_data.setter here
 
+    def fetch(self, verbose=False, **options):
+        return self # No action needed on a SB (block loads it)
+
     def url(self, **options):
-        # TODO-REFACTOR-URL need to scan and update this function
         """
         Get the body of a URL based on the transport just used.
         :return:
@@ -40,7 +40,7 @@ class StructuredBlock(SmartDict): #TODO-REFACTOR <<< probably single inheritance
         """
         self._hash = Transportable.transport.store(data=self, verbose=verbose, **options)   # Uses self._data to get data
         if verbose: print "Structured Block.stored: Hash=",self._hash
-        return self._hash   #TODO-REFACTOR maybe all calls to store return the obj, not the hash ?
+        return self._hash   #TODO-REFACTOR-STORE
 
     #---------------------------------------------------------------------------------------------------------
     #METHODS TO DEAL WITH FILES, WHICH ARE STRUCTURED BLOCKS BUT DONT HAVE OWN TYPE AS INCLUDED BY OTHER THINGS
@@ -69,8 +69,8 @@ class StructuredBlock(SmartDict): #TODO-REFACTOR <<< probably single inheritance
         """
         return (
             self.data or
-            (self.hash and self.block(self.hash, verbose=verbose, **options)).content(verbose=verbose, **options) or #TODO-REFACTOR-TABLEHASH hash retrieval needs to know what its retrieving, might be a SB or MB or whatever
-            (self.links and "".join(l.content(verbose=verbose, **options) for l in self.links)) or
+            (self.hash and Transportable.transport.block(hash = self.hash, verbose=verbose, **options)) or # Hash must point to raw data, not another SB
+            (self.links and "".join(l.content(verbose=verbose, **options) for l in self.links)) or # Each link is a SB
             "")
 
 
@@ -85,9 +85,21 @@ class StructuredBlock(SmartDict): #TODO-REFACTOR <<< probably single inheritance
         return (
             self.__dict__.get("size",None) or
             (self.data and len(self.data)) or
-            (self.hash and self.block(self.hash, verbose=verbose,**options).size(verbose=verbose,**options)) or  # TODO-REFACTOR-TABLEHASH hash retrieval needs to know what its retrieving, might be a SB or MB or whatever
-            (self.links and sum(l.size(verbose=verbose, **options) for l in self.links)) or
+            (self.hash and len(Transportable.transport.block(hash = self.hash, verbose=verbose, **options))) or
+            (self.links and sum(l.size(verbose=verbose, **options) for l in self.links)) or # Each link is a SB
             None)
+
+    def path(self, urlargs, verbose=False):
+        """
+        Walk a path and return the SB at the end of that path
+
+        :param urlargs:
+        :return:
+        """
+        sb = self
+        while urlargs:
+            sb = sb.link(urlargs.pop(0))
+        return sb
 
 
 

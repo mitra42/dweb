@@ -60,7 +60,7 @@ class Transport(object):
         #TODO-RELATIVE may need to add relative paths, but haven't found a use case yet
         raise ToBeImplementedException(name=cls.__name__+".block")
 
-    def add(self, table=None, key=None, value=None, **options):
+    def add(self, key=None, value=None, **options):
         """
         Store in a DHT
 
@@ -74,7 +74,7 @@ class Transport(object):
         #TODO-RELATIVE may need to add relative paths, but haven't found a use case yet
         raise ToBeImplementedException(name=cls.__name__+".add")
 
-    def list(self, table=None, hash=None, verbose=False, **options):
+    def list(self, hash=None, verbose=False, **options):
         """
         Method that should always be subclassed to retrieve record(s) matching a key
 

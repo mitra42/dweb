@@ -3,7 +3,7 @@
 from datetime import datetime
 import dateutil.parser  # pip py-dateutil
 from json import loads
-from misc import MyBaseException
+from misc import MyBaseException, _print
 from CryptoLib import CryptoLib, KeyPair
 from CommonBlock import Transportable
 from StructuredBlock import SmartDict, StructuredBlock
@@ -70,7 +70,6 @@ class SignedBlock(object):
     _hash               _h()    Hash of data once stored, (accessing this will cause it to be stored)
     _signatures                 Array of signatures
     """
-    table="signed"
 
     def __setattr__(self, name, value):
         if name and name[0] == "_":
@@ -110,7 +109,7 @@ class SignedBlock(object):
             self._hash = self._structuredblock.store(verbose=verbose, **options) #TODO-REFACTOR-STORE
         return self._hash
 
-    def __init__(self, hash=None, structuredblock=None, signatures=None, verbose=False, **options): #TODO-REFACTOR strucutredblock = data
+    def __init__(self, hash=None, structuredblock=None, signatures=None, verbose=False, **options): #TODO-REFACTOR-RENAME strucutredblock = data
         """
         Create a signedblock - but dont sign it yet.
         Adapted into dweb.js
@@ -175,6 +174,11 @@ class SignedBlock(object):
 
     def content(self, **options):
         return self._sb().content()
+
+    def path(self, urlargs, verbose=False):
+        #if verbose: print "SignedBlock.path:", urlargs
+        return self._sb(verbose=verbose).path(urlargs, verbose)  # Pass to SB and walk its path
+
 
 class SignedBlocks(list):
     """

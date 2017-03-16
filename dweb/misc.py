@@ -1,7 +1,6 @@
 # encoding: utf-8
 from datetime import datetime
 
-#TODO-REFACTOR need to scan and update this file
 
 class MyBaseException(Exception):
     """

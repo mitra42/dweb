@@ -3,10 +3,11 @@
 from Block import Block
 from CryptoLib import KeyPair # Suite of functions for hashing, signing, encrypting
 from SignedBlock import SignedBlock, SignedBlocks
-from misc import ForbiddenException
+from misc import ForbiddenException, _print
+from CommonBlock import Transportable
 
 
-class CommonList(object):
+class CommonList(Transportable):
     """
     Encapsulates a list of blocks, which includes MutableBlocks and AccessControlLists etc
     Partially copied to dweb.js.
@@ -14,7 +15,6 @@ class CommonList(object):
     { _keypair: KeyPair, _list: [ StructredBlock* ] }
 
     """
-    transportcommand="block"   #TODO-REFACTOR probably remove transportcommand in all places
 
     @property
     def _hash(self):
@@ -65,32 +65,27 @@ class CommonList(object):
         :param verbose:
         :param options:
         """
-        # TODO-REFACTOR match new list
         self._list = SignedBlocks.fetch(hash=self._keypair.publichash, verbose=verbose, **options).sorteddeduplicated()
 
     def url(self, **options):
-        # TODO-REFACTOR-URL
-        return Block.transport.url(self, **options)
+        return Transportable.transport.url(self, **options)
 
     #TODO - add metadata to Mutable - and probably others
 
-    def publicurl(self, command=None, table=None):
-        # TODO-REFACTOR-URL
-        return Block.transport.url(self, command=command or "list", table=table or self.table, hash=self._keypair.publichash) #, contenttype=self.__getattr__("Content-type"))
+    def publicurl(self, command=None, **options):
+        return Transportable.transport.url(self, command=command or "list", hash=self._keypair.publichash, **options) #, contenttype=self.__getattr__("Content-type"))
 
     def privateurl(self):
-        # TODO-REFACTOR-URL
         """
         Get a URL that can be used for edits to the resource
         Side effect of storing the key
 
         :return:
         """
-        return Block.transport.url(self, command="update", table=self.table, hash=self.privatehash, contenttype=self.__getattr__("Content-type"))
+        return Transportable.transport.url(self, command="update", hash=self.privatehash, contenttype=self.__getattr__("Content-type"))
         #TODO-AUTHENTICATION - this is particularly vulnerable w/o authentication as stores PrivateKey in unencrypted form
 
-    def store(self, private=False, verbose=False):
-        # TODO-REFACTOR use storage
+    def store(self, private=False, verbose=False, **options):
         """
         Store a list, so can be retrieved by its hash.
         Saves the key, can be subclassed to save other meta-data.
@@ -112,7 +107,6 @@ class CommonList(object):
         """
         if not self._master:
             raise ForbiddenException(what="Signing a new entry when not a master list")
-        # TODO-REFACTOR use storage
         obj.sign(self._keypair).store(verbose=verbose, **options)
         return self
 
@@ -137,7 +131,6 @@ class MutableBlock(CommonList):
         """
         # This next line for "hash" is odd, side effect of hash being for content with MB.master and for key with MB.!master
         super(MutableBlock, self).__init__(master=master, keypair=keypair, key=key, hash=hash, verbose=verbose, **options)
-        # TODO-REFACTOR to match new SigB
         self._current = SignedBlock(hash=contenthash, verbose=verbose, **options) if master else None # Create a place to hold content, pass hash to load content
         self.__dict__["table"] = "mbm" if master else "mb"  #TODO should probably refactor table->_table but lots of cases
 
@@ -151,24 +144,21 @@ class MutableBlock(CommonList):
         """
         Copied to dweb.js.
 
-        :param verbose:
-        :param options:
+        :return: self for chaining
         """
         super(MutableBlock, self).fetch(verbose=verbose, **options)
         self._current = self._list[-1]
+        return self # For chaining
 
     def content(self, **options):
         return self._current.content(**options)
-
-    def publicurl(self, command=None, table=None):
-        return super(MutableBlock, self).publicurl(command=command, table=table or MutableBlock.table)
 
     def __setattr__(self, name, value):
         #TODO should probably fail if !master
         if name and name[0] == "_":
             super(MutableBlock, self).__setattr__(name, value)   # Save _current, _keypair, _list etc locally # Looks at CommonList
         else:
-            self._current.__setattr__(name, value)   # Pass to current
+            self._current.__setattr__(name, value)   # Pass to current (a SignedBlock)
 
     def signandstore(self, verbose=False, **options):
         """
@@ -179,6 +169,8 @@ class MutableBlock(CommonList):
         """
         return super(MutableBlock, self).signandstore(self._current, verbose=verbose, **options) # ERR SignedBlockEmptyException, ForbiddenException
 
+    def path(self, urlargs, verbose=False):
+        return self._current.path(urlargs, verbose)  # Pass to _current, (a SignedBlock)  and walk its path
 
 class AccessControlList(CommonList):
     """
@@ -191,7 +183,6 @@ class AccessControlList(CommonList):
     :param CommonList:
     :return:
     """
-    table = "acl"
 
     def __init__(self, master=False, keypair=None, key=None, hash=None, verbose=False, **options):
         """

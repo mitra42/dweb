@@ -35,8 +35,6 @@ class TransportHTTP(Transport):
         """
         return cls(ipandport=ipandport, **options)
 
-    # TODO-REFACTOR need to scan and update this file
-
     def _sendGetPost(self, post, command, urlargs=None, verbose=False, **options):
         """
         Construct a URL of form  baseurl / command / urlargs ? options
@@ -80,7 +78,7 @@ class TransportHTTP(Transport):
         res = self._sendGetPost(True, "store", headers={"Content-Type": "application/octet-stream"}, urlargs=[], data=data )
         return str(res.text) # Should be the hash - need to return a str, not unicode which isn't supported by decode
 
-    def block(self, hash=None, **options):
+    def block(self, hash=None, verbose=False, **options):
         """
         Fetch a block,
         Paired with DwebDispatcher.block
@@ -88,7 +86,7 @@ class TransportHTTP(Transport):
         :param options: parameters to block, must include "hash"
         :return:
         """
-        res = self._sendGetPost(False, "block", urlargs=[hash], params=options)
+        res = self._sendGetPost(False, "block", urlargs=[hash], verbose=verbose, params=options)
         return res.text
 
     def add(self, hash=None, date=None, signature=None, signedby=None, verbose=False, **options):
@@ -125,13 +123,14 @@ class TransportHTTP(Transport):
 
         :return: HTTP style URL to access this resource - not sure what this works on yet.
         """
-        #TODO-REFACTOR need to fix TransportHTTP.url
-        from MutableBlock import MutableBlock
         # Identical to ServerHTTP.url
         hash = hash or obj._hash
-        url =  "http://%s:%s/%s/%s/%s"  \
-               % (self.ipandport[0], self.ipandport[1], command or obj.transportcommand, table or obj.table, hash)
-        # TODO-REFACTOR probably remove transportcommand in all places
+        if command in ["file"]:
+            url = "http://%s:%s/%s/%s/%s" \
+                  % (self.ipandport[0], self.ipandport[1], command or "block", table, hash)
+        else:
+            url =  "http://%s:%s/%s/%s"  \
+                % (self.ipandport[0], self.ipandport[1], command or "block", hash)
         if contenttype:
             if command in ("update",):  # Some commands allow type as URL parameter
                 url += "/" + urllib.quote(contenttype, safe='')

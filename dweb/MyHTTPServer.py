@@ -6,7 +6,9 @@ import urllib
 import BaseHTTPServer       # See https://docs.python.org/2/library/basehttpserver.html for docs on how servers work
                             # also /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/BaseHTTPServer.py for good error code list
 
-#TODO-REFACTOR need to scan and update this file
+"""
+This file is intended to be Application independent , i.e. not dependent on Dweb.
+"""
 
 if python_version.startswith('3'):
     from urllib.parse import parse_qs, parse_qs, urlparse
@@ -18,7 +20,7 @@ else:
 import traceback
 
 from misc import MyBaseException, ToBeImplementedException
-from Transport import TransportBlockNotFound
+from Transport import TransportBlockNotFound,TransportFileNotFound
 
 #TODO-HTTP add support for HTTPS
 
@@ -128,7 +130,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
                 if isinstance(data, unicode):
                     data = data.encode("utf-8") # Needed to make sure any unicode in data converted to utf8 BUT wont work for intended binary
                 self.wfile.write(data)                   # Write content of result if applicable
-        except (TransportBlockNotFound, DWEBMalformedURLException) as e:         # Gentle errors, entry in log is sufficient (note line is app specific)
+        except (TransportBlockNotFound, TransportFileNotFound, DWEBMalformedURLException) as e:         # Gentle errors, entry in log is sufficient (note line is app specific)
             self.send_error(e.httperror, str(e))    # Send an error response
         except Exception as e:
             traceback.print_exc(limit=None)  # unfortunately only prints to try above so need to raise

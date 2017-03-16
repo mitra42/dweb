@@ -17,8 +17,6 @@ from MutableBlock import MutableBlock, AccessControlList #TODO-AUTHENTICATION mo
 from File import File, Dir
 
 
-#TODO-REFACTOR need to scan and update this file
-
 class Testing(unittest.TestCase):
     def setUp(self):
         super(Testing, self).setUp()
@@ -95,13 +93,13 @@ class Testing(unittest.TestCase):
 
     def test_LongFiles(self):
         from StructuredBlock import StructuredBlock
-        sblock = StructuredBlock({ "data": self.quickbrownfox}) # Note this is data held in the SB, as compared to _data which is data representing the SB
-        assert sblock.size(verbose=self.verbose) == len(self.quickbrownfox), "Should get length"
-        assert sblock.content(verbose=self.verbose) == self.quickbrownfox, "Should fetch string"
+        sb1 = StructuredBlock({ "data": self.quickbrownfox}) # Note this is data held in the SB, as compared to _data which is data representing the SB
+        assert sb1.size(verbose=self.verbose) == len(self.quickbrownfox), "Should get length"
+        assert sb1.content(verbose=self.verbose) == self.quickbrownfox, "Should fetch string"
         multihash = Block(data=self.dog).store(verbose=self.verbose)
-        sblock = StructuredBlock({ "hash": multihash})
-        assert sblock.content(verbose=self.verbose) == self.dog, "Should fetch dog string"
-        assert sblock.size(verbose=self.verbose) == len(self.dog), "Should get length"
+        sb2 = StructuredBlock({ "hash": multihash})  # Note passing multihash as the hash of the data, not the hash of the SB.
+        assert sb2.content(verbose=self.verbose) == self.dog, "Should fetch dog string"
+        assert sb2.size(verbose=self.verbose) == len(self.dog), "Should get length"
         slinksblock = StructuredBlock({ "links": [
                                             StructuredBlock({ "data": self.quickbrownfox}),
                                             StructuredBlock({ "hash": multihash}),
@@ -118,12 +116,13 @@ class Testing(unittest.TestCase):
 
     def test_file(self):
         Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
-        content = File.load(filepath=self.exampledir + "index.html").content()
-        sb = StructuredBlock(data=content, **{"Content-type":"text/html"})
+        content = File.load(filepath=self.exampledir + "index.html", verbose=self.verbose).content(verbose=self.verbose)
+        sb = StructuredBlock(**{"Content-type":"text/html"})  # ** because cant use args with hyphens\
+        sb.data = content
         sbhash = sb.store()
         sburl = sb.url(command="file")
         #print "SBURL=",sburl # For debugging with Curl
-        resp = Block.transport._sendGetPost(False, "file", ["sb", sbhash])
+        resp = Transportable.transport._sendGetPost(False, "file", ["sb", sbhash])
         assert resp.text == content, "Should return data stored"
         assert resp.headers["Content-type"] == "text/html", "Should get type"
         # Now test a MutableBlock that uses this content
@@ -132,23 +131,23 @@ class Testing(unittest.TestCase):
         mb = MutableBlock(hash=mbm._keypair.publichash)
         mb.fetch()      # Just fetches the signatures
         assert mb.content() == mbm.content(), "Should round-trip HTML content"
-        mbcontent2 = Block.transport._sendGetPost(False,"file", ["mb", mb._hash]).text
+        mbcontent2 = Transportable.transport._sendGetPost(False,"file", ["mb", mb._hash]).text
         assert mbcontent2 == mbm.content(), "Should fetch MB content via its URL"
 
     def test_typeoverride(self):    # See if can override the type on a block
-        Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
+        Transportable.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         # Store the wrench icon
         content = File.load(filepath=self.exampledir + "WrenchIcon.png").content()
         wrenchhash = Block(data=content).store(verbose=self.verbose)
         # And check it got there
-        resp = Block.transport._sendGetPost(False, "block", [ Block.table, wrenchhash], params={"contenttype": "image/png"})
+        resp = Transportable.transport._sendGetPost(False, "block", [ wrenchhash], params={"contenttype": "image/png"})
         assert resp.headers["Content-type"] == "image/png", "Should get type"
         assert resp.content == content, "Should return data stored"
 
     def test_badblock(self):
         Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         try:
-            resp = Block.transport._sendGetPost(False, "block", [ "12345"], params={"contenttype": "image/png"})
+            resp = Transportable.transport._sendGetPost(False, "block", [ "12345"], params={"contenttype": "image/png"})
         except TransportURLNotFound as e:
             pass
         else:
@@ -191,19 +190,19 @@ class Testing(unittest.TestCase):
         # Upload a multi-level directory
         f = Dir.load(filepath="../tinymce", upload=True, verbose=self.verbose,)
         #print f.url()  # url of sb at top of directory
-        sb = StructuredBlock.sblock(table=f.table, hash=f._hash, verbose=self.verbose)
+        sb = StructuredBlock.block(hash=f._hash, verbose=self.verbose)
         assert len(sb.links) == 8, "tinymce has 8 files"
-        resp = Block.transport._sendGetPost(False, "file", [f.table, f._hash,"langs/readme.md"])
+        resp = Transportable.transport._sendGetPost(False, "file", ["sb", f._hash,"langs/readme.md"])
         assert int(resp.headers["Content-Length"]) == f1sz,"Should match length of readme.md"
         # /file/mb/SHA3256B64URL.88S-FYlEN1iF3WuDRdXoR8SyMUG6crR5ehM21IvUuS0=/tinymce.min.js
 
-    def test_current(self):
+    def Xtest_current(self):
         self.verbose = True
         print "XXX@194"
 
         acl = AccessControlList(master=True, key=self.keyfromfile("test_acl1_rsa", private=True), verbose=self.verbose)
         print "XXX@202",acl._keypair.publichash
-        acl.store(verbose=True) # Store public key
+        acl.store(verbose=self.verbose) # Store public key
         #TODO Why storing new each time
         viewerkeypair = KeyPair(key=self.keyfromfile("test_viewer1_rsa")).store()
 
