@@ -161,11 +161,13 @@ class Testing(unittest.TestCase):
             f = File.load(filepath=filepath, contenttype=contenttype, upload=True, verbose=self.verbose, **options)
         keypath = self.exampledir + keyname if keyname else None
         if keypath:
-            mbm = MutableBlock(master=True, key=self.keyfromfile(keyname, private=True), contenthash=f._hash, verbose=self.verbose).signandstore(verbose=self.verbose)
+            mbm = MutableBlock(master=True, key=self.keyfromfile(keyname, private=True), contenthash=f._hash, verbose=self.verbose)
+            mbm.store(private=True, verbose=self.verbose)
+            mbm.signandstore(verbose=self.verbose)
             print filename + " editable:" + mbm.privateurl()    # Side effect of storing
             print filename + ":" + mbm.publicurl(command="file", table="mb")
         else:
-            print filename + ":" + f.url(command="file")
+            print filename + ":" + f.url(command="file", table="sb")
 
 
     def test_uploads(self):
@@ -195,6 +197,9 @@ class Testing(unittest.TestCase):
         resp = Transportable.transport._sendGetPost(False, "file", ["sb", f._hash,"langs/readme.md"])
         assert int(resp.headers["Content-Length"]) == f1sz,"Should match length of readme.md"
         # /file/mb/SHA3256B64URL.88S-FYlEN1iF3WuDRdXoR8SyMUG6crR5ehM21IvUuS0=/tinymce.min.js
+
+    def test_current(self):
+        self._storeas("WrenchIcon.png", None, "image/png")
 
     def Xtest_current(self):
         self.verbose = True

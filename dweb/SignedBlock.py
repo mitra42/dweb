@@ -58,7 +58,8 @@ class Signatures(list):
 class SignedBlock(object):
     """
     A SignedBlock groups data with signatures - for internal use
-    Its stored as quads (hash of data; date; signature; pubkey)
+    The signatures are stored as quads (hash of data; date; signature; hash of pubkey)
+    So this object is not "Transportable"
 
     { Structured data, Hash, [ date, signature, publickey ]* }
     """
@@ -109,7 +110,7 @@ class SignedBlock(object):
             self._hash = self._structuredblock.store(verbose=verbose, **options) #TODO-REFACTOR-STORE
         return self._hash
 
-    def __init__(self, hash=None, structuredblock=None, signatures=None, verbose=False, **options): #TODO-REFACTOR-RENAME strucutredblock = data
+    def __init__(self, hash=None, structuredblock=None, signatures=None, verbose=False, **options):
         """
         Create a signedblock - but dont sign it yet.
         Adapted into dweb.js

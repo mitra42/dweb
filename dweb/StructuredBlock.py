@@ -13,6 +13,7 @@ class StructuredBlock(SmartDict):
 
     # Uses SmartDict._data and SmartDict._data.setter from superclass
     # SmartDict.__init__(hash=None, data=None) used, it will call @_data.setter here
+    _table = "sb"
 
     def fetch(self, verbose=False, **options):
         return self # No action needed on a SB (block loads it)

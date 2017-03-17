@@ -10,9 +10,9 @@ from CommonBlock import Transportable
 
 
 LetterToClass = {
-    'b': Block,
-    'sb': StructuredBlock,
-    'mb': MutableBlock,
+    Block._table: Block,
+    StructuredBlock._table: StructuredBlock,
+    MutableBlock._table: MutableBlock,
 }
 
 class DwebHTTPRequestHandler(MyHTTPRequestHandler):
@@ -75,9 +75,13 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         if verbose: print "DwebHTTPRequestHandler.update",hash,data,type
 
         # Store the data
-        sbhash = StructuredBlock(data=data, verbose=verbose, **{"Content-type": contenttype}).store(verbose=verbose)
+        print "XXX78 data=",data
+        sb = StructuredBlock(verbose=verbose, **{"Content-type": contenttype})
+        sb.data = data
+        sbhash = sb.store(verbose=verbose)
         #Create Mbm from key; load with data; sign and store
         mbm = MutableBlock(master=True, hash=hash, contenthash=sbhash, verbose=verbose).signandstore(verbose=verbose)
+        #TODO - this above should fail if hash is public key
         return {"Content-type": "text/plain",       # Always returning plain text as the URL whatever type stored
                 "data": self.url(mbm, command="file", table="mb", hash=mbm._keypair.publichash)}  # Note cant use mbm.url as not valid on TransportLocal
     update.arglist=["hash","contenttype"]
@@ -135,7 +139,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         hash = hash or obj._hash
         if command in ["file"]:
             url = "http://%s:%s/%s/%s/%s" \
-                  % (self.ipandport[0], self.ipandport[1], command or "block", table, hash)
+                  % (self.ipandport[0], self.ipandport[1], command or "block", table or obj.table, hash)
         else:
             url =  "http://%s:%s/%s/%s"  \
                 % (self.ipandport[0], self.ipandport[1], command or "block", hash)

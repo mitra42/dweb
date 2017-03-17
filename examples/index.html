@@ -4,7 +4,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>DWEB Demonstration page</title>
     <!--<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script><!-- Jquery via Google -->
-    <script src="/file/sb/SHA3256B64URL.qlDRwZD7qe4sMDhNebxpEDkDfNsApftqNVD0pWoD1Lw="></script><!-- jquery-3.1.1.js-->
+    <script src="/file/sb/SHA3256B64URL.8DXwqIQm0gONS0fXvcmWsy3lav5Gaa4Nc1SuB1pAV8c="></script><!-- jquery-3.1.1.js-->
     <script src="/file/mb/SHA3256B64URL.OylzjhbKQK5VOVMbvdK9Dkb4UDfOEHU8uCeSnzqiseE="></script><!-- dweb.js -->
     <!--<script src='/dweb/tinymce/tinymce.min.js'></script><!-- TinyMCE -->
     <!--<script src='//cloud.tinymce.com/stable/tinymce.min.js'></script><!-- TinyMCE -->
@@ -19,10 +19,10 @@
             toolbar: "save",
             save_onsavecallback: function() {
                 content = tinyMCE.get('mytextarea').getContent();
-                hash = "SHA3256B64URL.hqPCPdsFLTaaWBgyySJmOyvVan80bBGVdyWTSESIFUw="; // Make a parameter
+                hash = "SHA3256B64URL.hqPCPdsFLTaaWBgyySJmOyvVan80bBGVdyWTSESIFUw="; // The privatehash of the "snippet.html editable - should be a parameter
                 // alert(content);
                 type = "text%2Fhtml";
-                dwebupdate("mbm", hash, type, content, {"dom_id": "myDiv"});  // Post to Dweb and store URL at myDiv
+                dwebupdate(hash, type, content, {"dom_id": "myDiv"});  // Post to Dweb and store URL at myDiv
             }
         });
 
@@ -30,10 +30,10 @@
         // This is my current testing script first of block
         console.log("Block=======");
         let b = new Block("SHA3256B64URL.50GNWgUQ9GgrVfMvpedEg77ByMRYkUgPRU9P1gWaNF8=", null); // Block with "clever dog..."
-        b.block(null, true, {"dom_id": "myList.0"});      // Load block in background
+        b.block(true, {"dom_id": "myList.0"});      // Load block in background
         // Now of SB
         console.log("StructuredBlock=======");
-        let sb = new StructuredBlock("SHA3256B64URL.3cYngB_KO0luf2jQG6G5KPr-PKt7RQlgzzwRC5LBohw=");
+        let sb = new StructuredBlock("SHA3256B64URL.wMFogCeywU9Lv-FyZQy55C_9mQ6DagNcVpC5H0NYvAo=");
         sb.load(true, {"dom_id": "myList.1"} ); // hash of SB containing data containing "I'm a paragraph" // Load SB in background
         // Now MB
         console.log("MutableBlock=======");
@@ -46,7 +46,7 @@
 <p>This page is a demonstration page for the Decentralized Web.</p>
 <p>It will includue a range of features as they are added to DWEB</p>
 <p>
-    <img src="/file/sb/SHA3256B64URL.BwruLe5Il5EMV-_CaNzPFfUxiibzt2Eg-pKE2ipyj9k=" width="50px" align="left"><!--wrench-->
+    <img src="http://localhost:4243/file/sb/SHA3256B64URL.RDtSsNfJgdBdNLizO2OuYBIr1DqCTu_HV_-xMF3I7Ls=" width="50px" align="left"><!--wrench-->
     This is an image loaded by an absolute dweb URL not via the library</p>
 
 <ul id="myList"><li id="myList.0">Text replaced with a Block</li><li id="myList.1">Text replaced with a StructuredBlock</li></ul>

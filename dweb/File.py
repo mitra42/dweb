@@ -39,7 +39,8 @@ class File(StructuredBlock):
         # Utility method to upload binary content as a Block and attach.
         b = Block(data=content)  # Store raw
         hash = b.store(verbose=verbose) #TODO-REFACTOR-STORE
-        f = cls(hash=hash, **meta)
+        f = cls(**meta)
+        f.hash = hash
         f.store(verbose=verbose)  # This will have data and _hash, the _hash reflects the SB not the data
         return f
 
