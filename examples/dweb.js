@@ -21,13 +21,12 @@ class TransportHttp {
         return new TransportHttp(ipandport, options);
     }
 
-    post(self, command, table, hash, type, data, verbose, options) {
+    post(self, command, hash, type, data, verbose, options) {
         // obj being loaded
-        // table: overrides table of class
         // optioms: are passed to class specific onloaded
         // Locate and return a block, based on its multihash
-        if (verbose) { console.log("TransportHTTP post:", command,": table=", table, "hash=", hash); }
-        let url = this.url(command, table, hash)  + "/" + type;
+        if (verbose) { console.log("TransportHTTP post:", command,":hash=", hash); }
+        let url = this.url(command, hash)  + "/" + type;
         if (verbose) { console.log("TransportHTTP:post: url=",url); }
         if (verbose) { console.log("TransportHTTP:post: data=",data); }
         $.ajax({
@@ -46,18 +45,17 @@ class TransportHttp {
         });
     }
 
-    update(self, table, hash, type, data, verbose, options) {
-        this.post(self, "update", table, hash, type, data, verbose, options);
+    update(self, hash, type, data, verbose, options) {
+        this.post(self, "update", hash, type, data, verbose, options);
     }
 
-    load(self, command, table, hash, path, verbose, options) {
+    load(self, command, hash, path, verbose, options) {
         // obj being loaded
-        // table: overrides table of class
         // optioms: are passed to class specific onloaded
         // Locate and return a block, based on its multihash
         verbose=true;
-        if (verbose) { console.log("TransportHTTP load:",command,": table=", table, "hash=", hash, "path=", path, "options=", options); }
-        let url = this.url(command, table, hash);
+        if (verbose) { console.log("TransportHTTP load:",command, ":hash=", hash, "path=", path, "options=", options); }
+        let url = this.url(command, hash);
         if (verbose) { console.log("TransportHTTP:list: url=",url); }
         $.ajax({
             type: "GET",
@@ -74,24 +72,22 @@ class TransportHttp {
         });
     }
 
-    block(self, table, hash, verbose, options) {    //TODO merge with transport.list
+    block(self, hash, verbose, options) {    //TODO merge with transport.list
         // Locate and return a block, based on its multihash
-        // table: overrides table of class
         // options: are passed to class specific onloaded
         // Locate and return a block, based on its multihash
-        this.load(self, "block", table, hash, [], verbose, options);    //TODO-PATH
+        this.load(self, "block", hash, [], verbose, options);    //TODO-PATH
     }
 
-    list(self, table, hash, verbose, options) {
+    list(self, hash, verbose, options) {
         // obj being loaded
-        // table: overrides table of class
         // options: are passed to class specific onloaded
         // Locate and return a block, based on its multihash
-        this.load(self, "list", table, hash, [], verbose, options); //TODO-PATH
+        this.load(self, "list", hash, [], verbose, options); //TODO-PATH
     }
 
-    url(command, table, hash) {
-        var url = this.baseurl + command + "/" + table + "/" + hash;
+    url(command, hash) {
+        var url = this.baseurl + command + "/" + hash;
         return url;
     }
 }
@@ -105,8 +101,8 @@ class Block {
         this._table = 'b';  // Table hash found in, TODO might want to move to _table python
     }
 
-    block(table, verbose, options) {
-        transport.block(this, table || this._table, this._hash, verbose, options);
+    block(verbose, options) {
+        transport.block(this, this._hash, verbose, options);
         // Block fetched in the background - dont assume loaded here, see onloaded
     }
 
@@ -153,8 +149,8 @@ class StructuredBlock extends Block { //TODO can subclass SmartDict if used else
     }
     load(verbose, options) {
         // Locate and return a block, based on its multihash
-        if (verbose) { console.log("Fetching StructuredBlock table=",this._table,"hash=",this._hash); }
-        this.block(null, verbose, options);
+        if (verbose) { console.log("Fetching StructuredBlock hash=",this._hash,"options=",options); }
+        this.block(verbose, options);
         // Block fetched in the background - dont assume loaded here
     }
     onloaded(data, verbose, options) {
@@ -166,7 +162,7 @@ class StructuredBlock extends Block { //TODO can subclass SmartDict if used else
             let sb = this.link(next);   //TODO handle error of not found
             sb.load(verbose, options);  // passes shorter path and any dom arg load and to its onloaded
         } else { // dom_id etc are done on the leaf, not the intermediaries
-                storeto(this.data, verbose, options)  // See if options say to store in a DIV for example
+                storeto(this.data, verbose, options);  // See if options say to store in a DIV for example
         }
     }
 }
@@ -241,7 +237,7 @@ class MutableBlock {
     }
 
     load(verbose, options) {   // Python can also fetch based on just having key
-        transport.list(this, "signedby", this._hash, verbose, options);
+        transport.list(this, this._hash, verbose, options);
     }
 
     onloaded(lines, verbose, options) {
@@ -299,8 +295,8 @@ class MutableBlockMaster {
         this._current = null;
         this._list = new Array();
     }
-    update(table, type, data, verbose, options) {
-        transport.update(this, table, this._hash, type, data, verbose, options);
+    update(type, data, verbose, options) {
+        transport.update(this, this._hash, type, data, verbose, options);
     }
     onloaded(data, verbose, options) {
         // Called after block succeeds, can pass options through
@@ -335,7 +331,7 @@ function dwebfile(table, hash, path, options) {
         options.path = path.split('/');
     }
     if (table == "mb") {
-        var MorSb = new MutableBlock(hash); #TODO-KEY check all similar calls to make sure MutableBlock still takes parm 0 = hash
+        var MorSb = new MutableBlock(hash); //TODO-KEY check all similar calls to make sure MutableBlock still takes parm 0 = hash
     } else if (table == "sb") {
         var MorSb = new StructuredBlock(hash);
     } else {
@@ -344,13 +340,13 @@ function dwebfile(table, hash, path, options) {
     MorSb.load(true, options);
 }
 
-function dwebupdate(table, hash, type, data, options) {
-    mbm = new MutableBlockMaster(hash);  #TODO-KEY check all similar calls to make sure MutableBlock still takes parm 0 = hash
-    mbm.update(table, type, data, true, options);
+function dwebupdate(hash, type, data, options) {
+    mbm = new MutableBlockMaster(hash);  //TODO-KEY check all similar calls to make sure MutableBlock still takes parm 0 = hash
+    mbm.update(type, data, true, options);
 }
 
 function dweblist(div, hash) {
-    var mb = new MutableBlock(hash);  #TODO-KEY check all similar calls to make sure MutableBlock still takes parm 0 = hash
+    var mb = new MutableBlock(hash);  //TODO-KEY check all similar calls to make sure MutableBlock still takes parm 0 = hash
     mb.load(true, {"dom_id": div});
 }
 

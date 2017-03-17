@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 from Block import Block
-from CryptoLib import KeyPair # Suite of functions for hashing, signing, encrypting
+from CryptoLib import KeyPair, PrivateKeyException # Suite of functions for hashing, signing, encrypting
 from SignedBlock import SignedBlock, SignedBlocks
 from misc import ForbiddenException, _print
 from CommonBlock import Transportable
@@ -50,12 +50,16 @@ class CommonList(Transportable):
         #print "master=%s, keypair=%s, key=%s, hash=%s, verbose=%s, options=%s)" % (master, keypair, key, hash, verbose, options)
         self._master = master
         if key or hash:
-            keypair = KeyPair(key=key, hash=hash)   # Should only be one of them
+            keypair = KeyPair(key=key, hash=hash, master=master)   # Should only be one of them
+
+        if master and keypair and not keypair._key.has_private:
+            raise PrivateKeyException(keypair.privatehash)
 
         if keypair:
             self._keypair = keypair
         else:
             self._keypair = KeyPair.keygen(**options)
+        #TODO this should fail if ketpair doesnt have a master
         self._list = []
 
     def fetch(self, verbose=False, **options):
@@ -82,7 +86,7 @@ class CommonList(Transportable):
 
         :return:
         """
-        return Transportable.transport.url(self, command="update", hash=self.privatehash, contenttype=self.__getattr__("Content-type"))
+        return Transportable.transport.url(self, command="update", hash=self._keypair.privatehash, contenttype=self.__getattr__("Content-type"))
         #TODO-AUTHENTICATION - this is particularly vulnerable w/o authentication as stores PrivateKey in unencrypted form
 
     def store(self, private=False, verbose=False, **options):
@@ -118,6 +122,7 @@ class MutableBlock(CommonList):
 
     { _keypair: KeyPair, _current: SignedBlock, _list: [ SignedBlock* ] }
     """
+    _table = "mb"
 
     def __init__(self, master=False, keypair=None, key=None, hash=None, contenthash=None, verbose=False, **options):
         """

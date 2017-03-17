@@ -6,6 +6,8 @@ class Block(Transportable):
     Encapsulates an opaque block
     _data holds the data to store, note it might be a property that returns that value.
     """
+    _table = "b"
+
     def __repr__(self):
         #Exception UnicodeDecodeError if data binary
         return "%s('%s')" % (self.__class__.__name__, self._data)

@@ -149,7 +149,7 @@ class KeyPair(Transportable):
     This uses the CryptoLib functions to encapsulate KeyPairs
     """
 
-    def __init__(self, hash=None, key=None, data=None):
+    def __init__(self, hash=None, key=None, data=None, master=None):
         if data:                            # Support data kwarg so can call from Transportable.store
             key = data
         if key:
@@ -260,9 +260,9 @@ class KeyPair(Transportable):
         """
         self._key = RSA.importKey(self.transport.block(hash=value))
         #TODO-AUTHENTICATION what happens if cant find
-        if self.publichash != value:
+        if self.publichash != value and self.privatehash != value:
             self._key = None    # Blank out bad key
-            raise AuthenticationException("Retrieved key doesnt match hash="+value)
+            raise AuthenticationException(message="Retrieved key doesnt match hash="+value)
             #TODO-AUTHENTICATION copy this verification code up to privatehash
 
     def store(self, private=False, verbose=False):

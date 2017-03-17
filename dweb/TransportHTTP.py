@@ -127,7 +127,7 @@ class TransportHTTP(Transport):
         hash = hash or obj._hash
         if command in ["file"]:
             url = "http://%s:%s/%s/%s/%s" \
-                  % (self.ipandport[0], self.ipandport[1], command or "block", table, hash)
+                  % (self.ipandport[0], self.ipandport[1], command or "block", table or obj.table, hash)
         else:
             url =  "http://%s:%s/%s/%s"  \
                 % (self.ipandport[0], self.ipandport[1], command or "block", hash)
