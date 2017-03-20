@@ -41,6 +41,11 @@ class ForbiddenException(MyBaseException):
     httperror = 403     # Forbidden (Authentication won't help)
     msg = "Not allowed: {what}"
 
+class ObsoleteException(MyBaseException):
+    httperror = 500     # Forbidden (Authentication won't help)
+    msg = "Coding error: The function {function} is obsolete hint:{hint}"
+
+
 def _print(*foos, **kwargs):
     import textwrap
     first = True

@@ -6,6 +6,7 @@ var dwebport = '4243';
 
 // ==== OBJECT ORIENTED JAVASCRIPT ===============
 
+
 //TODO document from here down
 
 class TransportHttp {
@@ -22,7 +23,7 @@ class TransportHttp {
 
     post(self, command, hash, type, data, verbose, options) {
         // obj being loaded
-        // optioms: are passed to class specific onloaded
+        // options: are passed to class specific onloaded
         // Locate and return a block, based on its multihash
         if (verbose) { console.log("TransportHTTP post:", command,":hash=", hash); }
         let url = this.url(command, hash)  + "/" + type;
@@ -53,7 +54,7 @@ class TransportHttp {
         // optioms: are passed to class specific onloaded
         // Locate and return a block, based on its multihash
         verbose=true;
-        if (verbose) { console.log("TransportHTTP load:",command, ":hash=", hash, "path=", path, "options=", options); }
+        if (verbose) { console.log("TransportHTTP load:",command, ":hash=", hash, "options=", options); }
         let url = this.url(command, hash);
         if (verbose) { console.log("TransportHTTP:list: url=",url); }
         $.ajax({
@@ -71,18 +72,18 @@ class TransportHttp {
         });
     }
 
-    block(self, hash, verbose, options) {    //TODO merge with transport.list
+    rawfetch(self, hash, verbose, options) {    //TODO merge with transport.list
         // Locate and return a block, based on its multihash
         // options: are passed to class specific onloaded
         // Locate and return a block, based on its multihash
-        this.load(self, "block", hash, [], verbose, options);    //TODO-PATH
+        this.load(self, "rawfetch", hash, [], verbose, options);    //TODO-PATH
     }
 
-    list(self, hash, verbose, options) {
+    rawlist(self, hash, verbose, options) {
         // obj being loaded
         // options: are passed to class specific onloaded
         // Locate and return a block, based on its multihash
-        this.load(self, "list", hash, [], verbose, options); //TODO-PATH
+        this.load(self, "rawlist", hash, [], verbose, options); //TODO-PATH
     }
 
     url(command, hash) {
@@ -100,8 +101,9 @@ class Block {
         this._table = 'b';  // Table hash found in, TODO might want to move to _table python
     }
 
-    block(verbose, options) {
-        transport.block(this, this._hash, verbose, options);
+    load(verbose, options) {
+        if (verbose) { console.log("Block.load hash=",this._hash,"options=",options); }
+        transport.rawfetch(this, this._hash, verbose, options);
         // Block fetched in the background - dont assume loaded here, see onloaded
     }
 
@@ -146,22 +148,23 @@ class StructuredBlock extends Block { //TODO can subclass SmartDict if used else
         console.log("Didn't find",name);
         return null;    // If not found
     }
-    load(verbose, options) {
-        // Locate and return a block, based on its multihash
-        if (verbose) { console.log("Fetching StructuredBlock hash=",this._hash,"options=",options); }
-        this.block(verbose, options);
-        // Block fetched in the background - dont assume loaded here
-    }
     onloaded(data, verbose, options) {
         console.log("StructuredBlock:onloaded data len=", data.length, options)
         this._data = data;
         this._setproperties(JSON.parse(data));
-        if (options.path && options.path.length) {  //TODO-PATH unclear if want a path or a list - start with a list
+
+        let sb = this;
+        while (options.path && options.path.length && this.links.length ) { // Have a path and can do it on sb
             let next = options["path"].shift(); // Takes first element of path, leaves path as rest
-            let sb = this.link(next);   //TODO handle error of not found
-            sb.load(verbose, options);  // passes shorter path and any dom arg load and to its onloaded
-        } else { // dom_id etc are done on the leaf, not the intermediaries
-                storeto(this.data, verbose, options);  // See if options say to store in a DIV for example
+            console.log("StructuredBlock:onloaded next path=",next);
+            sb = sb.link(next);   //TODO handle error of not found
+        }
+        // At this point sb points as far down the path as we could go without loading.
+        if (options.path && options.path.length) {  // We still have path to explore, but no links on loaded sb
+                sb.load(verbose, options);  // passes shorter path and any dom arg load and to its onloaded
+        } else {  // Walked to end of path, can handle
+                console.log("StructuredBlock.onloaded storing len=",sb.data.length);
+                storeto(sb.data, verbose, options);  // See if options say to store in a DIV for example
         }
     }
 }
@@ -236,7 +239,7 @@ class MutableBlock {
     }
 
     load(verbose, options) {   // Python can also fetch based on just having key
-        transport.list(this, this._hash, verbose, options);
+        transport.rawlist(this, this._hash, verbose, options);
     }
 
     onloaded(lines, verbose, options) {

@@ -14,7 +14,7 @@
         function working() {
             console.log("StructuredBlock=======");
             //sbhash="SHA3256B64URL.5xMdQpGDhxZYOpuf6q1ElOr19LBO47WZV8Sjn5uPGY0="
-            sbhash="SHA3256B64URL.blxP5MS8qIVc_TYaxGQbbknljs2vJOvINsYkgh82CQQ="
+            sbhash="SHA3256B64URL.S8kZfMcWYNmCqKDu-DcYzvgDDkiJdcse87gaaIAdSuY=" // This is teh hash field from any line of list/SHA3256B64URL.88S-FYlEN1iF3WuDRdXoR8SyMUG6crR5ehM21IvUuS0=
             let sb = new StructuredBlock(sbhash);
             sb.load(true, {"path": ["langs","readme.md"], "dom_id": "myList.0"} );
             console.log("MutableBlock=======");
@@ -27,7 +27,6 @@
             <!-- Now test path using dwebfile -->
             dwebfile("mb", mbhash, "langs/readme.md", {  "dom_id": "myList.3"});
         }
-        working(); // Can comment this line out when debugging
     </script>
 
 </head>
@@ -39,3 +38,6 @@
     <li id="myList.2">Failed to load sb via dwebfile</li>
     <li id="myList.3">Failed to load mb via dwebfile</li>
 </ul>
+<script>
+    working(); // Can comment this line out when debugging
+</script>

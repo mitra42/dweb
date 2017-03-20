@@ -51,8 +51,8 @@ class Testing(unittest.TestCase):
         return File.load(filepath=keypath).content()
 
     def test_Block(self):
-        multihash = Block(data=self.quickbrownfox).store(verbose=self.verbose)
-        block = Block.block(multihash, verbose=self.verbose)
+        hash = Block(data=self.quickbrownfox).store(verbose=self.verbose)
+        block = Block(hash=hash, verbose=self.verbose).fetch(verbose=self.verbose)
         assert block._data == self.quickbrownfox, "Should return data stored"
 
     def test_StructuredBlock(self):
@@ -60,7 +60,7 @@ class Testing(unittest.TestCase):
         sb = StructuredBlock(data=CryptoLib.dumps(self.mydic), verbose=self.verbose)
         assert sb.a == self.mydic['a'], "Testing attribute access"
         multihash = sb.store(verbose=self.verbose)
-        sb2 = StructuredBlock.block(hash=multihash, verbose=self.verbose)
+        sb2 = StructuredBlock(hash=multihash, verbose=self.verbose).fetch(verbose=self.verbose)
         assert sb2.a == self.mydic['a'], "Testing StructuredBlock round-trip"
         assert sb2.B_date == self.mydic["B_date"], "DateTime should survive round trip"
 
@@ -111,22 +111,22 @@ class Testing(unittest.TestCase):
         # Run python -m ServerHTTP; before this
         Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         multihash = Block(data=self.quickbrownfox).store(verbose=self.verbose)
-        block = Block.block(multihash, verbose=self.verbose)
+        block = Block(hash=multihash, verbose=self.verbose).fetch(verbose=self.verbose)
         assert block._data == self.quickbrownfox, "Should return data stored"
 
     def test_file(self):
-        Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
+        Transportable.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         content = File.load(filepath=self.exampledir + "index.html", verbose=self.verbose).content(verbose=self.verbose)
         sb = StructuredBlock(**{"Content-type":"text/html"})  # ** because cant use args with hyphens\
         sb.data = content
         sbhash = sb.store()
-        sburl = sb.url(command="file")
-        #print "SBURL=",sburl # For debugging with Curl
-        resp = Transportable.transport._sendGetPost(False, "file", ["sb", sbhash])
+        sburl = sb.url(command="file", url_output="getpost")
+        assert sburl == [False, "file", ["sb", sbhash]]
+        resp = Transportable.transport._sendGetPost(sburl[0], sburl[1], sburl[2], verbose=False)
         assert resp.text == content, "Should return data stored"
         assert resp.headers["Content-type"] == "text/html", "Should get type"
         # Now test a MutableBlock that uses this content
-        mbm = MutableBlock(master=True, key=self.keyfromfile("index_html_rsa", private=True), contenthash=sbhash)
+        mbm = MutableBlock(master=True, data=self.keyfromfile("index_html_rsa", private=True), contenthash=sbhash)
         mbm.store().signandstore(verbose=self.verbose)
         mb = MutableBlock(hash=mbm._keypair.publichash)
         mb.fetch()      # Just fetches the signatures
@@ -140,14 +140,17 @@ class Testing(unittest.TestCase):
         content = File.load(filepath=self.exampledir + "WrenchIcon.png").content()
         wrenchhash = Block(data=content).store(verbose=self.verbose)
         # And check it got there
-        resp = Transportable.transport._sendGetPost(False, "block", [ wrenchhash], params={"contenttype": "image/png"})
+        resp = Transportable.transport._sendGetPost(False, "rawfetch",  [wrenchhash], params={"contenttype": "image/png"})
+        assert resp.headers["Content-type"] == "image/png", "Should get type"
+        assert resp.content == content, "Should return data stored"
+        resp = Transportable.transport._sendGetPost(False, "file",  ["b", wrenchhash], params={"contenttype": "image/png"})
         assert resp.headers["Content-type"] == "image/png", "Should get type"
         assert resp.content == content, "Should return data stored"
 
     def test_badblock(self):
         Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         try:
-            resp = Transportable.transport._sendGetPost(False, "block", [ "12345"], params={"contenttype": "image/png"})
+            resp = Transportable.transport._sendGetPost(False, "rawfetch", [ "12345"], params={"contenttype": "image/png"})
         except TransportURLNotFound as e:
             pass
         else:
@@ -161,7 +164,7 @@ class Testing(unittest.TestCase):
             f = File.load(filepath=filepath, contenttype=contenttype, upload=True, verbose=self.verbose, **options)
         keypath = self.exampledir + keyname if keyname else None
         if keypath:
-            mbm = MutableBlock(master=True, key=self.keyfromfile(keyname, private=True), contenthash=f._hash, verbose=self.verbose)
+            mbm = MutableBlock(master=True, data=self.keyfromfile(keyname, private=True), contenthash=f._hash, verbose=self.verbose)
             mbm.store(private=True, verbose=self.verbose)
             mbm.signandstore(verbose=self.verbose)
             print filename + " editable:" + mbm.privateurl()    # Side effect of storing
@@ -184,6 +187,7 @@ class Testing(unittest.TestCase):
         self._storeas("WrenchIcon.png", None, "image/png")
         self._storeas("DWebArchitecture.png", "DwebArchitecture_png_rsa","image/png")
         self._storeas("../tinymce", "tinymce_rsa", None)
+        self._storeas("../docs/_build/html", "docs_build_html_rsa", None)
 
     def test_uploadandrelativepaths(self):
         # Test that a directory can be uploaded and then accessed by a relative path
@@ -192,21 +196,16 @@ class Testing(unittest.TestCase):
         # Upload a multi-level directory
         f = Dir.load(filepath="../tinymce", upload=True, verbose=self.verbose,)
         #print f.url()  # url of sb at top of directory
-        sb = StructuredBlock.block(hash=f._hash, verbose=self.verbose)
+        sb = StructuredBlock(hash=f._hash, verbose=self.verbose).fetch(verbose=self.verbose)
         assert len(sb.links) == 8, "tinymce has 8 files"
         resp = Transportable.transport._sendGetPost(False, "file", ["sb", f._hash,"langs/readme.md"])
         assert int(resp.headers["Content-Length"]) == f1sz,"Should match length of readme.md"
         # /file/mb/SHA3256B64URL.88S-FYlEN1iF3WuDRdXoR8SyMUG6crR5ehM21IvUuS0=/tinymce.min.js
 
-    def test_current(self):
-        self._storeas("WrenchIcon.png", None, "image/png")
-
     def Xtest_current(self):
         self.verbose = True
-        print "XXX@194"
 
         acl = AccessControlList(master=True, key=self.keyfromfile("test_acl1_rsa", private=True), verbose=self.verbose)
-        print "XXX@202",acl._keypair.publichash
         acl.store(verbose=self.verbose) # Store public key
         #TODO Why storing new each time
         viewerkeypair = KeyPair(key=self.keyfromfile("test_viewer1_rsa")).store()

@@ -36,9 +36,16 @@ class File(StructuredBlock):
 
     @classmethod
     def _uploadbinary(cls, content, meta, verbose=False):
+        """
+        Upload content as a binary
+
+        :param content: Content of the file
+        :param meta:    Any meta data about the file e.g. contentype or date
+        :param verbose:
+        :return:        File() with _hash and data set
+        """
         # Utility method to upload binary content as a Block and attach.
-        b = Block(data=content)  # Store raw
-        hash = b.store(verbose=verbose) #TODO-REFACTOR-STORE
+        hash = cls.transport.rawstore(data=content, verbose=verbose)
         f = cls(**meta)
         f.hash = hash
         f.store(verbose=verbose)  # This will have data and _hash, the _hash reflects the SB not the data

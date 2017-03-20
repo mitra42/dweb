@@ -243,7 +243,7 @@ class KeyPair(Transportable):
         :param value:
         :return:
         """
-        self._key = RSA.importKey(self.transport.block(hash=value)) #TODO what happens if cant find
+        self._key = RSA.importKey(self.transport.rawfetch(hash=value)) #TODO what happens if cant find
 
     @property
     def publichash(self):
@@ -258,7 +258,7 @@ class KeyPair(Transportable):
         :param value:
         :return:
         """
-        self._key = RSA.importKey(self.transport.block(hash=value))
+        self._key = RSA.importKey(self.transport.rawfetch(hash=value))
         #TODO-AUTHENTICATION what happens if cant find
         if self.publichash != value and self.privatehash != value:
             self._key = None    # Blank out bad key
@@ -270,7 +270,7 @@ class KeyPair(Transportable):
         hash = super(KeyPair, self).store(data=self.privateexport if private else self.publicexport, verbose=verbose)
         if hash != (self.privatehash if private else self.publichash):
             raise AssertionFail("Stored hash of key should match local hash algorithm")
-        return self # For chaining
+        return self # For chaining  #TODO-REFACTOR-STORE looks like this has already reaturning self rather than hash
 
     def encrypt(self, data):
         """

@@ -4,6 +4,7 @@ from Block import Block
 from CryptoLib import CryptoLib
 from CommonBlock import Transportable, SmartDict
 
+
 class StructuredBlock(SmartDict):
     """
     Encapsulates an JSON Dict and stores / retrieves over transports.
@@ -15,15 +16,14 @@ class StructuredBlock(SmartDict):
     # SmartDict.__init__(hash=None, data=None) used, it will call @_data.setter here
     _table = "sb"
 
-    def fetch(self, verbose=False, **options):
-        return self # No action needed on a SB (block loads it)
-
-    def url(self, **options):
+    def url(self, url_output=None, **options):
         """
         Get the body of a URL based on the transport just used.
+
+        :url_output str: "URL"/default for URL, "getpost" for getpost parms
         :return:
         """
-        return self.transport.url(self, **options)
+        return self.transport.url(self, url_output=url_output, **options)
 
     def _setdata(self, value):
         super(StructuredBlock,self)._setdata(value) # Set _data and attributes from dictionary in data
@@ -32,19 +32,10 @@ class StructuredBlock(SmartDict):
 
     _data = property(SmartDict._getdata, _setdata)
 
-    def store(self, verbose=False, **options):
-        """
-        Store this block on the underlying transport, return the hash for future id
-        Exception: UnicodeDecodeError if data is binary
-
-        :return: hash of data
-        """
-        self._hash = Transportable.transport.store(data=self, verbose=verbose, **options)   # Uses self._data to get data
-        if verbose: print "Structured Block.stored: Hash=",self._hash
-        return self._hash   #TODO-REFACTOR-STORE
 
     #---------------------------------------------------------------------------------------------------------
     #METHODS TO DEAL WITH FILES, WHICH ARE STRUCTURED BLOCKS BUT DONT HAVE OWN TYPE AS INCLUDED BY OTHER THINGS
+    #Files have either hash or data or links field set,
     #---------------------------------------------------------------------------------------------------------
 
     def link(self, item):
@@ -70,9 +61,24 @@ class StructuredBlock(SmartDict):
         """
         return (
             self.data or
-            (self.hash and Transportable.transport.block(hash = self.hash, verbose=verbose, **options)) or # Hash must point to raw data, not another SB
+            (self.hash and Transportable.transport.rawfetch(hash = self.hash, verbose=verbose, **options)) or # Hash must point to raw data, not another SB
             (self.links and "".join(l.content(verbose=verbose, **options) for l in self.links)) or # Each link is a SB
             "")
+
+    def file(self, contenttype=None, verbose=False, **options):
+        """
+        Return content as a dict, with any meta-data for HTTP to return
+
+        :param contenttype:
+        :param verbose:
+        :param options:
+        :return:
+        """
+        return {
+            "Content-type": contenttype or self.__dict__.get("Content-type", None) or "application/octet-stream",
+            "data": self.content(verbose=verbose, **options)
+        }
+
 
 
     def size(self, verbose=False, **options):
@@ -86,16 +92,16 @@ class StructuredBlock(SmartDict):
         return (
             self.__dict__.get("size",None) or
             (self.data and len(self.data)) or
-            (self.hash and len(Transportable.transport.block(hash = self.hash, verbose=verbose, **options))) or
+            (self.hash and len(Transportable.transport.rawfetch(hash = self.hash, verbose=verbose, **options))) or
             (self.links and sum(l.size(verbose=verbose, **options) for l in self.links)) or # Each link is a SB
             None)
 
-    def path(self, urlargs, verbose=False):
+    def path(self, urlargs, verbose=False, **optionsignored):
         """
         Walk a path and return the SB at the end of that path
 
         :param urlargs:
-        :return:
+        :return:    Found path or None
         """
         sb = self
         while urlargs:

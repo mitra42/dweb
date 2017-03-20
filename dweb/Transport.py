@@ -15,19 +15,38 @@ class TransportFileNotFound(MyBaseException):
     httperror = 404
     msg = "{file} not found"
 
+class TransportPathNotFound(MyBaseException):
+    httperror = 404
+    msg = "{path} not found for obj {hash}"
+
+class TransportUnrecognizedCommand(MyBaseException):
+    httperror = 500
+    msg = "Class {classname} doesnt have a command {command}"
+
+
 class Transport(object):
     """
-    The Transport class provides the abstract interface to different ways to implement transport.
-    """
-    #__metaclass__ = ABCMeta
+    The minimal transport layer implements 5 primitives:
+    rawfetch(hash) -> bytes: To retrieve data
+    rawlist(keyhash) -> [ (datahash, date, keyhash)* ]
+    rawreverse(datahash) -> [ (datahash, date, keyhash)* ]
+    rawstore(data) -> hash: Store data
+    rawadd(datahash, date, keyhash) -> Raw add to list(keyhash) and reverse(datahash)
 
+    These are expanded here to:
+    fetch(command, cls, hash, path)
+    list(command, cls, hash, path) = list.command([cls(l).path for l in rawlist(hash)])
+    store(command, cls, hash, path, data) = fetch(cls, hash, path).command(data) || rawstore(data)  #TODO unsure of this
+    add(obj, date, key) = rawadd(obj._hash, date, key.privatehash)
+
+    Either the raw, or cooked functions can be subclassed
+    """
     def __init__(self, **options):
         """
         :param options:
         """
-        pass
+        raise ToBeImplementedException(name=cls.__name__+".__init__")
 
-    # @abstractclassmethod   # Only works in Python 3.3
     @classmethod
     def setup(cls, **options):
         """
@@ -38,58 +57,138 @@ class Transport(object):
         """
         raise ToBeImplementedException(name=cls.__name__+".setup")
 
-    #@abstractmethod
-    def store(self, data=None):
-        """
-        Store the data locally
+    def _lettertoclass(self, abbrev):
+        from ServerHTTP import LetterToClass
+        return LetterToClass.get(abbrev, None)
 
-        :param data: opaque data to store
-        :return: hash of data
+    def rawfetch(self, hash=None, verbose=False, **options):
         """
-        #TODO-RELATIVE may need to add relative paths, but haven't found a use case yet
-        raise ToBeImplementedException(name=cls.__name__+".store")
+        Fetch data from a hash and return as a (binary) string
 
-    #@abstractclassmethod   # Only works in Python 3.3
-    def block(self, hash, **options):
+        :param hash:
+        :return: str
         """
-        Fetch a block
+        raise ToBeImplementedException(name=cls.__name__+".rawfetch")
 
-        :param hash: multihash of block to return
+    def fetch(self, command=None, cls=None, hash=None, path=None, verbose=False, **options):
+        """
+        More comprehensive fetch function, can be sublassed either by the objects being fetched or the transport.
+        Exceptions: TransportPathNotFound, TransportUnrecognizedCommand
+
+        :param command: Command to be performed on the retrieved data (e.g. content, or size)
+        :param cls:     Class of object being returned, if None will return a str
+        :param hash:    Hash of object to retrieve
+        :param path:    Path within object represented by hash
+        :param verbose:
+        :param options: Passed to each sub-call.
         :return:
         """
-        #TODO-RELATIVE may need to add relative paths, but haven't found a use case yet
-        raise ToBeImplementedException(name=cls.__name__+".block")
+        if verbose: print "Transport.fetch command=%s cls=%s hash=%s path=%s options=%s" % (command, cls, hash, path, options)
+        if cls:
+            if isinstance(cls, basestring):  # Handle abbreviations for cls
+                cls = self._lettertoclass(cls)
+            obj = cls(hash=hash, verbose=verbose, **options).fetch()
+        else:
+            obj = self.rawfetch(hash, verbose=verbose, **options)
+        print "XXX@93",obj
+        if path:
+            obj = obj.path(path, verbose=verbose, **options)
+            #TODO handle not found exception
+            if not obj:
+                raise TransportPathNotFound(path=path, hash=hash)
+        if not command:
+            return obj
+        else:
+            if not cls:
+                raise TransportUnrecognizedCommand(command=command, classname="None")
+            func = getattr(obj, command, None)
+            if not func:
+                raise TransportUnrecognizedCommand(command=command, classname=cls.__name__)
+            return func(verbose=verbose, **options)
 
-    def add(self, key=None, value=None, **options):
+    def rawlist(self, hash=None, verbose=False, **options):
+        raise ToBeImplementedException(name=cls.__name__+".rawlist")
+
+    def list(self, command=None, cls=None, hash=None, path=None, verbose=False, **options):
         """
-        Store in a DHT
 
-        :param table:   Table to store in
-        :param key:     Key to store under
-        :param value:   Value - usually a dict - to store.
-        :param verbose: Report on activity
+        :param command: if found:  list.commnd(list(cls, hash, path)
+        :param cls: if found (cls(l) for l in list(hash)
+        :param hash:    Hash of list to look up - usually hash of private key of signer
+        :param path:    Ignored for now, unclear how applies
+        :param verbose:
         :param options:
         :return:
         """
-        #TODO-RELATIVE may need to add relative paths, but haven't found a use case yet
-        raise ToBeImplementedException(name=cls.__name__+".add")
 
-    def list(self, hash=None, verbose=False, **options):
+        res = rawlist(hash, verbose=verbose, **options)
+        if cls:
+            if isinstance(cls, basestring): # Handle abbreviations for cls
+                cls = self._lettertoclass(cls)
+            res = [ cls(l) for l in res ]
+        if command:
+            func = getattr(CommonList, command, None)   #TODO May not work, might have to turn res into CommonList first
+            if not func:
+                raise TransportUnrecognizedCommand(command=command, classname=cls.__name__)
+            res = func(res, verbose=verbose, **options)
+        return res
+
+    def rawreverse(self, hash=None, verbose=False, **options):
+        raise ToBeImplementedException(name=cls.__name__+".rawreverse")
+
+
+    def reverse(self, command=None, cls=None, hash=None, path=None, verbose=False, **options):
         """
-        Method that should always be subclassed to retrieve record(s) matching a key
 
-        :param table: Table to look for key in
-        :param key: Key to be retrieved
-        :return: list of dictionaries for each item retrieved
+        :param command: if found:  reverse.commnd(list(cls, hash, path)
+        :param cls: if found (cls(l) for l in reverse(hash)
+        :param hash:    Hash of reverse to look up - usually hash of data signed
+        :param path:    Ignored for now, unclear how applies
+        :param verbose:
+        :param options:
+        :return:
         """
-        raise ToBeImplementedException(name=self.__class__.__name__+".list")
-        #TODO-RELATIVE may need to add relative paths, but haven't found a use case yet
 
-    # ===== Utility functions for use by any subclass =======
+        res = rawreverse(hash, verbose=verbose, **options)
+        if cls:
+            if isinstance(cls, basestring): # Handle abbreviations for cls
+                cls = self._lettertoclass(cls)
+            res = [ cls(l) for l in res ]
+        if command:
+            func = getattr(self, command, None)
+            if not func:
+                raise TransportUnrecognizedCommand(command=command, classname=cls.__name__)
+            res = func(res, verbose=verbose, **options)
+        return res
+
+    def rawstore(self, data=None, verbose=False, **options):
+        raise ToBeImplementedException(name=cls.__name__+".rawstore")
+
+    def store(self, command=None, cls=None, hash=None, path=None, data=None, verbose=False, **options):
+        #store(command, cls, hash, path, data, options) = fetch(cls, hash, path, options).command(data|data._data, options)
+        #store(hash, data)
+        if not isinstance(data, basestring):
+            data = data._data
+        if command:
+            # TODO not so sure about this production, document any uses here if there are any
+            obj = self.fetch(command=None, cls=None, hash=hash, path=path, verbose=verbose, **options)
+            return obj.command(data=data, verbose=False, **options)
+        else:
+            return self.rawstore(data=data, verbose=verbose, **options)
+
+    def rawadd(self, hash=None, date=None, signature=None, signedby=None, verbose=False, **options):
+        raise ToBeImplementedException(name=cls.__name__+".rawadd")
+
+    def add(self, hash=None, date=None, signature=None, signedby=None, verbose=False, obj=None, key=None, **options ):
+        #add(obj, date, key) = add(obj._hash, sig(obj + date, key), date, key.hash)
+        #add(datahash, sig, date, keyhash)
+        if (obj and not hash):
+            hash = obj._hash
+        if (key and not signedby):
+            signedby = key.privatehash
+        return self.rawadd(hash=hash, date=date, signature=signature, signedby=signedby, verbose=False, **options)
 
     def _add_value(self, hash=None, date=None, signature=None, signedby=None, verbose=False, **options ):
         from CryptoLib import CryptoLib
         store = {"hash": hash, "date": date, "signature": signature, "signedby": signedby}
         return CryptoLib.dumps(store)
-
-

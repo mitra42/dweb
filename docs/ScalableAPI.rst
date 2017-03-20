@@ -96,3 +96,77 @@ implementing methods for the operations (like data, size) that it supports
 and writing new and _data property functions to raw blocks.
 
 Adding a new transport layer requires supporting block, list, store, and add.
+
+Refector Two
+============
+Unified Transport architecture
+
+fetch(command, cls, hash, path, options) = fetch(-,cls, hash, path, options).command
+
+fetch(-, cls, hash, path, options) = cls(fetch(hash, path, options)
+
+fetch(hash, path, options) = fetch(hash, [], options) -> path
+
+list(command, cls, hash, path, options)  = list.command([list]) where list = list(cls, hash, path, options)
+list(cls, hash, path, options) = [ cls(l).path for l in list(-, hash, options) ]
+list(hash, options) is primitive
+
+store(command, cls, hash, path, data, options) = fetch(cls, hash, path, options).command(data, options)
+store(hash, data)
+
+add(obj, date, key) = add(obj.hash, sig(obj+date, key), date, key.hash)
+add(datahash, sig, date, keyhash)
+
+Common API methods (Python)
+===========================
+The methods lifted here may not be defined on all objects,
+but when defined should have the functionality specified to make it easier to read and modify the code,
+and to support ducktyping.
+
+content
+    Return the "content" of the object, following links and pointers etc. Typically this will be text or binary.
+
+file
+    Return the content, but in a dict with meta-data (typically from a top-level StructuredBlock) and especially the "Content-type"
+
+path(urlargs)
+    Follow a path represented by the urlargs array and return the node at the end of the path.
+
+size
+    Return the size of the content, this may or may not result in the content being retrieved.
+    #TODO will probably be made a property.
+
+Common API parameters and Fields (Python)
+=========================================
+
+verbose
+    If true give debugging output, propogate down to calls.
+
+_data
+    The string (or dict or object) representing this object,
+    when set it should be interpreted into other parameters e.g. setting args in __dict__, decoding dates etc
+
+data
+    The content of the object, distinct from _data which represents the object.
+
+_hash
+    The hash of the _data, indicates where the _data can be retrieved.
+
+hash
+    Pointer to the content of the object
+
+keypair
+    A KeyPair object (might be just the public key)
+
+Extending
+=========
+To extend
+Adding a new Object
+-------------------
+On top of Structured Block, Smart Dict, Transportable
+Adding a new List
+-----------------
+On top of MB, CommonList
+
+Adding functionality on a list - e.g. Search or Earliest
+Adding functionality on a objects e.g. searchable

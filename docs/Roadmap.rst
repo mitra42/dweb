@@ -51,6 +51,7 @@ This list is at a much finer lever of granularity than Roadmap above.
     * - test that can create ACL, add person, add object, retrieve object,
     * - cleanup, split MutableBlock.py into CommonList, MutableBlock, ACL
 * DOCS: Pass through docs, check all current  (done API-API)
+* DOCS: Complete "To extend with ... new obj,
 * FUNCTIONALITY: Work with P2P transport, probably IPFS
 * DEMO: Improve visuals of MCE demo
 * DEMO: Initialize content of MCE Editor to thing it is editing.

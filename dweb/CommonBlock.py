@@ -1,6 +1,6 @@
 # encoding: utf-8
 import dateutil.parser  # pip py-dateutil
-
+from misc import ObsoleteException
 
 class Transportable(object):
     """
@@ -8,12 +8,12 @@ class Transportable(object):
 
     Any subclass needs to implement:
      _data getter and setter to return the data and to load from opaque bytes returned by transport. (Note SmartDict does this)
-     __init__(data=None, hash=None, ...) That can be called after block
+     __init__(data=None, hash=None, ...) That can be called after raw data retrieved (default calls getter/setter for _data
 
     """
     transport = None
 
-    def __init__(self, data=None, hash=None, verbose=False):
+    def __init__(self, data=None, hash=None, verbose=False, **ignoredoptions):
         """
         Create a new Transportable element - storing its data and hash if known.
         Subclassed to initialize from that information
@@ -42,25 +42,24 @@ class Transportable(object):
 
         :return: hash of data
         """
-        if verbose: print "Storing len=", len(data or self._data)
-        self._hash = self.transport.store(data=data or self._data)  # Note uses fact that _data will be subclassed
+        if verbose: print "Storing", self.__class__.__name__, "len=", len(data or self._data)
+        self._hash = self.transport.rawstore(data=data or self._data)  # Note uses fact that _data will be subclassed
         if verbose: print self.__class__.__name__, ".stored: hash=", self._hash
         return self._hash   #TODO-REFACTOR-STORE change all "store" to return obj, as can access hash via ._hash
 
-    @classmethod
-    def block(cls, hash=hash, verbose=False, **options):
+    def fetch(self, verbose=False, **options):
         """
-        Locate and return data, based on its multihash and creating appropriate object
-        Exceptions: TransportBlockNotFound if invalid hash.
-        Copied to dweb.js.
+        Retrieve the data of an object from the hash
+        Usage typically XyzBlock(hash=A1B2).fetch()
 
-        :param hash: Multihash
-        :return: new instance of cls
+        :return:
         """
-        if verbose: print "Fetching block", "hash=", hash or self._hash
-        data = cls.transport.block(hash=hash)
-        if verbose: print "Block returning data len=", len(data)
-        return cls(data=data, hash=hash)
+        self._data = self.transport.rawfetch(hash=self._hash, verbose=verbose, **options)
+        return self # For Chaining
+
+    def file(self, verbose=False, contenttype=None, **options):
+        return { "Content-type": contenttype or "application/octet-stream",
+            "data": self._data }
 
 class SmartDict(Transportable):
     """
@@ -77,7 +76,7 @@ class SmartDict(Transportable):
         return super(SmartDict, self).__setattr__(name, value)  # Calls any property esp _data
 
     def __str__(self):
-        return str(self.__dict__)
+        return self.__class__.__name__+"("+str(self.__dict__)+")"
 
     def __repr__(self):
         return repr(self.__dict__)
@@ -95,10 +94,9 @@ class SmartDict(Transportable):
 
         :return: canonical json string that handles dates, and order in dictionaries
         """
-        #TODO need to check that this doesnt have internal e.g. _* fields that might get stored, if so strip
         from CryptoLib import CryptoLib
         try:
-            return CryptoLib.dumps(self.__dict__)
+            return CryptoLib.dumps(self) # Should call self.dumps below { k:self.__dict__[k] for k in self.__dict__ if k[0]!="_" })
         except UnicodeDecodeError as e:
             print "Unicode error in StructuredBlock"
             print self.__dict__
@@ -118,7 +116,7 @@ class SmartDict(Transportable):
 
 
     def dumps(self):    # Called by json_default
-        return self.__dict__    # Can serialize the dict
+        return {k: self.__dict__[k] for k in self.__dict__ if k[0] != "_"}  # Serialize the dict, excluding _xyz
 
     def copy(self):
         return self.__class__(self.__dict__.copy())

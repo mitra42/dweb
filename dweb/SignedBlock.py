@@ -3,7 +3,7 @@
 from datetime import datetime
 import dateutil.parser  # pip py-dateutil
 from json import loads
-from misc import MyBaseException, _print
+from misc import MyBaseException, AssertionFail, _print
 from CryptoLib import CryptoLib, KeyPair
 from CommonBlock import Transportable
 from StructuredBlock import SmartDict, StructuredBlock
@@ -28,6 +28,12 @@ class Signature(SmartDict):
     Partial mirror of this is in dweb.js
     """
     pass
+
+    def __init__(self, block):
+        super(Signature, self).__init__(block)
+        if isinstance(self.date, basestring):
+            self.date = dateutil.parser.parse(self.date)
+
 
     @classmethod
     def sign(cls, keypair, hash):
@@ -61,6 +67,8 @@ class SignedBlock(object):
     The signatures are stored as quads (hash of data; date; signature; hash of pubkey)
     So this object is not "Transportable"
 
+    Note that _hash refers to the _hash of the _structuredblock, NOT the hash of this object since this object isn't Transportable.
+
     { Structured data, Hash, [ date, signature, publickey ]* }
     """
 
@@ -84,7 +92,11 @@ class SignedBlock(object):
         if name and name[0] == "_":
             return self.__dict__.get(name, None)    # Get _structuredblock, _hash etc locally
         else:
-            return self._sb().__getattr__(name)  # Pass to SB - should create if not already there
+            if not self._sb():
+                raise AssertionFail(message="Looking for a file on an unloaded MB")
+                # Note was: return None
+            else:
+                return self._sb().__getattr__(name)  # Pass to SB - should create if not already there
 
     def __repr__(self):
         #Exception UnicodeDecodeError if data binary
@@ -95,7 +107,7 @@ class SignedBlock(object):
         :return: StructuredBlock, retrieve if necessary, can be None
         """
         if not self._structuredblock and self._hash:
-            self._structuredblock = StructuredBlock.block(self._hash, verbose=verbose, **options)
+            self._structuredblock = StructuredBlock(hash=self._hash, verbose=verbose, **options).fetch(verbose=verbose, **options)
         if create and not self._structuredblock:
             self._structuredblock = StructuredBlock()
         return self._structuredblock
@@ -173,10 +185,13 @@ class SignedBlock(object):
             self._sb().transport.add(hash=self._h(verbose=verbose, **options), date = ss.date,
                                      signature = ss.signature, signedby = ss.signedby, verbose=verbose, **options)
 
-    def content(self, **options):
-        return self._sb().content()
+    def content(self, verbose=False, **options):
+        return self._sb().content(verbose=verbose, **options)
 
-    def path(self, urlargs, verbose=False):
+    def file(self, verbose=False, **options):
+        return self._sb().file(verbose=verbose, **options)
+
+    def path(self, urlargs, verbose=False, **optionsignored):
         #if verbose: print "SignedBlock.path:", urlargs
         return self._sb(verbose=verbose).path(urlargs, verbose)  # Pass to SB and walk its path
 
@@ -197,16 +212,16 @@ class SignedBlocks(list):
         :return: SignedBlocks which is a list of SignedBlock
         """
         #key = CryptoLib.export(publickey) if publickey is not None else None,
-        lines = Transportable.transport.list(hash=hash, verbose=verbose, **options)
+        if verbose: print "SignedBlock.fetch looking for hash=",hash
+        lines = Transportable.transport.rawlist(hash=hash, verbose=verbose, **options)
         if verbose: print "SignedBlock.fetch found ",len(lines) if lines else None
         results = {}
         for block in lines:
+            #TODO - can push this deduplication adn verification into the Signatures class
             s = Signature(block)
             key = s.hash
             if not results.get(key,None):
                 results[key] = SignedBlock(hash=key)
-            if isinstance(s.date, basestring):
-                s.date = dateutil.parser.parse(s.date)
             if CryptoLib.verify(s):
                 results[key]._signatures.append(s)
 
@@ -228,3 +243,4 @@ class SignedBlocks(list):
         sorted = dated.keys()
         sorted.sort()       # Earliest first
         return [ dated[date] for date in sorted ]
+

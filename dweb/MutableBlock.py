@@ -39,18 +39,20 @@ class CommonList(Transportable):
     def __repr__(self):
         return "%s(%s)" % (self.__class__.__name__, self.__dict__)
 
-    def __init__(self, master=False, keypair=None, key=None, hash=None, verbose=False, **options):  # Note hash is of data
+    def __init__(self, master=False, keypair=None, data=None, hash=None, verbose=False, **options):  # Note hash is of data
         """
         Create and initialize a MutableBlock
         Adapted to dweb.js.MutableBlock.constructor
+        Exceptions: PrivateKeyException if passed public key and master=True
 
         :param KeyPair keypair: Keypair identifying this list
         :param options: # Can indicate how to initialize content
+
         """
         #print "master=%s, keypair=%s, key=%s, hash=%s, verbose=%s, options=%s)" % (master, keypair, key, hash, verbose, options)
         self._master = master
-        if key or hash:
-            keypair = KeyPair(key=key, hash=hash, master=master)   # Should only be one of them
+        if data or hash:
+            keypair = KeyPair(data=data, hash=hash, master=master)   # Should only be one of them
 
         if master and keypair and not keypair._key.has_private:
             raise PrivateKeyException(keypair.privatehash)
@@ -72,6 +74,7 @@ class CommonList(Transportable):
         self._list = SignedBlocks.fetch(hash=self._keypair.publichash, verbose=verbose, **options).sorteddeduplicated()
 
     def url(self, **options):
+        #Note depends on subclass defining _table. And retrieval depends on that _table being in ServerHTTP.LetterToClass
         return Transportable.transport.url(self, **options)
 
     #TODO - add metadata to Mutable - and probably others
@@ -124,18 +127,22 @@ class MutableBlock(CommonList):
     """
     _table = "mb"
 
-    def __init__(self, master=False, keypair=None, key=None, hash=None, contenthash=None, verbose=False, **options):
+    def __init__(self, master=False, keypair=None, data=None, hash=None, contenthash=None, verbose=False, **options):
         """
         Create and initialize a MutableBlock
         Adapted to dweb.js.MutableBlock.constructor
+        Exceptions: PrivateKeyException if passed public key and master=True
 
-        :param key:
+
+        :param data: Public or Private key text as exported by "PEM"
         :param hash: of key
         :param contenthash: hash of initial content (only currently applicable to master)
         :param options: # Can indicate how to initialize content
         """
         # This next line for "hash" is odd, side effect of hash being for content with MB.master and for key with MB.!master
-        super(MutableBlock, self).__init__(master=master, keypair=keypair, key=key, hash=hash, verbose=verbose, **options)
+        if verbose: print "MutableBlock( keypair=",keypair, "data=",data, "hash=", hash, "options=", options,")"
+        super(MutableBlock, self).__init__(master=master, keypair=keypair, data=data, hash=hash, verbose=verbose, **options)
+        # Exception PrivateKeyException if passed public key and master=True
         self._current = SignedBlock(hash=contenthash, verbose=verbose, **options) if master else None # Create a place to hold content, pass hash to load content
         self.__dict__["table"] = "mbm" if master else "mb"  #TODO should probably refactor table->_table but lots of cases
 
@@ -151,12 +158,21 @@ class MutableBlock(CommonList):
 
         :return: self for chaining
         """
+        if verbose: print "MutableBlock.fetch pubkey=",self._keypair.publichash
         super(MutableBlock, self).fetch(verbose=verbose, **options)
         self._current = self._list[-1]
         return self # For chaining
 
-    def content(self, **options):
-        return self._current.content(**options)
+    def content(self, verbose=False, **options):
+        self.fetch()
+        return self._current.content(verbose=verbose, **options)
+
+    def file(self, verbose=False, **options):
+        if verbose: print "MutableBlock.file", self
+        self.fetch(verbose=verbose, **options)    #TODO look at log for test_file, does too many fetches and lists
+        if not self._current:
+            raise AssertionFail(message="Looking for a file on an unloaded MB")
+        return self._current.file(verbose=verbose, **options)
 
     def __setattr__(self, name, value):
         #TODO should probably fail if !master
@@ -174,7 +190,8 @@ class MutableBlock(CommonList):
         """
         return super(MutableBlock, self).signandstore(self._current, verbose=verbose, **options) # ERR SignedBlockEmptyException, ForbiddenException
 
-    def path(self, urlargs, verbose=False):
+    def path(self, urlargs, verbose=False, **optionsignored):
+        print "XXX@191",self
         return self._current.path(urlargs, verbose)  # Pass to _current, (a SignedBlock)  and walk its path
 
 class AccessControlList(CommonList):
@@ -199,7 +216,7 @@ class AccessControlList(CommonList):
         :param master: True if its the master of the list, False, if its just a copy.
         :param options: # Can indicate how to initialize content
         """
-        super(AccessControlList, self).__init__(master=master, keypair=keypair, key=key, hash=hash, verbose=verbose, **options)
+        super(AccessControlList, self).__init__(master=master, keypair=keypair, data=data, hash=hash, verbose=verbose, **options)
 
     def item(info, verbose=False, **options):
         """

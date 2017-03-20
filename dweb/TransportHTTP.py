@@ -3,7 +3,7 @@
 from sys import version as python_version
 import requests             # For outgoing HTTP http://docs.python-requests.org/en/master/
 from Transport import Transport, TransportURLNotFound
-#from misc import ToBeImplementedException
+from misc import ToBeImplementedException
 from CryptoLib import CryptoLib
 import urllib
 
@@ -11,7 +11,8 @@ import urllib
 
 class TransportHTTP(Transport):
     """
-    HTTP transport class, will
+    Subclass of Transport.
+    Implements the raw primitives as HTTP calls to ServerHTTP which interprets them.
     """
 
     def __init__(self, ipandport=None, verbose=False, **options):
@@ -66,71 +67,48 @@ class TransportHTTP(Transport):
         #print r.status_code, r.text # r.json()
         return r    # r is a response
 
-    def store(self, data=None, verbose=False, **options):
-        """
-        Store the data locally
-
-        :param data: opaque data to store, or obj with _data method
-        :return: hash of data
-        """
-        if not isinstance(data, basestring):
-            data = data._data
-        res = self._sendGetPost(True, "store", headers={"Content-Type": "application/octet-stream"}, urlargs=[], data=data )
-        return str(res.text) # Should be the hash - need to return a str, not unicode which isn't supported by decode
-
-    def block(self, hash=None, verbose=False, **options):
-        """
-        Fetch a block,
-        Paired with DwebDispatcher.block
-
-        :param options: parameters to block, must include "hash"
-        :return:
-        """
-        res = self._sendGetPost(False, "block", urlargs=[hash], verbose=verbose, params=options)
+    def rawfetch(self, hash=None, verbose=False, **options):
+        res = self._sendGetPost(False, "rawfetch", urlargs=[hash], verbose=verbose, params=options)
         return res.text
 
-    def add(self, hash=None, date=None, signature=None, signedby=None, verbose=False, **options):
-        #TODO fix params docs here and elsewhere in Transport
-        """
-        Store in a DHT
-
-        :param table:   Table to store in
-        :param hash:     Key to store under
-        :param value:   Value - usually a dict - to store.
-        :param verbose: Report on activity - passed in options so passes through to sendGet
-        :param options:
-        :return:
-        """
-        if options.get("verbose",None): print "add", hash, date, signature, signedby, options
-        value = self._add_value( hash=hash, date=date, signature=signature, signedby=signedby, verbose=verbose, **options)+ "\n"
-        res = self._sendGetPost(True, "add", urlargs = [], headers={"Content-Type": "application/json"}, params={}, data=value)
-
-    def list(self, hash=None, verbose=False, **options):
-        """
-        Method to retrieve record(s) matching a key.
-        Copied to dweb.py
-
-        :param table: Table to look for key in
-        :param hash: Key to be retrieved (embedded in options for easier pass through)
-        :return: list of dictionaries for each item retrieved
-        """
+    def rawlist(self, hash, verbose=False, **options):
         if verbose: print "list", hash, options
-        res = self._sendGetPost(False, "list", urlargs=[hash], params=options)
-        return res.json()
+        res = self._sendGetPost(False, "rawlist", urlargs=[hash], params=options)
+        return res.json()   # Data version of list - an array
 
-    def url(self, obj, command=None, hash=None, table=None, contenttype=None, **options):
+    def rawreverse(self, hash, verbose=False, **options):
+        if verbose: print "reverse", hash, options
+        res = self._sendGetPost(False, "rawreverse", urlargs=[hash], params=options)
+        return res.json()   # Data version of list - an array
+
+    def rawstore(self, data=None, verbose=False, **options):
+        res = self._sendGetPost(True, "rawstore", headers={"Content-Type": "application/octet-stream"}, urlargs=[], data=data )
+        return str(res.text) # Should be the hash - need to return a str, not unicode which isn't supported by decode
+
+    def rawadd(self, hash=None, date=None, signature=None, signedby=None, verbose=False, **options):
+        if verbose: print "add", hash, date, signature, signedby, options
+        value = self._add_value( hash=hash, date=date, signature=signature, signedby=signedby, verbose=verbose, **options)+ "\n"
+        res = self._sendGetPost(True, "rawadd", urlargs = [], headers={"Content-Type": "application/json"}, params={}, data=value)
+
+    def url(self, obj, command=None, hash=None, table=None, contenttype=None, url_output=None, **options):
         """
 
         :return: HTTP style URL to access this resource - not sure what this works on yet.
         """
-        # Identical to ServerHTTP.url
+        # Identical code in TransportHTTP and ServerHTTP.url
         hash = hash or obj._hash
         if command in ["file"]:
-            url = "http://%s:%s/%s/%s/%s" \
-                  % (self.ipandport[0], self.ipandport[1], command or "block", table or obj.table, hash)
+            if url_output=="getpost":
+                return [False, command, [table or obj._table, hash]]
+            else:
+                url = "http://%s:%s/%s/%s/%s" \
+                    % (self.ipandport[0], self.ipandport[1], command, table or obj._table, hash)
         else:
-            url =  "http://%s:%s/%s/%s"  \
-                % (self.ipandport[0], self.ipandport[1], command or "block", hash)
+            if url_output=="getpost":
+                raise ToBeImplementedException(name="TransportHTTP.url:command="+command+",url_output="+url_output)
+            else:
+                url =  "http://%s:%s/%s/%s"  \
+                    % (self.ipandport[0], self.ipandport[1], command or "rawfetch", hash)
         if contenttype:
             if command in ("update",):  # Some commands allow type as URL parameter
                 url += "/" + urllib.quote(contenttype, safe='')
