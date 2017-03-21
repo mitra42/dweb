@@ -10,20 +10,40 @@ class StructuredBlock(SmartDict):
     Encapsulates an JSON Dict and stores / retrieves over transports.
     Note that data is data contained *in* the SB, while _data is data representation *of* the SB.
     Similarly hash is a pointer to data contained *in* the SB, while _hash is the the hash of the data representing the SB.
+
+    Certain sets of data fields have meaning in different applications
+    { data: str; hash: multihash; links [ StructuredBlock* ] } refer to content
+    _signatures are used for signing in subclasses of CommonList (e.g. MutableBlock, ACL)
+
+
     """
 
     # Uses SmartDict._data and SmartDict._data.setter from superclass
     # SmartDict.__init__(hash=None, data=None) used, it will call @_data.setter here
     _table = "sb"
 
-    def url(self, url_output=None, **options):
-        """
-        Get the body of a URL based on the transport just used.
+    #---------------------------------------------------------------------------------------------------------
+    #METHODS THAT EXTEND OR REPLACE THOSE ON SMARTDICT or TRANSPORTABLE
+    #Files have either hash or data or links field set,
+    #---------------------------------------------------------------------------------------------------------
 
-        :url_output str: "URL"/default for URL, "getpost" for getpost parms
-        :return:
+    def __init__(self, data=None, hash=None, verbose=False, **options):
+        from SignedBlock import Signatures
+        if verbose: print "StructuredBlock.__init__",hash, data[0:50] if data else "None", options
+        super(StructuredBlock, self).__init__(data=data, hash=hash, verbose=verbose, **options)
+        self._signatures = Signatures([])
+
+    def store(self, verbose=False, **options):
         """
-        return self.transport.url(self, url_output=url_output, **options)
+        Store any signatures in the Transport layer, content must already have been stored before signing
+        """
+        if not self._hash:
+            super(StructuredBlock, self).store(verbose=False, **options)    # Sets self._hash   #TODO-EFFICIENCY DONT STORE IF NOT CHANGED
+        for s in self._signatures:
+            ss = s.copy()
+            self.transport.add(hash=self._hash, date = ss.date,
+                                     signature = ss.signature, signedby = ss.signedby, verbose=verbose, **options)
+        return self._hash   #TODO-REFACTOR-STORE return obj not hash
 
     def _setdata(self, value):
         super(StructuredBlock,self)._setdata(value) # Set _data and attributes from dictionary in data
@@ -32,6 +52,10 @@ class StructuredBlock(SmartDict):
 
     _data = property(SmartDict._getdata, _setdata)
 
+    def dirty(self):
+        super(StructuredBlock, self).dirty()
+        from SignedBlock import Signatures
+        self._signatures = Signatures([]) # Cant be signed if changed from stored version
 
     #---------------------------------------------------------------------------------------------------------
     #METHODS TO DEAL WITH FILES, WHICH ARE STRUCTURED BLOCKS BUT DONT HAVE OWN TYPE AS INCLUDED BY OTHER THINGS
@@ -59,6 +83,7 @@ class StructuredBlock(SmartDict):
         Note that this has to use the hash or data fields to get the content held, rather than _hash or _data which represents the SB itself.
         :return: content of block, fetching links (possibly recursively) if required
         """
+        self.fetch()
         return (
             self.data or
             (self.hash and Transportable.transport.rawfetch(hash = self.hash, verbose=verbose, **options)) or # Hash must point to raw data, not another SB
@@ -74,6 +99,8 @@ class StructuredBlock(SmartDict):
         :param options:
         :return:
         """
+        if verbose: print "StructuredBlock.file: contenttype=",contenttype,"options=",options,self
+        self.fetch(verbose=verbose, **options)
         return {
             "Content-type": contenttype or self.__dict__.get("Content-type", None) or "application/octet-stream",
             "data": self.content(verbose=verbose, **options)
@@ -103,12 +130,41 @@ class StructuredBlock(SmartDict):
         :param urlargs:
         :return:    Found path or None
         """
+        self.fetch(verbose=verbose)
         sb = self
         while urlargs:
             sb = sb.link(urlargs.pop(0))
         return sb
 
 
+    #---------------------------------------------------------------------------------------------------------
+    #METHODS TO DEAL WITH SIGNATURES, STORED IN _signatures field
+    #Files have either hash or data or links field set,
+    #---------------------------------------------------------------------------------------------------------
 
+    def sign(self, keypair, verbose=False, **options):
+        """
+        Add a signature to a StructuredBlock
 
-    #TODO - allow storing data | ref | list on creation
+        :param keypair:
+        :return: self
+        """
+        from SignedBlock import Signature
+        if not self._hash:
+            self.store()  # Sets _hash which is needed for signatures #TODO-EFFICIENCY only store if not stored
+        self._signatures.append(Signature.sign(keypair=keypair, hash=self._hash))
+        return self  # For chaining
+
+    def verify(self, verbose=False, verify_atleastone=False, **options):
+        """
+        Verify the signatures on a block (if any)
+
+        :param verbose: True for debugging output
+        :param verify_atleastone: True if should fail if no signatures
+        :param options: unused
+        :return: True if all signatures present match
+        """
+        if verbose: print "StructuredBlock.verify", self
+        if verify_atleastone and not len(self._signatures):
+            return False
+        return self._signatures.verify(hash=self._hash)

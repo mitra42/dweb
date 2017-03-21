@@ -47,6 +47,14 @@ class Transportable(object):
         if verbose: print self.__class__.__name__, ".stored: hash=", self._hash
         return self._hash   #TODO-REFACTOR-STORE change all "store" to return obj, as can access hash via ._hash
 
+    def dirty(self):
+        """
+        Flag an object as dirty, i.e. needing writing back to dWeb.
+        Subclasses should handle this to clear for example _signatures
+
+        """
+        self._hash = None
+
     def fetch(self, verbose=False, **options):
         """
         Retrieve the data of an object from the hash
@@ -54,12 +62,27 @@ class Transportable(object):
 
         :return:
         """
-        self._data = self.transport.rawfetch(hash=self._hash, verbose=verbose, **options)
+        if self._hash and ((not self._data) or (len(self._data) <= 2)): # Empty data is '{}'
+            self._data = self.transport.rawfetch(hash=self._hash, verbose=verbose, **options)
         return self # For Chaining
 
     def file(self, verbose=False, contenttype=None, **options):
         return { "Content-type": contenttype or "application/octet-stream",
             "data": self._data }
+
+    def url(self, url_output=None, table=None, **options):
+        """
+        Get the body of a URL based on the transport just used.
+        Subclasses must define _table if want to support URL's
+
+        :param str url_output: "URL"/default for URL, "getpost" for getpost parms
+        :return:    URL or other representation of this object
+        """
+        table = table or self._table
+        if not table:
+            raise AssertionFail(message=self.__class__.__name__+" doesnt support url()")
+        return self.transport.url(self, url_output=url_output, table=table, **options)
+
 
 class SmartDict(Transportable):
     """
@@ -71,8 +94,10 @@ class SmartDict(Transportable):
 
     # Allow access to arbitrary attributes, allows chaining e.g. xx.data.len
     def __setattr__(self, name, value):
-        if "date" in name and isinstance(value,basestring):
-            value = dateutil.parser.parse(value)
+        if name[0] != "_":
+            self.dirty()  # Note recurses to clear _hash but just once
+            if "date" in name and isinstance(value,basestring):
+                value = dateutil.parser.parse(value)
         return super(SmartDict, self).__setattr__(name, value)  # Calls any property esp _data
 
     def __str__(self):

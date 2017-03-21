@@ -179,7 +179,7 @@ class Signature {
     //TODO need to be able to verify signatures
 }
 
-class SignedBlock {
+class SignedBlock { //TODO Merge into StructuredBlock as done in Python
     // TODO Build Signed Block - allow retrieval of SB from it
 
     constructor(hash) { // Python also handles, structuredblock=None, signatures=None, verbose=False, **options):

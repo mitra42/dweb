@@ -80,19 +80,21 @@ class Transport(object):
         :param hash:    Hash of object to retrieve
         :param path:    Path within object represented by hash
         :param verbose:
-        :param options: Passed to each sub-call.
+        :param options: Passed to command, NOT passed to subcalls as for example mucks up sb.__init__ by dirtying - this might be reconsidered
         :return:
         """
         if verbose: print "Transport.fetch command=%s cls=%s hash=%s path=%s options=%s" % (command, cls, hash, path, options)
         if cls:
             if isinstance(cls, basestring):  # Handle abbreviations for cls
                 cls = self._lettertoclass(cls)
-            obj = cls(hash=hash, verbose=verbose, **options).fetch()
+            obj = cls(hash=hash, verbose=verbose).fetch(verbose=verbose)
+            # Can't pass **options to cls as disrupt sb.__init__ by causing dirty
+            # Not passing **options to fetch, but probably could
         else:
-            obj = self.rawfetch(hash, verbose=verbose, **options)
-        print "XXX@93",obj
+            obj = self.rawfetch(hash, verbose=verbose)   # Not passing **options, probably could but not used
+        #if verbose: print "Transport.fetch obj=",obj
         if path:
-            obj = obj.path(path, verbose=verbose, **options)
+            obj = obj.path(path, verbose=verbose)   # Not passing **options as ignored, but probably could
             #TODO handle not found exception
             if not obj:
                 raise TransportPathNotFound(path=path, hash=hash)

@@ -18,9 +18,3 @@ class Block(Transportable):
     def content(self):
         return self._data
 
-    def url(self, **options):
-        """
-        Get the body of a URL based on the transport just used.
-        :return:
-        """
-        return self.transport.url(self, **options)

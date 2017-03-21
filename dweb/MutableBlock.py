@@ -2,7 +2,8 @@
 
 from Block import Block
 from CryptoLib import KeyPair, PrivateKeyException # Suite of functions for hashing, signing, encrypting
-from SignedBlock import SignedBlock, SignedBlocks
+from StructuredBlock import StructuredBlock
+from SignedBlock import SignedBlocks
 from misc import ForbiddenException, _print
 from CommonBlock import Transportable
 
@@ -105,9 +106,9 @@ class CommonList(Transportable):
 
     def signandstore(self, obj, verbose=False, **options):
         """
-        Sign and store a SignedBlock on a list
+        Sign and store a StructuredBlock on a list
 
-        :param SignedBlock obj:
+        :param StructuredBlock obj:
         :param verbose:
         :param options:
         :return:
@@ -121,9 +122,9 @@ class CommonList(Transportable):
 class MutableBlock(CommonList):
     """
     Encapsulates a block that can change.
-    Get/Set non-private attributes writes to the SignedBlock at _current.
+    Get/Set non-private attributes writes to the StructuredBlock at _current.
 
-    { _keypair: KeyPair, _current: SignedBlock, _list: [ SignedBlock* ] }
+    { _keypair: KeyPair, _current: StructuredBlock, _list: [ StructuredBlock* ] }
     """
     _table = "mb"
 
@@ -143,7 +144,8 @@ class MutableBlock(CommonList):
         if verbose: print "MutableBlock( keypair=",keypair, "data=",data, "hash=", hash, "options=", options,")"
         super(MutableBlock, self).__init__(master=master, keypair=keypair, data=data, hash=hash, verbose=verbose, **options)
         # Exception PrivateKeyException if passed public key and master=True
-        self._current = SignedBlock(hash=contenthash, verbose=verbose, **options) if master else None # Create a place to hold content, pass hash to load content
+        # TODO-REFACTOR-SIGB fix below
+        self._current = StructuredBlock(hash=contenthash, verbose=verbose, **options) if master else None # Create a place to hold content, pass hash to load content
         self.__dict__["table"] = "mbm" if master else "mb"  #TODO should probably refactor table->_table but lots of cases
 
     def __getattr__(self, name):
@@ -179,7 +181,7 @@ class MutableBlock(CommonList):
         if name and name[0] == "_":
             super(MutableBlock, self).__setattr__(name, value)   # Save _current, _keypair, _list etc locally # Looks at CommonList
         else:
-            self._current.__setattr__(name, value)   # Pass to current (a SignedBlock)
+            self._current.__setattr__(name, value)   # Pass to current (a StructuredBlock)
 
     def signandstore(self, verbose=False, **options):
         """
@@ -191,8 +193,7 @@ class MutableBlock(CommonList):
         return super(MutableBlock, self).signandstore(self._current, verbose=verbose, **options) # ERR SignedBlockEmptyException, ForbiddenException
 
     def path(self, urlargs, verbose=False, **optionsignored):
-        print "XXX@191",self
-        return self._current.path(urlargs, verbose)  # Pass to _current, (a SignedBlock)  and walk its path
+        return self._current.path(urlargs, verbose)  # Pass to _current, (a StructuredBlock)  and walk its path
 
 class AccessControlList(CommonList):
     """
@@ -221,11 +222,11 @@ class AccessControlList(CommonList):
     def item(info, verbose=False, **options):
         """
 
-        :param info:    Dict, JSON, or StructuredBlock # Note SignedBlock also supports hash & signatures but not used here
+        :param info:    Dict, JSON, or StructuredBlock # Note StructuredBlock also supports hash & signatures but not used here
         :param verbose:
         :return:
         """
-        return SignedBlock(structuredblock=info, verbose=verbose, **options)
+        return StructuredBlock(data=info, verbose=verbose, **options)
 
     def add(self, viewerpublichash, verbose=False, **options):
         """
@@ -244,5 +245,5 @@ class AccessControlList(CommonList):
             "viewer": viewerpublichash,
             #TODO - recommended to use Crypto.Cipher.PKCS1_OAEP instead
         }
-        sb = SignedBlock(structuredblock=aclinfo)
+        sb = StructuredBlock(data=aclinfo)
         self.signandstore(sb, verbose, **options)

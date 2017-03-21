@@ -60,14 +60,14 @@ class Testing(unittest.TestCase):
         sb = StructuredBlock(data=CryptoLib.dumps(self.mydic), verbose=self.verbose)
         assert sb.a == self.mydic['a'], "Testing attribute access"
         multihash = sb.store(verbose=self.verbose)
-        sb2 = StructuredBlock(hash=multihash, verbose=self.verbose).fetch(verbose=self.verbose)
+        sb2 = StructuredBlock(hash=multihash, verbose=self.verbose)
+        sb2.fetch(verbose=self.verbose)
         assert sb2.a == self.mydic['a'], "Testing StructuredBlock round-trip"
         assert sb2.B_date == self.mydic["B_date"], "DateTime should survive round trip"
 
     def test_Signatures(self):
-        from SignedBlock import SignedBlock
         # Test Signatures
-        signedblock = SignedBlock(structuredblock=self.mydic)
+        signedblock = StructuredBlock(data=self.mydic)
         keypair = KeyPair.keygen()
         signedblock.sign(keypair, verbose=self.verbose)
         assert signedblock.verify(verify_atleastone=True), "Should verify"
@@ -77,7 +77,7 @@ class Testing(unittest.TestCase):
     def test_MutableBlocks(self):
         # Mutable Blocks
         mblockm = MutableBlock(master=True, verbose=self.verbose)      # Create a new block with a new key
-        mblockm.data = self.quickbrownfox                       # Put some data in it (goes in the SignedBlock
+        mblockm.data = self.quickbrownfox                       # Put some data in it (goes in the StructuredBlock at _current
         mblockm.signandstore(verbose=self.verbose)              # Sign it - this publishes it
         testhash0 = mblockm._current._hash                      # Get a pointer to that version
         # Editing
@@ -128,6 +128,8 @@ class Testing(unittest.TestCase):
         # Now test a MutableBlock that uses this content
         mbm = MutableBlock(master=True, data=self.keyfromfile("index_html_rsa", private=True), contenthash=sbhash)
         mbm.store().signandstore(verbose=self.verbose)
+        if self.verbose: print "store tells us:", mbm.content()
+        assert mbm.content()==content, "Should match content stored"
         mb = MutableBlock(hash=mbm._keypair.publichash)
         mb.fetch()      # Just fetches the signatures
         assert mb.content() == mbm.content(), "Should round-trip HTML content"
@@ -162,6 +164,7 @@ class Testing(unittest.TestCase):
             f = Dir.load(filepath=filepath, upload=True, verbose=self.verbose, option=options)
         else:
             f = File.load(filepath=filepath, contenttype=contenttype, upload=True, verbose=self.verbose, **options)
+        if self.verbose: print f
         keypath = self.exampledir + keyname if keyname else None
         if keypath:
             mbm = MutableBlock(master=True, data=self.keyfromfile(keyname, private=True), contenthash=f._hash, verbose=self.verbose)
@@ -176,7 +179,7 @@ class Testing(unittest.TestCase):
     def test_uploads(self):
         # A set of tools to upload things so available for testing.
         # All the functionality in storeas should have been tested elsewhere.
-        Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
+        Transportable.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         b=Block(data=self.dog); b.store(); print self.dog,b.url()
         self._storeas("dweb.js", "dweb_js_rsa", "application/javascript")
         self._storeas("jquery-3.1.1.js", None, "application/javascript")
@@ -191,7 +194,7 @@ class Testing(unittest.TestCase):
 
     def test_uploadandrelativepaths(self):
         # Test that a directory can be uploaded and then accessed by a relative path
-        Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
+        Transportable.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         f1sz = File.load("../tinymce/langs/readme.md").size
         # Upload a multi-level directory
         f = Dir.load(filepath="../tinymce", upload=True, verbose=self.verbose,)
@@ -203,6 +206,11 @@ class Testing(unittest.TestCase):
         # /file/mb/SHA3256B64URL.88S-FYlEN1iF3WuDRdXoR8SyMUG6crR5ehM21IvUuS0=/tinymce.min.js
 
     def Xtest_current(self):
+        self.verbose=True
+        print "XXXUploading index.html"
+        self._storeas("index.html", "index_html_rsa", "text/html")
+
+    def Xtest_acl(self):    # For testing ACL
         self.verbose = True
 
         acl = AccessControlList(master=True, key=self.keyfromfile("test_acl1_rsa", private=True), verbose=self.verbose)
