@@ -266,11 +266,10 @@ class KeyPair(Transportable):
             #TODO-AUTHENTICATION copy this verification code up to privatehash
 
     def store(self, private=False, verbose=False):
-        #TODO-REFACTOR-STORE to return obj, not hash
-        hash = super(KeyPair, self).store(data=self.privateexport if private else self.publicexport, verbose=verbose)
-        if hash != (self.privatehash if private else self.publichash):
+        super(KeyPair, self).store(data=self.privateexport if private else self.publicexport, verbose=verbose)
+        if self._hash != (self.privatehash if private else self.publichash):
             raise AssertionFail("Stored hash of key should match local hash algorithm")
-        return self # For chaining  #TODO-REFACTOR-STORE looks like this has already reaturning self rather than hash
+        return self # For chaining
 
     def encrypt(self, data):
         """

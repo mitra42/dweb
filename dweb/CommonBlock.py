@@ -45,7 +45,7 @@ class Transportable(object):
         if verbose: print "Storing", self.__class__.__name__, "len=", len(data or self._data)
         self._hash = self.transport.rawstore(data=data or self._data)  # Note uses fact that _data will be subclassed
         if verbose: print self.__class__.__name__, ".stored: hash=", self._hash
-        return self._hash   #TODO-REFACTOR-STORE change all "store" to return obj, as can access hash via ._hash
+        return self
 
     def dirty(self):
         """

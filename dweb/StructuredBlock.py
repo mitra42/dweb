@@ -43,7 +43,7 @@ class StructuredBlock(SmartDict):
             ss = s.copy()
             self.transport.add(hash=self._hash, date = ss.date,
                                      signature = ss.signature, signedby = ss.signedby, verbose=verbose, **options)
-        return self._hash   #TODO-REFACTOR-STORE return obj not hash
+        return self # For chaining
 
     def _setdata(self, value):
         super(StructuredBlock,self)._setdata(value) # Set _data and attributes from dictionary in data

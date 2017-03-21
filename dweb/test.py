@@ -51,7 +51,7 @@ class Testing(unittest.TestCase):
         return File.load(filepath=keypath).content()
 
     def test_Block(self):
-        hash = Block(data=self.quickbrownfox).store(verbose=self.verbose)
+        hash = Block(data=self.quickbrownfox).store(verbose=self.verbose)._hash
         block = Block(hash=hash, verbose=self.verbose).fetch(verbose=self.verbose)
         assert block._data == self.quickbrownfox, "Should return data stored"
 
@@ -59,7 +59,7 @@ class Testing(unittest.TestCase):
         # Test Structured block
         sb = StructuredBlock(data=CryptoLib.dumps(self.mydic), verbose=self.verbose)
         assert sb.a == self.mydic['a'], "Testing attribute access"
-        multihash = sb.store(verbose=self.verbose)
+        multihash = sb.store(verbose=self.verbose)._hash
         sb2 = StructuredBlock(hash=multihash, verbose=self.verbose)
         sb2.fetch(verbose=self.verbose)
         assert sb2.a == self.mydic['a'], "Testing StructuredBlock round-trip"
@@ -96,7 +96,7 @@ class Testing(unittest.TestCase):
         sb1 = StructuredBlock({ "data": self.quickbrownfox}) # Note this is data held in the SB, as compared to _data which is data representing the SB
         assert sb1.size(verbose=self.verbose) == len(self.quickbrownfox), "Should get length"
         assert sb1.content(verbose=self.verbose) == self.quickbrownfox, "Should fetch string"
-        multihash = Block(data=self.dog).store(verbose=self.verbose)
+        multihash = Block(data=self.dog).store(verbose=self.verbose)._hash
         sb2 = StructuredBlock({ "hash": multihash})  # Note passing multihash as the hash of the data, not the hash of the SB.
         assert sb2.content(verbose=self.verbose) == self.dog, "Should fetch dog string"
         assert sb2.size(verbose=self.verbose) == len(self.dog), "Should get length"
@@ -110,7 +110,7 @@ class Testing(unittest.TestCase):
     def test_http(self):
         # Run python -m ServerHTTP; before this
         Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
-        multihash = Block(data=self.quickbrownfox).store(verbose=self.verbose)
+        multihash = Block(data=self.quickbrownfox).store(verbose=self.verbose)._hash
         block = Block(hash=multihash, verbose=self.verbose).fetch(verbose=self.verbose)
         assert block._data == self.quickbrownfox, "Should return data stored"
 
@@ -119,14 +119,14 @@ class Testing(unittest.TestCase):
         content = File.load(filepath=self.exampledir + "index.html", verbose=self.verbose).content(verbose=self.verbose)
         sb = StructuredBlock(**{"Content-type":"text/html"})  # ** because cant use args with hyphens\
         sb.data = content
-        sbhash = sb.store()
+        sb.store()
         sburl = sb.url(command="file", url_output="getpost")
-        assert sburl == [False, "file", ["sb", sbhash]]
+        assert sburl == [False, "file", ["sb", sb._hash]]
         resp = Transportable.transport._sendGetPost(sburl[0], sburl[1], sburl[2], verbose=False)
         assert resp.text == content, "Should return data stored"
         assert resp.headers["Content-type"] == "text/html", "Should get type"
         # Now test a MutableBlock that uses this content
-        mbm = MutableBlock(master=True, data=self.keyfromfile("index_html_rsa", private=True), contenthash=sbhash)
+        mbm = MutableBlock(master=True, data=self.keyfromfile("index_html_rsa", private=True), contenthash=sb._hash)
         mbm.store().signandstore(verbose=self.verbose)
         if self.verbose: print "store tells us:", mbm.content()
         assert mbm.content()==content, "Should match content stored"
@@ -140,7 +140,7 @@ class Testing(unittest.TestCase):
         Transportable.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         # Store the wrench icon
         content = File.load(filepath=self.exampledir + "WrenchIcon.png").content()
-        wrenchhash = Block(data=content).store(verbose=self.verbose)
+        wrenchhash = Block(data=content).store(verbose=self.verbose)._hash
         # And check it got there
         resp = Transportable.transport._sendGetPost(False, "rawfetch",  [wrenchhash], params={"contenttype": "image/png"})
         assert resp.headers["Content-type"] == "image/png", "Should get type"
