@@ -212,7 +212,7 @@ class Testing(unittest.TestCase):
         self._storeas("index.html", "index_html_rsa", "text/html")
 
     def test_crypto(self):
-        if verbose: print "test_crypto: tests of the crypto library - esp round trips through functions"
+        if self.verbose: print "test_crypto: tests of the crypto library - esp round trips through functions"
         # Try symetric encrypt/decrypt
         aeskey = CryptoLib.randomkey()
         enc = CryptoLib.sym_encrypt(self.quickbrownfox, aeskey)
@@ -227,8 +227,8 @@ class Testing(unittest.TestCase):
     def test_acl(self):    # For testing ACL
         #self.verbose = True
         if self.verbose: print "ACL 0 Setup the ACL and viewer"
-        #accesskey=CryptoLib.randomkey()
-        accesskey="ABCDEFGHIJKLMNOP"
+        accesskey=CryptoLib.randomkey()
+        accesskey="ABCDEFGHIJKLMNOP"    # Uncomment for Easier for repeat tests and debugging
         acl = AccessControlList(master=True, data=self.keyfromfile("test_acl1_rsa", private=True), verbose=self.verbose).store(verbose=self.verbose)
         viewerkeypair = KeyPair(key=self.keyfromfile("test_viewer1_rsa", private=True)).store()
         AccessControlList.addviewer(viewerkeypair)  # Add it for decryption
@@ -239,9 +239,9 @@ class Testing(unittest.TestCase):
         sb.data = self.quickbrownfox
         acl.accesskey = accesskey
         sb._acl = acl
-        sb.store()
+        sb.store()  # Automatically encrypts based on ACL
         # Work around this intermediate - both to import, and to create and store it
-        sb2 = StructuredBlock(hash=sb._hash).fetch()
+        sb2 = StructuredBlock(hash=sb._hash).fetch()    # Fetches from dweb and automatically decrypts based on encrypted and acl fields
         assert sb2.data == self.quickbrownfox, "Data should survive round trip"
         #TODO-AUTHENTICATION Then try via a MBM
         #TODO-AUTHENTICATION Then try encrypting storage of MBM private key
@@ -259,8 +259,8 @@ class Testing(unittest.TestCase):
 
         #self.verbose = True
         if self.verbose: print "ACL 0 Setup the ACL and viewer"
-        #accesskey=CryptoLib.randomkey()
-        accesskey="ABCDEFGHIJKLMNOP"
+        accesskey=CryptoLib.randomkey()
+        accesskey="ABCDEFGHIJKLMNOP"    # Uncomment for Easier for repeat tests and debugging
         #TODO - add accesskey to ACL Master storage
         acl = AccessControlList(master=True, data=self.keyfromfile("test_acl1_rsa", private=True), verbose=self.verbose).store(verbose=self.verbose)
         viewerkeypair = KeyPair(key=self.keyfromfile("test_viewer1_rsa", private=True)).store()

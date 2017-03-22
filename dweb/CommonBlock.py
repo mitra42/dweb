@@ -74,6 +74,7 @@ class Transportable(object):
         """
         Get the body of a URL based on the transport just used.
         Subclasses must define _table if want to support URL's
+        And retrieval depends on that _table being in ServerHTTP.LetterToClass
 
         :param str url_output: "URL"/default for URL, "getpost" for getpost parms
         :return:    URL or other representation of this object
@@ -88,6 +89,8 @@ class SmartDict(Transportable):
     """
     The SmartDict class allows for merging of the functionality of a Dict and an object,
     allowing setting from a dictionary and access to elements by name.
+
+     _acl If set defines storage as encrypted
     """
     def __getattr__(self, name):
         return self.__dict__.get(name)

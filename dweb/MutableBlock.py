@@ -74,9 +74,6 @@ class CommonList(Transportable):
         """
         self._list = SignedBlocks.fetch(hash=self._keypair.publichash, verbose=verbose, **options).sorteddeduplicated()
 
-    def url(self, **options):
-        #Note depends on subclass defining _table. And retrieval depends on that _table being in ServerHTTP.LetterToClass
-        return Transportable.transport.url(self, **options)
 
     #TODO - add metadata to Mutable - and probably others
 
@@ -115,7 +112,7 @@ class CommonList(Transportable):
         """
         if not self._master:
             raise ForbiddenException(what="Signing a new entry when not a master list")
-        # The .store stores signatures as well
+        # The obj.store stores signatures as well (e.g. see StructuredBlock.store)
         obj.sign(self._keypair).store(verbose=verbose, **options)
         return self
 
@@ -183,6 +180,7 @@ class MutableBlock(CommonList):
         if name and name[0] == "_":
             super(MutableBlock, self).__setattr__(name, value)   # Save _current, _keypair, _list etc locally # Looks at CommonList
         else:
+            #TODO-REFACTOR - check if used
             self._current.__setattr__(name, value)   # Pass to current (a StructuredBlock)
 
     def signandstore(self, verbose=False, **options):
