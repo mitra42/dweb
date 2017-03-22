@@ -2,9 +2,12 @@
 Glossary
 ********
 
-#TODO-REFACTOR need to scan and update this file
+#TODO scan all docs looking for abbreviations that might confuse.
 
 .. glossary::
+
+    ACL - Access Control List
+        Some kind of data structure that lists who, has access to what resource. (See :ref:`Authentication`
 
     CAFS - Content Addressable File System
         Often but not always a `DHT`. A system in which a file or data `Block` can be addressed by a hash of its contents.
@@ -28,6 +31,9 @@ Glossary
         A distributed naming system, it doesnt appear to have what is needed for the Mutable Object requirements of a distributed web.
         Though it might be a good way to to top-level naming.
         Documented in ipfs-p2p-file-system.pdf (TODO need link)
+
+    JSON
+        Common simple format for representing data structures (especially dictionaries, and lists) in text.
 
     Merkle DAG: Distributed Acyclic Graph
         A graph that assumes nothing refers to anything higher up the graph.

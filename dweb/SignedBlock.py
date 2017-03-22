@@ -87,7 +87,7 @@ class SignedBlocks(list):
             s = Signature(block)
             key = s.hash
             if not results.get(key, None):
-                results[key] = StructuredBlock(hash=key) #TODO-REFACTOR-SIGB fix
+                results[key] = StructuredBlock(hash=key)
             if CryptoLib.verify(s):
                 results[key]._signatures.append(s)
 

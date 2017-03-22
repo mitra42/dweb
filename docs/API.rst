@@ -4,8 +4,6 @@
 Locking the Web Open - API Documentation
 ****************************************
 
-#TODO-REFACTOR need to scan and update this file
-
 This covers some very early drafts of API's required for the Locking the Web Open Project.
 
 The project defines some modules, and the relations between them in terms of the services that modules provide.

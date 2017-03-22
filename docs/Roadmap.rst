@@ -50,7 +50,7 @@ This list is at a much finer lever of granularity than Roadmap above.
     * - ACL type that can store a SB
     * - test that can create ACL, add person, add object, retrieve object,
     * - cleanup, split MutableBlock.py into CommonList, MutableBlock, ACL
-* DOCS: Pass through docs, check all current  (done API-API)
+* DOCS: Pass through docs, check all current  (done API-Integration)
 * DOCS: Complete "To extend with ... new obj,
 * FUNCTIONALITY: Work with P2P transport, probably IPFS
 * DEMO: Improve visuals of MCE demo

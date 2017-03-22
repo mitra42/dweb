@@ -4,8 +4,6 @@
 Applications
 ************
 
-#TODO-REFACTOR need to scan and update this file
-
 * <these are just notes>
 * Need to defined some example applications here, e.g. using Wordpress and Facebook as examples
 * From Facebook, consider: FaceBook; including: Identity; Profile; Timeline; NewsFeed; Likes; Comments; Shares; Groups; Events; Privacy;

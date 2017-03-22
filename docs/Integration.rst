@@ -16,25 +16,25 @@ oWeb Browser integration
 * This does not mean that all the dWeb advantages have to be accessible to unmodified browsers, but all content should be.
 * The conclusion is that there need to be dWeb URLs understandable by an unmodified browser, but that can be recognized by a dWeb browser and diverted.
 
-So for example ``https://dweb.net/block/12345678`` could be a syntax for retrieving block 12345678.
+So for example ``https://dweb.net/rawfetch/12345678`` could be a syntax for retrieving block 12345678.
 
-* See :any:`Addressing` for definition of these URLs
+* See :any:`Addressing` for definition of these URLs and :any:`design_url` for the design thinking
 * Completely unmodified browsers access that URL, which could be any of a number of gateways that can retrieve and return the block.
   This might involve redirections.
 * Modified browsers recognize the URL and use their own dWeb clients to retrieve it.
-* Any dweb URL should work at any server so ``https://dweb.archive.org/block/12345678`` would provide exactly the same contents as above.
-* A gateway needs to be built that can server these URLs.  *<DEV>*
+* Any dweb URL should work at any server so ``https://dweb.archive.org/rawfetch/12345678`` would provide exactly the same contents as above.
+* A prototype gateway has been written that can server these URLs. (See ServerHTTP,py)
 
 .. _Web page, Javascript integration:
 
 Web page, Javascript integration
 --------------------------------
-* A web page could be defined so that the first page was supplied via the oWeb, but deeper content supplied via dWeb.
+* A web page could be defined so that the first page was supplied via a dWeb URL or even via the oWeb, but deeper content supplied via dWeb.
 * This would involve having a Javascript library imported and working on the page
 * That Javascript ideally should intercept attempts to load content *<DEV>*
 * The Javascript should be callable from within the code to explicitly load dWeb content
-* The Javascript should have an API that other Javascript can access to retrieve content. *<*<DEFINE>*>*
-* e.g. "onclick=dweb_load(block/12345678,target)"
+* The Javascript will have an API that other Javascript can access to retrieve content. See `Javascript`
+* e.g. "onclick=dwebfetch(...)"
 
 .. _Browser plugin:
 
@@ -60,7 +60,7 @@ The Internet Archive is a major supporter of this initiative. Their service shou
 
 App platform
 ------------
-It should be possible to build apps in the dWeb for common platforms, iOS, Android, HTML5, Chrome (anything missed?):
+It should be possible to build apps in the dWeb for common platforms, iOS, Android, HTML5, Chrome, Web Assembly (anything missed?):
 
 * This would probably require a library for each of these platforms that could be incorporated by app developers,
 * library could take different scales, from just a client, to a peer.
