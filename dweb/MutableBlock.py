@@ -14,7 +14,10 @@ class CommonList(Transportable):
     Encapsulates a list of blocks, which includes MutableBlocks and AccessControlLists etc
     Partially copied to dweb.js.
 
-    { _keypair: KeyPair, _list: [ StructuredBlock* ] }
+    {
+    _keypair: KeyPair           Keys for this list
+    _list: [ StructuredBlock* ] Blocks on this list
+    _master bool                True if this is the controlling object, has private keys etc
 
     """
 
@@ -25,14 +28,14 @@ class CommonList(Transportable):
 
         :return:
         """
-        if self.master:
+        if self._master:
             return self._keypair.privatehash
         else:
             return self._keypair.publichash
 
     def __getattr__(self, name):
         """
-        Set local attribute, note redefined by MutableBlock
+        Get local attribute (good for both _xyz and xyz
 
         :param name:
         """
@@ -87,7 +90,7 @@ class CommonList(Transportable):
 
         :return:
         """
-        return Transportable.transport.url(self, command="update", hash=self._keypair.privatehash, contenttype=self.__getattr__("Content-type"))
+        return Transportable.transport.url(self, command="update", hash=self._keypair.privatehash, contenttype=self._current.__getattr__("Content-type"))
         #TODO-AUTHENTICATION - this is particularly vulnerable w/o authentication as stores PrivateKey in unencrypted form
 
     def store(self, private=False, verbose=False, **options):
@@ -145,12 +148,6 @@ class MutableBlock(CommonList):
         self._current = StructuredBlock(hash=contenthash, verbose=verbose, **options) if master else None # Create a place to hold content, pass hash to load content
         #OBS - table is always mb: self.__dict__["table"] = "mbm" if master else "mb"
 
-    def __getattr__(self, name):
-        if name and name[0] == "_":
-            return self.__dict__.get(name, None)    # Get _current, _key, _list etc locally
-        else:
-            return self._current.__getattr__(name)
-
     def fetch(self, verbose=False, **options):
         """
         Copied to dweb.js.
@@ -174,14 +171,6 @@ class MutableBlock(CommonList):
         if not self._current:
             raise AssertionFail(message="Looking for a file on an unloaded MB")
         return self._current.file(verbose=verbose, **options)
-
-    def __setattr__(self, name, value):
-        #TODO should probably fail if !master
-        if name and name[0] == "_":
-            super(MutableBlock, self).__setattr__(name, value)   # Save _current, _keypair, _list etc locally # Looks at CommonList
-        else:
-            #TODO-REFACTOR - check if used
-            self._current.__setattr__(name, value)   # Pass to current (a StructuredBlock)
 
     def signandstore(self, verbose=False, **options):
         """

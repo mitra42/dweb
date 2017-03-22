@@ -78,11 +78,11 @@ class Testing(unittest.TestCase):
     def test_MutableBlocks(self):
         # Mutable Blocks
         mblockm = MutableBlock(master=True, verbose=self.verbose)      # Create a new block with a new key
-        mblockm.data = self.quickbrownfox                       # Put some data in it (goes in the StructuredBlock at _current
+        mblockm._current.data = self.quickbrownfox                       # Put some data in it (goes in the StructuredBlock at _current
         mblockm.signandstore(verbose=self.verbose)              # Sign it - this publishes it
         testhash0 = mblockm._current._hash                      # Get a pointer to that version
         # Editing
-        mblockm.data = self.dog                                 # Put some different content in it
+        mblockm._current.data = self.dog                                 # Put some different content in it
         mblockm.signandstore(verbose=self.verbose)              # Publish new content
         testhash = mblockm._current._hash                       # Get a pointer to the new version
         keyhash = mblockm._keypair.store().publichash           # Get the publickey pointer to the block
@@ -250,7 +250,7 @@ class Testing(unittest.TestCase):
     def test_current(self):
         # Build our mbm - not used yet
         mblockm = MutableBlock(master=True, verbose=self.verbose)  # Create a new block with a new key
-        mblockm.data = self.quickbrownfox  # Put some data in it (goes in the StructuredBlock at _current
+        mblockm._current.data = self.quickbrownfox  # Put some data in it (goes in the StructuredBlock at _current
         mblockm.signandstore(verbose=self.verbose)  # Sign it - this publishes it
         publichash = mblockm._keypair.publichash
         # Quick check it (this code is broken down in test_mutableblocks
