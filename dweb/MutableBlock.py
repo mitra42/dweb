@@ -1,7 +1,8 @@
 # encoding: utf-8
 
 from Block import Block
-from CryptoLib import KeyPair, PrivateKeyException # Suite of functions for hashing, signing, encrypting
+from CryptoLib import CryptoLib, KeyPair, PrivateKeyException, DecryptionFail # Suite of functions for hashing, signing, encrypting
+import base64
 from StructuredBlock import StructuredBlock
 from SignedBlock import SignedBlocks
 from misc import ForbiddenException, _print
@@ -62,7 +63,6 @@ class CommonList(Transportable):
             self._keypair = keypair
         else:
             self._keypair = KeyPair.keygen(**options)
-        #TODO this should fail if ketpair doesnt have a master
         self._list = []
 
     def fetch(self, verbose=False, **options):
@@ -115,6 +115,7 @@ class CommonList(Transportable):
         """
         if not self._master:
             raise ForbiddenException(what="Signing a new entry when not a master list")
+        # The .store stores signatures as well
         obj.sign(self._keypair).store(verbose=verbose, **options)
         return self
 
@@ -144,9 +145,8 @@ class MutableBlock(CommonList):
         if verbose: print "MutableBlock( keypair=",keypair, "data=",data, "hash=", hash, "options=", options,")"
         super(MutableBlock, self).__init__(master=master, keypair=keypair, data=data, hash=hash, verbose=verbose, **options)
         # Exception PrivateKeyException if passed public key and master=True
-        # TODO-REFACTOR-SIGB fix below
         self._current = StructuredBlock(hash=contenthash, verbose=verbose, **options) if master else None # Create a place to hold content, pass hash to load content
-        self.__dict__["table"] = "mbm" if master else "mb"  #TODO should probably refactor table->_table but lots of cases
+        #OBS - table is always mb: self.__dict__["table"] = "mbm" if master else "mb"
 
     def __getattr__(self, name):
         if name and name[0] == "_":
@@ -171,7 +171,7 @@ class MutableBlock(CommonList):
 
     def file(self, verbose=False, **options):
         if verbose: print "MutableBlock.file", self
-        self.fetch(verbose=verbose, **options)    #TODO look at log for test_file, does too many fetches and lists
+        self.fetch(verbose=verbose, **options)    #TODO-EFFICIENCY look at log for test_file, does too many fetches and lists
         if not self._current:
             raise AssertionFail(message="Looking for a file on an unloaded MB")
         return self._current.file(verbose=verbose, **options)
@@ -207,32 +207,22 @@ class AccessControlList(CommonList):
     :return:
     """
 
-    def __init__(self, master=False, keypair=None, key=None, hash=None, verbose=False, **options):
+    def __init__(self, master=False, keypair=None, data=None, hash=None, verbose=False, **options):
         """
-        Create and initialize a MutableBlock
+        Create and initialize a AccessControlList
         Adapted to dweb.js.MutableBlock.constructor
 
-        :param key:
+        :param KeyPair keypair: Public and Optionally private key
         :param hash: of key (alternative to key)
         :param master: True if its the master of the list, False, if its just a copy.
         :param options: # Can indicate how to initialize content
         """
         super(AccessControlList, self).__init__(master=master, keypair=keypair, data=data, hash=hash, verbose=verbose, **options)
 
-    def item(info, verbose=False, **options):
-        """
-
-        :param info:    Dict, JSON, or StructuredBlock # Note StructuredBlock also supports hash & signatures but not used here
-        :param verbose:
-        :return:
-        """
-        return StructuredBlock(data=info, verbose=verbose, **options)
-
-    def add(self, viewerpublichash, verbose=False, **options):
+    def add(self, accesskey=None, viewerpublichash=None, verbose=False, **options):
         """
         Add a new ACL entry
         Needs publickey of viewer
-        #TODO - maybe use a second key for the viewing, while the privatekey of this list controls editing the list.
 
         :param self:
         :return:
@@ -241,9 +231,36 @@ class AccessControlList(CommonList):
             raise ForbiddenException(what="Cant add viewers to ACL copy")
         viewerpublickeypair = KeyPair(hash=viewerpublichash)
         aclinfo = {
-            "token": viewerpublickeypair.encrypt(self._keypair.privateexport),  #TODO returns binary which is a problem !
+            "token": base64.urlsafe_b64encode(viewerpublickeypair.encrypt(accesskey)),
             "viewer": viewerpublichash,
-            #TODO - recommended to use Crypto.Cipher.PKCS1_OAEP instead
         }
+        unused = base64.urlsafe_b64encode(aclinfo["token"])
         sb = StructuredBlock(data=aclinfo)
         self.signandstore(sb, verbose, **options)
+
+    def tokens(self, viewerkeypair=None, verbose=False, decrypt=True, **options):
+        """
+        Find the entries for a specific viewer
+        There might be more than one if either the accesskey changed or the person was added multiple times.
+        Entries are StructuredBlocks with token being the decryptable token we want
+
+        :param viewerkeypair:  KeyPair of viewer
+        :param verbose:
+        :param options:
+        :return:
+        """
+        self.fetch(verbose=verbose)
+        viewerpublichash = viewerkeypair.publichash
+        toks = [ a.token for a in self._list if a.fetch().viewer == viewerpublichash]
+        if decrypt:
+            toks = [ viewerkeypair.decrypt(base64.urlsafe_b64decode(str(a))) for a in toks ]
+        return toks
+
+    def decrypt(self, data, viewerkeypair, verbose=False):
+        for symkey in self.tokens(viewerkeypair = viewerkeypair, decrypt=True):
+            try:
+                r = CryptoLib.sym_decrypt(data, symkey) #Exception DecryptionFail
+                return r
+            except DecryptionFail as e:  # DecryptionFail but keep going
+                pass    # Ignore if cant decode maybe other keys will work
+        raise AuthenticationException(message="ACL.decrypt: No valid keys found")

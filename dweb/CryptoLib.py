@@ -27,6 +27,12 @@ class AuthenticationException(MyBaseException):
     httperror = 500 #TODO-AUTHENTICATON - which code
     msg = "Authentication Exception: {message}"
 
+class DecryptionFail(MyBaseException):
+    """
+    Raised if decrypytion failed - this could be cos its the wrong (e.g. old) key
+    """
+    msg = "Decryption fail"
+
 class CryptoLib(object):
     """
     Encapsulate all the Crypto functions in one place so can revise independently of rest of dweb
@@ -95,7 +101,7 @@ class CryptoLib(object):
         :param date: Date that signing (usually now)
         :return: signature that can be verified with verify
         """
-        #TODO-AUTHENTICATION maybe use keypair's decrypt but didn't work in brief test
+        #TODO-AUTHENITICATION - replace with better signing/verification e.g. from http://pydoc.net/Python/pycrypto/2.6.1/Crypto.Signature.PKCS1_v1_5/
         return base64.urlsafe_b64encode(keypair.private.decrypt(CryptoLib._signable(date, data)))
 
     @staticmethod
@@ -112,7 +118,7 @@ class CryptoLib(object):
         """
         keypair = KeyPair(hash=sig.signedby)     # Sideeffect of loading from dweb
         #b64decode requires a str, but signature may be unicode
-        #TODO-AUTHENTICATION maybe use keypair's encrypt but didn't work in brief test
+        #TODO-AUTHENITICATION - replace with better signing/verification e.g. from http://pydoc.net/Python/pycrypto/2.6.1/Crypto.Signature.PKCS1_v1_5/
         decrypted = keypair.public.encrypt(base64.urlsafe_b64decode(str(sig.signature)), 32)[0]
         check = CryptoLib._signable(sig.date, hash or sig.hash)
         return check == decrypted
@@ -143,6 +149,32 @@ class CryptoLib(object):
         """
         return loads(data)
 
+    @staticmethod
+    def randomkey():
+        """
+        Return a key suitable for symetrically encrypting content or sessions
+
+        :return:
+        """
+        return Random.get_random_bytes(16)
+
+    @classmethod
+    def sym_encrypt(self, data, sym_key, guard=None, **options):
+        iv = hashlib.sha1(data).digest()[0:AES.block_size]  # Not random, so can check result, but not checked cryptographically sound
+        #iv = Random.new().read(AES.block_size) # The normal way
+        cipher = AES.new(sym_key, AES.MODE_CFB, iv)
+        return iv + cipher.encrypt(data)
+
+    @classmethod
+    def sym_decrypt(self, data, sym_key, guard=None, **options):
+        iv = data[0:AES.block_size]    # Matches iv that went into first cypher
+        data = data[AES.block_size:]
+        cipher = AES.new(sym_key, AES.MODE_CFB, iv)
+        dec = cipher.decrypt(data)
+        ivtarget = hashlib.sha1(dec).digest()[0:AES.block_size]
+        if iv != ivtarget:
+            raise DecryptionFail()
+        return dec
 
 class KeyPair(Transportable):
     """
@@ -271,7 +303,7 @@ class KeyPair(Transportable):
             raise AssertionFail("Stored hash of key should match local hash algorithm")
         return self # For chaining
 
-    def encrypt(self, data):
+    def encrypt(self, data, rev=False):
         """
         :param data:
         :return: str, binary encryption of data
@@ -290,27 +322,19 @@ class KeyPair(Transportable):
             data = "".join(enckey, cipher_aes.nonce, tag, ciphertext)
 
         aeskey = Random.new().read(32)
-        iv = Random.new().read(AES.block_size)
-        cipher = AES.new(aeskey, AES.MODE_CFB, iv)
-        msg = iv + cipher.encrypt(data)
-
-        random_generator = Random.new().read
-        rsakey = RSA.generate(1024, random_generator)
-        cipher = PKCS1_OAEP.new(rsakey.publickey())
+        msg = CryptoLib.sym_encrypt(data, aeskey)
+        cipher = PKCS1_OAEP.new(self._key.publickey())
         ciphertext = cipher.encrypt(aeskey)
         return ciphertext + msg         #TODO-AUTHENTICATION need to B64 it
 
-    def decrypt(self, data):
+    def decrypt(self, data, rev=False):
         #TODO-AUTHENTICATION need to un-B64 it
-        enckey = data[0:128]    # Just the RSA key - 128 bytes
+        enckey = data[0:128]    # Just the RSA encryption of the Aes key - 128 bytes
         data = data[128:]
-        iv = data[0:AES.block_size]    # Matches iv that went into first cypher
-        data = data[AES.block_size:]
+
         cipher = PKCS1_OAEP.new(self._key)
         aeskey = cipher.decrypt(enckey)     # Matches aeskey in encrypt
-        cipher = AES.new(aeskey, AES.MODE_CFB, iv)
-        msg = cipher.decrypt(data)
-        return msg
+        return CryptoLib.sym_decrypt(data, aeskey)
 
         if False:
             return PKCS1_OAEP.new(self.private).decrypt(data)

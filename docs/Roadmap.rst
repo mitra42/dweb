@@ -47,9 +47,11 @@ This list is at a much finer lever of granularity than Roadmap above.
 
 * FUNCTIONALITY: Add authentication layer
     * See Authentication.rst
-    * - ACL type that can store a SB
-    * - test that can create ACL, add person, add object, retrieve object,
-    * - cleanup, split MutableBlock.py into CommonList, MutableBlock, ACL
+    * Test via MB/MBM
+    * Encrypt storage of MBM private key
+    * Consider if/how to embed in SB
+    * Do in Javascript and via gateway
+    * Embed on index and test pages
 * DOCS: Pass through docs, check all current  (done API-Integration)
 * DOCS: Complete "To extend with ... new obj,
 * FUNCTIONALITY: Work with P2P transport, probably IPFS
