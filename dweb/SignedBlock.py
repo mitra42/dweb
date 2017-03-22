@@ -24,10 +24,9 @@ class SignedBlockEmptyException(MyBaseException):
 
 class Signature(SmartDict):
     """
-    Encapsulate a signature - On the _signatures field of a SignedBlock
+    Encapsulate a signature - On the _signatures field of a signed StructuredBlock
     Partial mirror of this is in dweb.js
     """
-    pass
 
     def __init__(self, block):
         super(Signature, self).__init__(block)

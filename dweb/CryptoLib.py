@@ -159,14 +159,19 @@ class CryptoLib(object):
         return Random.get_random_bytes(16)
 
     @classmethod
-    def sym_encrypt(self, data, sym_key, guard=None, **options):
+    def sym_encrypt(self, data, sym_key, b64=False, **options):
         iv = hashlib.sha1(data).digest()[0:AES.block_size]  # Not random, so can check result, but not checked cryptographically sound
         #iv = Random.new().read(AES.block_size) # The normal way
         cipher = AES.new(sym_key, AES.MODE_CFB, iv)
-        return iv + cipher.encrypt(data)
+        res = iv + cipher.encrypt(data)
+        if b64:
+            res = base64.urlsafe_b64encode(res)
+        return res
 
     @classmethod
-    def sym_decrypt(self, data, sym_key, guard=None, **options):
+    def sym_decrypt(self, data, sym_key, b64=False, **options):
+        if b64:
+            data = base64.urlsafe_b64decode(str(data))  # Cant work on unicode for some weird reason
         iv = data[0:AES.block_size]    # Matches iv that went into first cypher
         data = data[AES.block_size:]
         cipher = AES.new(sym_key, AES.MODE_CFB, iv)
@@ -303,7 +308,7 @@ class KeyPair(Transportable):
             raise AssertionFail("Stored hash of key should match local hash algorithm")
         return self # For chaining
 
-    def encrypt(self, data, rev=False):
+    def encrypt(self, data, b64=False):
         """
         :param data:
         :return: str, binary encryption of data
@@ -325,20 +330,19 @@ class KeyPair(Transportable):
         msg = CryptoLib.sym_encrypt(data, aeskey)
         cipher = PKCS1_OAEP.new(self._key.publickey())
         ciphertext = cipher.encrypt(aeskey)
-        return ciphertext + msg         #TODO-AUTHENTICATION need to B64 it
+        res = ciphertext + msg
+        if b64:
+            res = base64.urlsafe_b64encode(res)
+        return res
 
-    def decrypt(self, data, rev=False):
-        #TODO-AUTHENTICATION need to un-B64 it
+    def decrypt(self, data, b64=False):
+        if b64:
+            data = base64.urlsafe_b64decode(data)
         enckey = data[0:128]    # Just the RSA encryption of the Aes key - 128 bytes
         data = data[128:]
-
         cipher = PKCS1_OAEP.new(self._key)
         aeskey = cipher.decrypt(enckey)     # Matches aeskey in encrypt
         return CryptoLib.sym_decrypt(data, aeskey)
-
-        if False:
-            return PKCS1_OAEP.new(self.private).decrypt(data)
-        #return self.private.decrypt(data)   #  warnings abound not to use RSA directly #TODO-AUTHENTICATE - sig verification was assuming this.
 
 
 def json_default(obj):

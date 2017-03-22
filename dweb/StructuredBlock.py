@@ -168,3 +168,8 @@ class StructuredBlock(SmartDict):
         if verify_atleastone and not len(self._signatures):
             return False
         return self._signatures.verify(hash=self._hash)
+
+    #---------------------------------------------------------------------------------------------------------
+    #METHODS TO DEAL WITH ENCRYPTION, STORED IN _acl field
+    #Files have either hash or data or links field set,
+    #---------------------------------------------------------------------------------------------------------

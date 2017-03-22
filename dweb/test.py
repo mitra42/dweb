@@ -72,6 +72,7 @@ class Testing(unittest.TestCase):
         signedblock.sign(keypair, verbose=self.verbose)
         assert signedblock.verify(verify_atleastone=True), "Should verify"
         signedblock.a="A++"
+        signedblock.dirty()
         assert not signedblock.verify(verify_atleastone=True, verbose=self.verbose), "Should fail"
 
     def test_MutableBlocks(self):
@@ -210,41 +211,8 @@ class Testing(unittest.TestCase):
         print "XXXUploading index.html"
         self._storeas("index.html", "index_html_rsa", "text/html")
 
-    def test_acl(self):    # For testing ACL
-        #self.verbose = True
-        if self.verbose: print "ACL 0 Setup the ACL and viewer"
-        accesskey=CryptoLib.randomkey()
-        acl = AccessControlList(master=True, data=self.keyfromfile("test_acl1_rsa", private=True), verbose=self.verbose)
-        acl.store(verbose=self.verbose) # Store public key
-        viewerkeypair = KeyPair(key=self.keyfromfile("test_viewer1_rsa", private=True)).store()
-        viewerpublichash = viewerkeypair.publichash
-        if self.verbose: print "ACL 1: give the viewer access via the ACL - only need to know the publichash, not private key."
-        acl.add(accesskey=accesskey, viewerpublichash=viewerpublichash, verbose=self.verbose)
-        if self.verbose: print "ACL 2 publish the item"
-        # Then create an encrypted item.
-        sb = StructuredBlock()
-        sb.data = self.quickbrownfox
-        sb.store()
-        sb2 = StructuredBlock()
-        sb2.encdata = CryptoLib.sym_encrypt(sb._data, accesskey)
-        assert sb._data == CryptoLib.sym_decrypt(sb2.encdata, accesskey), "Check can roundtrip decrypt"
-        sb2.acl = acl._keypair.publichash
-        if self.verbose: print "ACL 3 Obtain the key and decrypt"
-        # This SB would be passed via a list, but short-cutting that - this is what the Viewer does on receipt
-        # The viewer only knows the viewerkeypair and sb2
-        aclhash = sb2.acl
-        acl = AccessControlList(hash=aclhash, verbose=self.verbose)
-        decdata = acl.decrypt(sb2.encdata, viewerkeypair=viewerkeypair, verbose=self.verbose)
-        s = StructuredBlock(data=decdata, verbose=self.verbose)
-        assert s.data == self.quickbrownfox, "Round tripped through encryption"
-        # Then try via a MBM
-        # Then try encrypting storage of MBM private key
-
-
-    def test_current(self):
-        print "XXX@Done"
-
     def test_crypto(self):
+        if verbose: print "test_crypto: tests of the crypto library - esp round trips through functions"
         # Try symetric encrypt/decrypt
         aeskey = CryptoLib.randomkey()
         enc = CryptoLib.sym_encrypt(self.quickbrownfox, aeskey)
@@ -256,4 +224,58 @@ class Testing(unittest.TestCase):
         dec = keypair.decrypt(enc)
         assert dec == self.quickbrownfox
 
+    def test_acl(self):    # For testing ACL
+        #self.verbose = True
+        if self.verbose: print "ACL 0 Setup the ACL and viewer"
+        #accesskey=CryptoLib.randomkey()
+        accesskey="ABCDEFGHIJKLMNOP"
+        acl = AccessControlList(master=True, data=self.keyfromfile("test_acl1_rsa", private=True), verbose=self.verbose).store(verbose=self.verbose)
+        viewerkeypair = KeyPair(key=self.keyfromfile("test_viewer1_rsa", private=True)).store()
+        AccessControlList.addviewer(viewerkeypair)  # Add it for decryption
+        if self.verbose: print "ACL 1: give the viewer access via the ACL - only need to know the publichash, not private key."
+        acl.add(accesskey=accesskey, viewerpublichash=viewerkeypair.publichash, verbose=self.verbose)
+        if self.verbose: print "ACL 2 publish the item"
+        sb = StructuredBlock()
+        sb.data = self.quickbrownfox
+        acl.accesskey = accesskey
+        sb._acl = acl
+        sb.store()
+        # Work around this intermediate - both to import, and to create and store it
+        sb2 = StructuredBlock(hash=sb._hash).fetch()
+        assert sb2.data == self.quickbrownfox, "Data should survive round trip"
+        #TODO-AUTHENTICATION Then try via a MBM
+        #TODO-AUTHENTICATION Then try encrypting storage of MBM private key
+
+
+    def test_current(self):
+        # Build our mbm - not used yet
+        mblockm = MutableBlock(master=True, verbose=self.verbose)  # Create a new block with a new key
+        mblockm.data = self.quickbrownfox  # Put some data in it (goes in the StructuredBlock at _current
+        mblockm.signandstore(verbose=self.verbose)  # Sign it - this publishes it
+        publichash = mblockm._keypair.publichash
+        # Quick check it (this code is broken down in test_mutableblocks
+        assert MutableBlock(hash=publichash).fetch(verbose=self.verbose)._current.data == self.quickbrownfox, "Should match data stored above"
+        # Make sure can do ACL with string ratehr than sb2
+
+        #self.verbose = True
+        if self.verbose: print "ACL 0 Setup the ACL and viewer"
+        #accesskey=CryptoLib.randomkey()
+        accesskey="ABCDEFGHIJKLMNOP"
+        #TODO - add accesskey to ACL Master storage
+        acl = AccessControlList(master=True, data=self.keyfromfile("test_acl1_rsa", private=True), verbose=self.verbose).store(verbose=self.verbose)
+        viewerkeypair = KeyPair(key=self.keyfromfile("test_viewer1_rsa", private=True)).store()
+        AccessControlList.addviewer(viewerkeypair)  # Add it for decryption
+        if self.verbose: print "ACL 1: give the viewer access via the ACL - only need to know the publichash, not private key."
+        acl.add(accesskey=accesskey, viewerpublichash=viewerkeypair.publichash, verbose=self.verbose)
+        if self.verbose: print "ACL 2 publish the item"
+        sb = StructuredBlock()
+        sb.data = self.quickbrownfox
+        acl.accesskey = accesskey
+        sb._acl = acl
+        sb.store()
+        # Work around this intermediate - both to import, and to create and store it
+        sb2 = StructuredBlock(hash=sb._hash).fetch()
+        assert sb2.data == self.quickbrownfox, "Data should survive round trip"
+
+        print "XXX@Done"
 

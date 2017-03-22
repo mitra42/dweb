@@ -94,8 +94,8 @@ class SmartDict(Transportable):
 
     # Allow access to arbitrary attributes, allows chaining e.g. xx.data.len
     def __setattr__(self, name, value):
+        # THis code was running self.dirty() - problem is that it clears hash during loading from the dWeb
         if name[0] != "_":
-            self.dirty()  # Note recurses to clear _hash but just once
             if "date" in name and isinstance(value,basestring):
                 value = dateutil.parser.parse(value)
         return super(SmartDict, self).__setattr__(name, value)  # Calls any property esp _data
@@ -121,11 +121,16 @@ class SmartDict(Transportable):
         """
         from CryptoLib import CryptoLib
         try:
-            return CryptoLib.dumps(self) # Should call self.dumps below { k:self.__dict__[k] for k in self.__dict__ if k[0]!="_" })
+            res = CryptoLib.dumps(self) # Should call self.dumps below { k:self.__dict__[k] for k in self.__dict__ if k[0]!="_" })
         except UnicodeDecodeError as e:
             print "Unicode error in StructuredBlock"
             print self.__dict__
             raise e
+        if self._acl:   # Need to encrypt
+            encdata = CryptoLib.sym_encrypt(res, self._acl.accesskey, b64=True)
+            dic = {"encrypted": encdata, "acl": self._acl._keypair.publichash}
+            res = CryptoLib.dumps(dic)
+        return res
 
     def _setdata(self, value):
         # Note separarated from @_data.setter to make subclassing easier
@@ -134,6 +139,10 @@ class SmartDict(Transportable):
             if not isinstance(value, dict):
                 # Its data - should be JSON
                 value = CryptoLib.loads(value)  # Will throw exception if it isn't JSON
+            if value.get("encrypted"):
+                from MutableBlock import AccessControlList
+                acl = AccessControlList(hash=value.get("acl"), verbose=self.verbose)    #TODO-AUTHENTICATION probably add person-to-person version
+                value = CryptoLib.loads(acl.decrypt(data = value.get("encrypted")))
             for k in value:
                 self.__setattr__(k, value[k])
 

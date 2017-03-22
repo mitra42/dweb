@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 from Block import Block
-from CryptoLib import CryptoLib, KeyPair, PrivateKeyException, DecryptionFail # Suite of functions for hashing, signing, encrypting
+from CryptoLib import CryptoLib, KeyPair, PrivateKeyException, AuthenticationException, DecryptionFail # Suite of functions for hashing, signing, encrypting
 import base64
 from StructuredBlock import StructuredBlock
 from SignedBlock import SignedBlocks
@@ -14,7 +14,7 @@ class CommonList(Transportable):
     Encapsulates a list of blocks, which includes MutableBlocks and AccessControlLists etc
     Partially copied to dweb.js.
 
-    { _keypair: KeyPair, _list: [ StructredBlock* ] }
+    { _keypair: KeyPair, _list: [ StructuredBlock* ] }
 
     """
 
@@ -163,6 +163,8 @@ class MutableBlock(CommonList):
         if verbose: print "MutableBlock.fetch pubkey=",self._keypair.publichash
         super(MutableBlock, self).fetch(verbose=verbose, **options)
         self._current = self._list[-1]
+        if self._current:
+            self._current.fetch()   # Fetch current content
         return self # For chaining
 
     def content(self, verbose=False, **options):
@@ -206,6 +208,7 @@ class AccessControlList(CommonList):
     :param CommonList:
     :return:
     """
+    myviewerkeys = []       # Set with keys we can use
 
     def __init__(self, master=False, keypair=None, data=None, hash=None, verbose=False, **options):
         """
@@ -231,10 +234,9 @@ class AccessControlList(CommonList):
             raise ForbiddenException(what="Cant add viewers to ACL copy")
         viewerpublickeypair = KeyPair(hash=viewerpublichash)
         aclinfo = {
-            "token": base64.urlsafe_b64encode(viewerpublickeypair.encrypt(accesskey)),
+            "token": viewerpublickeypair.encrypt(accesskey, b64=True),
             "viewer": viewerpublichash,
         }
-        unused = base64.urlsafe_b64encode(aclinfo["token"])
         sb = StructuredBlock(data=aclinfo)
         self.signandstore(sb, verbose, **options)
 
@@ -253,14 +255,31 @@ class AccessControlList(CommonList):
         viewerpublichash = viewerkeypair.publichash
         toks = [ a.token for a in self._list if a.fetch().viewer == viewerpublichash]
         if decrypt:
-            toks = [ viewerkeypair.decrypt(base64.urlsafe_b64decode(str(a))) for a in toks ]
+            toks = [ viewerkeypair.decrypt(str(a), b64=True) for a in toks ]
         return toks
 
-    def decrypt(self, data, viewerkeypair, verbose=False):
-        for symkey in self.tokens(viewerkeypair = viewerkeypair, decrypt=True):
-            try:
-                r = CryptoLib.sym_decrypt(data, symkey) #Exception DecryptionFail
-                return r
-            except DecryptionFail as e:  # DecryptionFail but keep going
-                pass    # Ignore if cant decode maybe other keys will work
+    def decrypt(self, data, viewerkeypair=None, verbose=False):
+        vks = viewerkeypair or AccessControlList.myviewerkeys
+        if not isinstance(vks, (list, tuple, set)):
+            vks = [ vks ]
+        for vk in vks:
+            for symkey in self.tokens(viewerkeypair = vk, decrypt=True):
+                try:
+                    r = CryptoLib.sym_decrypt(data, symkey, b64=True) #Exception DecryptionFail
+                    return r    # Dont continue to process when find one
+                except DecryptionFail as e:  # DecryptionFail but keep going
+                    pass    # Ignore if cant decode maybe other keys will work
         raise AuthenticationException(message="ACL.decrypt: No valid keys found")
+
+    @classmethod
+    def addviewer(cls, keypair=None):
+        """
+        Add keys I can view under to ACL
+
+        :param keypair:
+        :return:
+        """
+        if isinstance(keypair, (list, tuple, set)):
+            cls.myviewerkeys += keypair
+        else:
+            cls.myviewerkeys.append(keypair)
