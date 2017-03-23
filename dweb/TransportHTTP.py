@@ -105,7 +105,7 @@ class TransportHTTP(Transport):
                     % (self.ipandport[0], self.ipandport[1], command, table or obj._table, hash)
         else:
             if url_output=="getpost":
-                raise ToBeImplementedException(name="TransportHTTP.url:command="+command+",url_output="+url_output)
+                raise ToBeImplementedException(name="TransportHTTP.url:command="+(command or "None")+",url_output="+url_output)
             else:
                 url =  "http://%s:%s/%s/%s"  \
                     % (self.ipandport[0], self.ipandport[1], command or "rawfetch", hash)

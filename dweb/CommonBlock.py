@@ -37,7 +37,8 @@ class Transportable(object):
 
     def store(self, data=None, verbose=False, **options):
         """
-        Store this block on the underlying transport, return the hash for future id
+        Store this block on the underlying transport, return the hash for future id.
+        Note this calls _data which is typically a getter/setter that returns subclass specific results.
         Exception: UnicodeDecodeError - if data is binary
 
         :return: hash of data
@@ -131,7 +132,7 @@ class SmartDict(Transportable):
             raise e
         if self._acl:   # Need to encrypt
             encdata = CryptoLib.sym_encrypt(res, self._acl.accesskey, b64=True)
-            dic = {"encrypted": encdata, "acl": self._acl._keypair.publichash}
+            dic = {"encrypted": encdata, "acl": self._acl._publichash}
             res = CryptoLib.dumps(dic)
         return res
 
@@ -145,7 +146,8 @@ class SmartDict(Transportable):
             if value.get("encrypted"):
                 from MutableBlock import AccessControlList
                 acl = AccessControlList(hash=value.get("acl"), verbose=self.verbose)    #TODO-AUTHENTICATION probably add person-to-person version
-                value = CryptoLib.loads(acl.decrypt(data = value.get("encrypted")))
+                dec = acl.decrypt(data = value.get("encrypted"))
+                value = CryptoLib.loads(dec)
             for k in value:
                 self.__setattr__(k, value[k])
 

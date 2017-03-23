@@ -85,9 +85,11 @@ class Testing(unittest.TestCase):
         mblockm._current.data = self.dog                                 # Put some different content in it
         mblockm.signandstore(verbose=self.verbose)              # Publish new content
         testhash = mblockm._current._hash                       # Get a pointer to the new version
-        keyhash = mblockm._keypair.store().publichash           # Get the publickey pointer to the block
+        mblockm.store()
+        mbmhash = mblockm._hash
+        #keyhash = mblockm._keypair.store().publichash           # Get the publickey pointer to the block
         # And check it
-        mblock = MutableBlock(hash=keyhash)                     # Setup a copy (not Master) via the publickey
+        mblock = MutableBlock(hash=mbmhash)                     # Setup a copy (not Master) via the publickey
         mblock.fetch(verbose=self.verbose)                      # Fetch the content
         assert mblock._current._hash == testhash, "Should match hash stored above"
         assert mblock._list[0]._hash == testhash0, "Prev list should hold first stored"
@@ -127,14 +129,15 @@ class Testing(unittest.TestCase):
         assert resp.text == content, "Should return data stored"
         assert resp.headers["Content-type"] == "text/html", "Should get type"
         # Now test a MutableBlock that uses this content
-        mbm = MutableBlock(master=True, data=self.keyfromfile("index_html_rsa", private=True), contenthash=sb._hash)
+        mbm = MutableBlock(master=True, keypair=self.keyfromfile("index_html_rsa", private=True), contenthash=sb._hash)
         mbm.store().signandstore(verbose=self.verbose)
         if self.verbose: print "store tells us:", mbm.content()
         assert mbm.content()==content, "Should match content stored"
-        mb = MutableBlock(hash=mbm._keypair.publichash)
+        mb = MutableBlock(hash=mbm._hash)
         mb.fetch()      # Just fetches the signatures
         assert mb.content() == mbm.content(), "Should round-trip HTML content"
-        mbcontent2 = Transportable.transport._sendGetPost(False,"file", ["mb", mb._hash]).text
+        getpostargs=mb.url(command="file", url_output="getpost")
+        mbcontent2 = Transportable.transport._sendGetPost(*getpostargs).text
         assert mbcontent2 == mbm.content(), "Should fetch MB content via its URL"
 
     def test_typeoverride(self):    # See if can override the type on a block
@@ -168,7 +171,7 @@ class Testing(unittest.TestCase):
         if self.verbose: print f
         keypath = self.exampledir + keyname if keyname else None
         if keypath:
-            mbm = MutableBlock(master=True, data=self.keyfromfile(keyname, private=True), contenthash=f._hash, verbose=self.verbose)
+            mbm = MutableBlock(master=True, key=self.keyfromfile(keyname, private=True), contenthash=f._hash, verbose=self.verbose)
             mbm.store(private=True, verbose=self.verbose)
             mbm.signandstore(verbose=self.verbose)
             print filename + " editable:" + mbm.privateurl()    # Side effect of storing
@@ -206,7 +209,7 @@ class Testing(unittest.TestCase):
         assert int(resp.headers["Content-Length"]) == f1sz,"Should match length of readme.md"
         # /file/mb/SHA3256B64URL.88S-FYlEN1iF3WuDRdXoR8SyMUG6crR5ehM21IvUuS0=/tinymce.min.js
 
-    def Xtest_current(self):
+    def test_current(self):
         self.verbose=True
         print "XXXUploading index.html"
         self._storeas("index.html", "index_html_rsa", "text/html")
@@ -229,7 +232,7 @@ class Testing(unittest.TestCase):
         if self.verbose: print "ACL 0 Setup the ACL and viewer"
         accesskey=CryptoLib.randomkey()
         accesskey="ABCDEFGHIJKLMNOP"    # Uncomment for Easier for repeat tests and debugging
-        acl = AccessControlList(master=True, data=self.keyfromfile("test_acl1_rsa", private=True), verbose=self.verbose).store(verbose=self.verbose)
+        acl = AccessControlList(master=True, keypair=self.keyfromfile("test_acl1_rsa", private=True), verbose=self.verbose).store(verbose=self.verbose)
         viewerkeypair = KeyPair(key=self.keyfromfile("test_viewer1_rsa", private=True)).store()
         AccessControlList.addviewer(viewerkeypair)  # Add it for decryption
         if self.verbose: print "ACL 1: give the viewer access via the ACL - only need to know the publichash, not private key."
@@ -241,41 +244,10 @@ class Testing(unittest.TestCase):
         sb._acl = acl
         sb.store()  # Automatically encrypts based on ACL
         # Work around this intermediate - both to import, and to create and store it
-        sb2 = StructuredBlock(hash=sb._hash).fetch()    # Fetches from dweb and automatically decrypts based on encrypted and acl fields
+        sb2 = StructuredBlock(hash=sb._hash).fetch(verbose=self.verbose)    # Fetches from dweb and automatically decrypts based on encrypted and acl fields
         assert sb2.data == self.quickbrownfox, "Data should survive round trip"
         #TODO-AUTHENTICATION Then try via a MBM
         #TODO-AUTHENTICATION Then try encrypting storage of MBM private key
 
 
-    def test_current(self):
-        # Build our mbm - not used yet
-        mblockm = MutableBlock(master=True, verbose=self.verbose)  # Create a new block with a new key
-        mblockm._current.data = self.quickbrownfox  # Put some data in it (goes in the StructuredBlock at _current
-        mblockm.signandstore(verbose=self.verbose)  # Sign it - this publishes it
-        publichash = mblockm._keypair.publichash
-        # Quick check it (this code is broken down in test_mutableblocks
-        assert MutableBlock(hash=publichash).fetch(verbose=self.verbose)._current.data == self.quickbrownfox, "Should match data stored above"
-        # Make sure can do ACL with string ratehr than sb2
-
-        #self.verbose = True
-        if self.verbose: print "ACL 0 Setup the ACL and viewer"
-        accesskey=CryptoLib.randomkey()
-        accesskey="ABCDEFGHIJKLMNOP"    # Uncomment for Easier for repeat tests and debugging
-        #TODO - add accesskey to ACL Master storage
-        acl = AccessControlList(master=True, data=self.keyfromfile("test_acl1_rsa", private=True), verbose=self.verbose).store(verbose=self.verbose)
-        viewerkeypair = KeyPair(key=self.keyfromfile("test_viewer1_rsa", private=True)).store()
-        AccessControlList.addviewer(viewerkeypair)  # Add it for decryption
-        if self.verbose: print "ACL 1: give the viewer access via the ACL - only need to know the publichash, not private key."
-        acl.add(accesskey=accesskey, viewerpublichash=viewerkeypair.publichash, verbose=self.verbose)
-        if self.verbose: print "ACL 2 publish the item"
-        sb = StructuredBlock()
-        sb.data = self.quickbrownfox
-        acl.accesskey = accesskey
-        sb._acl = acl
-        sb.store()
-        # Work around this intermediate - both to import, and to create and store it
-        sb2 = StructuredBlock(hash=sb._hash).fetch()
-        assert sb2.data == self.quickbrownfox, "Data should survive round trip"
-
-        print "XXX@Done"
 

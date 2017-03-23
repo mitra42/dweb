@@ -190,9 +190,9 @@ class KeyPair(Transportable):
         if data:                            # Support data kwarg so can call from Transportable.store
             key = data
         if key:
-            self.public = key               # Converts if key is an exported string, also works if key is privatekey
+            self.key = key                  # Converts if key is an exported string
         elif hash:
-            self.publichash = hash          # Side effect of loading from dWeb, note also works if its hash of publickey
+            self.publichash = hash          # Side effect of loading from dWeb, note also works if its hash of privatekey
         else:
             self._key = None
 
@@ -214,6 +214,25 @@ class KeyPair(Transportable):
         return cls(key=RSA.generate(1024, Random.new().read))
 
     @property
+    def key(self):
+        """
+        Returns key - maybe public or private
+        :return:
+        """
+        return self._key
+
+    @key.setter
+    def key(self, value):
+        """
+        Sets a key - public or private
+        :return:
+        """
+        if isinstance(value, basestring):  # Should be exported string, maybe public or private
+            self._key = RSA.importKey(value)
+        else:
+            self._key = value
+
+    @property
     def private(self):
         """
 
@@ -231,12 +250,9 @@ class KeyPair(Transportable):
         :param value: Either a string from exporting the key, or a RSA key
         :return:
         """
-        if isinstance(value, basestring):   # Should be exported string, maybe public or private
-            self._key = RSA.importKey(value)
-        else:
-            self._key = value
-        if not self._key.has_private:   # Check it was really a Private key
-                raise PrivateKeyException()
+        self.key = value
+        if not self._key.has_private:  # Check it was really a Private key
+            raise PrivateKeyException()
 
     @property
     def public(self):
@@ -249,15 +265,12 @@ class KeyPair(Transportable):
     @public.setter
     def public(self, value):
         """
-        Sets the key from either a string,
+        Sets the key from either a string or a key.
 
         :param value: Either a string from exporting the key, or a RSA key
         :return:
         """
-        if isinstance(value, basestring):   # Should be exported string, maybe public or private
-            self._key = RSA.importKey(value)
-        else:
-            self._key = value
+        self.key = value
 
     @property
     def publicexport(self):
@@ -269,6 +282,11 @@ class KeyPair(Transportable):
 
     @property
     def privatehash(self):
+        """
+        The hash of the key, note does NOT store the key itself
+
+        :return:
+        """
         return CryptoLib.Curlhash(self.privateexport)
 
     @privatehash.setter

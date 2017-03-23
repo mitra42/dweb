@@ -6,10 +6,10 @@ import base64
 from StructuredBlock import StructuredBlock
 from SignedBlock import SignedBlocks
 from misc import ForbiddenException, _print
-from CommonBlock import Transportable
+from CommonBlock import Transportable, SmartDict
 
 
-class CommonList(Transportable):
+class CommonList(SmartDict):
     """
     Encapsulates a list of blocks, which includes MutableBlocks and AccessControlLists etc
     Partially copied to dweb.js.
@@ -20,53 +20,58 @@ class CommonList(Transportable):
     _master bool                True if this is the controlling object, has private keys etc
 
     """
-
-    @property
-    def _hash(self):
-        """
-        Return private or public hash for this list, depending on master.  Side effect of storing if reqd. #TODO-AUTHENTICATION check not storing inadvertantly
-
-        :return:
-        """
-        if self._master:
-            return self._keypair.privatehash
-        else:
-            return self._keypair.publichash
-
-    def __getattr__(self, name):
-        """
-        Get local attribute (good for both _xyz and xyz
-
-        :param name:
-        """
-        return self.__dict__.get(name, None)
+    # Comments on use of superclass methods without overriding here
 
     def __repr__(self):
         return "%s(%s)" % (self.__class__.__name__, self.__dict__)
 
     def __init__(self, master=False, keypair=None, data=None, hash=None, verbose=False, **options):  # Note hash is of data
+        #TODO-REFACTOR check all callers to this in this file
         """
         Create and initialize a MutableBlock
+        Typically called either with args (master, keypair) if creating, or with data or hash to load from dWeb
         Adapted to dweb.js.MutableBlock.constructor
         Exceptions: PrivateKeyException if passed public key and master=True
-
-        :param KeyPair keypair: Keypair identifying this list
-        :param options: # Can indicate how to initialize content
-
+        :param bool master: True if master for list
+        :param KeyPair|str keypair: Keypair or export of Key identifying this list
+        :param data: Exported data to import
+        :param hash: Hash to exported data
         """
-        #print "master=%s, keypair=%s, key=%s, hash=%s, verbose=%s, options=%s)" % (master, keypair, key, hash, verbose, options)
+        #if verbose: print "master=%s, keypair=%s, key=%s, hash=%s, verbose=%s, options=%s)" % (master, keypair, key, hash, verbose, options)
         self._master = master
-        if data or hash:
-            keypair = KeyPair(data=data, hash=hash, master=master)   # Should only be one of them
+        super(CommonList, self).__init__(data=data, hash=hash, verbose=verbose, **options)  # Initializes __dict__ via _data -> _setdata
 
-        if master and keypair and not keypair._key.has_private:
-            raise PrivateKeyException(keypair.privatehash)
-
-        if keypair:
+        if keypair: # Note keypair may also have been set via "data" field in super call
+            if not isinstance(keypair, KeyPair): # Its an export
+                keypair = KeyPair(key = keypair)  # Convert a string or a RSA key to a keypair
             self._keypair = keypair
-        else:
-            self._keypair = KeyPair.keygen(**options)
+        if self._master:
+            if self._keypair: # master & keypair
+                if not self._keypair._key.has_private:
+                    raise PrivateKeyException(keypair.privatehash)
+            else:   # master & !keypair
+                self._keypair = KeyPair.keygen(**options)
+
         self._list = []
+
+    def _getdata(self):
+        # Make sure export the key, depending on if master or not - note exporting key rather than hash since will probably encrypt
+        if self._master:
+            self.privateexport = self._keypair.privateexport
+        else:
+            self.publicexport = self._keypair.publicexport
+        return super(CommonList, self)._getdata()  # Dumps __dict__, encrypts if _acl set
+
+    def _setdata(self, value):
+        super(CommonList, self)._setdata(value) # Sets __dict__ from values
+        if self.privateexport:
+            self._keypair = KeyPair(key=self.privateexport)
+            self._master = True
+        elif self.publicexport:
+            self._keypair = KeyPair(key=self.publicexport)
+            self._master = False
+
+    _data = property(_getdata, _setdata)
 
     def fetch(self, verbose=False, **options):
         """
@@ -75,13 +80,22 @@ class CommonList(Transportable):
         :param verbose:
         :param options:
         """
+        super(CommonList, self).fetch(verbose=verbose, **options)   # Sets keypair etc via _data -> _setdata
         self._list = SignedBlocks.fetch(hash=self._keypair.publichash, verbose=verbose, **options).sorteddeduplicated()
+        return self # for chaining
 
-
-    #TODO - add metadata to Mutable - and probably others
+    def store(self, verbose=False, **options):
+        # - uses SmartDict.store which calls _data -> _getdata which gets the key
+        if verbose: print "ACL.store"
+        if self._master and not self._publichash:
+            acl2 = self.__class__(master=False, keypair=self._keypair)
+            acl2.store(verbose=verbose, **options)
+            self._publichash = acl2._hash
+        super(CommonList,self).store()   # Stores privatekey  and sets _hash
+        return self
 
     def publicurl(self, command=None, **options):
-        return Transportable.transport.url(self, command=command or "list", hash=self._keypair.publichash, **options) #, contenttype=self.__getattr__("Content-type"))
+        return Transportable.transport.url(self, command=command or "list", hash=self._publichash, **options) #, contenttype=self.__getattr__("Content-type"))
 
     def privateurl(self):
         """
@@ -90,19 +104,9 @@ class CommonList(Transportable):
 
         :return:
         """
-        return Transportable.transport.url(self, command="update", hash=self._keypair.privatehash, contenttype=self._current.__getattr__("Content-type"))
+        return Transportable.transport.url(self, command="update", hash=self.privatehash, contenttype=self._current.__getattr__("Content-type"))
         #TODO-AUTHENTICATION - this is particularly vulnerable w/o authentication as stores PrivateKey in unencrypted form
 
-    def store(self, private=False, verbose=False, **options):
-        """
-        Store a list, so can be retrieved by its hash.
-        Saves the key, can be subclassed to save other meta-data.
-
-        :param private: True if should store the private key version    #TODO-AUTHENTICATION currently insecure as stores Private key unencrypted
-        :return:
-        """
-        self._keypair.store(private=private, verbose=verbose)    # Store key so can be accessed by hash
-        return self # For chaining
 
     def signandstore(self, obj, verbose=False, **options):
         """
@@ -130,6 +134,7 @@ class MutableBlock(CommonList):
     _table = "mb"
 
     def __init__(self, master=False, keypair=None, data=None, hash=None, contenthash=None, verbose=False, **options):
+        #TODO-REFACTOR check all callers to this in test()
         """
         Create and initialize a MutableBlock
         Adapted to dweb.js.MutableBlock.constructor
@@ -198,6 +203,7 @@ class AccessControlList(CommonList):
     myviewerkeys = []       # Set with keys we can use
 
     def __init__(self, master=False, keypair=None, data=None, hash=None, verbose=False, **options):
+        #TODO-REFACTOR check all callers to this in test()
         """
         Create and initialize a AccessControlList
         Adapted to dweb.js.MutableBlock.constructor
