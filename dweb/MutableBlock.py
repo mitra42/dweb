@@ -16,6 +16,7 @@ class CommonList(SmartDict):
 
     {
     _keypair: KeyPair           Keys for this list
+    _publichash:                Hash that is used for refering to list - i.e. of public version of it.
     _list: [ StructuredBlock* ] Blocks on this list
     _master bool                True if this is the controlling object, has private keys etc
 
@@ -51,6 +52,8 @@ class CommonList(SmartDict):
                     raise PrivateKeyException(keypair.privatehash)
             else:   # master & !keypair
                 self._keypair = KeyPair.keygen(**options)
+        else:
+            self._publichash = hash # Maybe None.
 
         self._list = []
 
@@ -73,15 +76,17 @@ class CommonList(SmartDict):
 
     _data = property(_getdata, _setdata)
 
-    def fetch(self, verbose=False, **options):
+    def fetch(self, verbose=False, fetchlist=True, **options):
         """
         Copied to dweb.js.
 
+        :param bool fetchlist: True (default) will fetch the list (slow), otherwise just gets the keys etc
         :param verbose:
         :param options:
         """
         super(CommonList, self).fetch(verbose=verbose, **options)   # Sets keypair etc via _data -> _setdata
-        self._list = SignedBlocks.fetch(hash=self._keypair.publichash, verbose=verbose, **options).sorteddeduplicated()
+        if fetchlist:
+            self._list = SignedBlocks.fetch(hash=self._publichash, verbose=verbose, **options).sorteddeduplicated()
         return self # for chaining
 
     def store(self, verbose=False, **options):
@@ -120,7 +125,7 @@ class CommonList(SmartDict):
         if not self._master:
             raise ForbiddenException(what="Signing a new entry when not a master list")
         # The obj.store stores signatures as well (e.g. see StructuredBlock.store)
-        obj.sign(self._keypair).store(verbose=verbose, **options)
+        obj.sign(self).store(verbose=verbose, **options)
         return self
 
 
@@ -159,7 +164,7 @@ class MutableBlock(CommonList):
 
         :return: self for chaining
         """
-        if verbose: print "MutableBlock.fetch pubkey=",self._keypair.publichash
+        if verbose: print "MutableBlock.fetch pubkey=",self._hash
         super(MutableBlock, self).fetch(verbose=verbose, **options)
         self._current = self._list[-1]
         if self._current:

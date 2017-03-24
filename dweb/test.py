@@ -13,7 +13,7 @@ from TransportHTTP import TransportHTTP
 from CommonBlock import Transportable
 from Block import Block
 from StructuredBlock import StructuredBlock
-from MutableBlock import MutableBlock, AccessControlList #TODO-AUTHENTICATION move to own file
+from MutableBlock import CommonList, MutableBlock, AccessControlList #TODO-AUTHENTICATION move to own file
 from File import File, Dir
 
 
@@ -69,27 +69,34 @@ class Testing(unittest.TestCase):
         # Test Signatures
         signedblock = StructuredBlock(data=self.mydic)
         keypair = KeyPair.keygen()
-        signedblock.sign(keypair, verbose=self.verbose)
+        # This test should really fail, BUT since keypair has private it passes signature
+        #commonlist0 = CommonList(keypair=keypair, master=False)
+        #print commonlist0
+        #signedblock.sign(commonlist0, verbose=self.verbose) # This should fail, but
+        commonlist = CommonList(keypair=keypair, master=True)
+        signedblock.sign(commonlist, verbose=self.verbose) # TODO-REFACTOR-SIGB - won't work based on keypair, needs MBM etc
         assert signedblock.verify(verify_atleastone=True), "Should verify"
         signedblock.a="A++"
         signedblock.dirty()
         assert not signedblock.verify(verify_atleastone=True, verbose=self.verbose), "Should fail"
 
     def test_MutableBlocks(self):
-        # Mutable Blocks
+        #self.verbose=True
+        if self.verbose: print "test_MutableBlocks: Create master"
         mblockm = MutableBlock(master=True, verbose=self.verbose)      # Create a new block with a new key
         mblockm._current.data = self.quickbrownfox                       # Put some data in it (goes in the StructuredBlock at _current
         mblockm.signandstore(verbose=self.verbose)              # Sign it - this publishes it
         testhash0 = mblockm._current._hash                      # Get a pointer to that version
-        # Editing
-        mblockm._current.data = self.dog                                 # Put some different content in it
+        if self.verbose: print "test_MutableBlocks: Edit it"
+        mblockm._current.data = self.dog                        # Put some different content in it
+        mblockm._current.dirty()                                # Have to manually "dirty" it since already written
         mblockm.signandstore(verbose=self.verbose)              # Publish new content
-        testhash = mblockm._current._hash                       # Get a pointer to the new version
         mblockm.store()
-        mbmhash = mblockm._hash
+        testhash = mblockm._current._hash                       # Get a pointer to the new version
+        mbmpubhash = mblockm._publichash
         #keyhash = mblockm._keypair.store().publichash           # Get the publickey pointer to the block
-        # And check it
-        mblock = MutableBlock(hash=mbmhash)                     # Setup a copy (not Master) via the publickey
+        if self.verbose: print "test_MutableBlocks: And check it"
+        mblock = MutableBlock(hash=mbmpubhash, verbose=self.verbose)                     # Setup a copy (not Master) via the publickey
         mblock.fetch(verbose=self.verbose)                      # Fetch the content
         assert mblock._current._hash == testhash, "Should match hash stored above"
         assert mblock._list[0]._hash == testhash0, "Prev list should hold first stored"
@@ -133,7 +140,7 @@ class Testing(unittest.TestCase):
         mbm.store().signandstore(verbose=self.verbose)
         if self.verbose: print "store tells us:", mbm.content()
         assert mbm.content()==content, "Should match content stored"
-        mb = MutableBlock(hash=mbm._hash)
+        mb = MutableBlock(hash=mbm._publichash)
         mb.fetch()      # Just fetches the signatures
         assert mb.content() == mbm.content(), "Should round-trip HTML content"
         getpostargs=mb.url(command="file", url_output="getpost")
@@ -171,7 +178,7 @@ class Testing(unittest.TestCase):
         if self.verbose: print f
         keypath = self.exampledir + keyname if keyname else None
         if keypath:
-            mbm = MutableBlock(master=True, key=self.keyfromfile(keyname, private=True), contenthash=f._hash, verbose=self.verbose)
+            mbm = MutableBlock(master=True, keypair=self.keyfromfile(keyname, private=True), contenthash=f._hash, verbose=self.verbose)
             mbm.store(private=True, verbose=self.verbose)
             mbm.signandstore(verbose=self.verbose)
             print filename + " editable:" + mbm.privateurl()    # Side effect of storing
@@ -209,8 +216,8 @@ class Testing(unittest.TestCase):
         assert int(resp.headers["Content-Length"]) == f1sz,"Should match length of readme.md"
         # /file/mb/SHA3256B64URL.88S-FYlEN1iF3WuDRdXoR8SyMUG6crR5ehM21IvUuS0=/tinymce.min.js
 
-    def test_current(self):
-        self.verbose=True
+    def Xtest_current(self):
+        #self.verbose=True
         print "XXXUploading index.html"
         self._storeas("index.html", "index_html_rsa", "text/html")
 

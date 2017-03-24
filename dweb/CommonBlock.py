@@ -63,8 +63,10 @@ class Transportable(object):
 
         :return:
         """
+        if verbose: print "Transportable.file _hash=",self._hash, "len data=",len(self._data) if self._data else 0
         if self._hash and ((not self._data) or (len(self._data) <= 2)): # Empty data is '{}'
             self._data = self.transport.rawfetch(hash=self._hash, verbose=verbose, **options)
+        print "XXX@69----Transportable.fetch returning"
         return self # For Chaining
 
     def file(self, verbose=False, contenttype=None, **options):

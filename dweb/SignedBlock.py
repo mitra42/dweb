@@ -35,10 +35,10 @@ class Signature(SmartDict):
 
 
     @classmethod
-    def sign(cls, keypair, hash):
+    def sign(cls, commonlist, hash):    #TODO-REFACTOR-SIGB - sign based on MBM/ACL not on Key
         date = datetime.now()
-        signature = CryptoLib.signature(keypair, date, hash)
-        return cls({"date": date, "signature": signature, "signedby": keypair.store().publichash})
+        signature = CryptoLib.signature(commonlist._keypair, date, hash)
+        return cls({"date": date, "signature": signature, "signedby": commonlist.store()._publichash})
 
     def verify(self, hash=None):
         return CryptoLib.verify(self, hash=hash)

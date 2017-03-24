@@ -142,17 +142,17 @@ class StructuredBlock(SmartDict):
     #Files have either hash or data or links field set,
     #---------------------------------------------------------------------------------------------------------
 
-    def sign(self, keypair, verbose=False, **options):
+    def sign(self, commonlist, verbose=False, **options):
         """
         Add a signature to a StructuredBlock
 
-        :param keypair:
+        :param CommonList commonlist:   List its going on - has a ACL with a private key
         :return: self
         """
         from SignedBlock import Signature
         if not self._hash:
             self.store()  # Sets _hash which is needed for signatures #TODO-EFFICIENCY only store if not stored
-        self._signatures.append(Signature.sign(keypair=keypair, hash=self._hash))
+        self._signatures.append(Signature.sign(commonlist=commonlist, hash=self._hash))
         return self  # For chaining
 
     def verify(self, verbose=False, verify_atleastone=False, **options):

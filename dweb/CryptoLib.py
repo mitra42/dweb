@@ -116,7 +116,10 @@ class CryptoLib(object):
         :param hash: Unsigned to check against sig
         :return:
         """
-        keypair = KeyPair(hash=sig.signedby)     # Sideeffect of loading from dweb
+        from MutableBlock import CommonList
+        cl = CommonList(hash=sig.signedby).fetch(fetchlist=False)
+        # Dont know what kind of list - e.g. MutableBlock or AccessControlList but dont care as not used
+        keypair = cl._keypair    # Sideeffect of loading from dweb
         #b64decode requires a str, but signature may be unicode
         #TODO-AUTHENITICATION - replace with better signing/verification e.g. from http://pydoc.net/Python/pycrypto/2.6.1/Crypto.Signature.PKCS1_v1_5/
         decrypted = keypair.public.encrypt(base64.urlsafe_b64decode(str(sig.signature)), 32)[0]

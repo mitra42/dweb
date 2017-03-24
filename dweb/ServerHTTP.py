@@ -104,6 +104,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
     @exposed
     def file(self, table=None, hash=None, urlargs=None, contenttype=None, verbose=False, **kwargs):
         #TODO-EFFICIENCY - next call does 2 fetches
+        verbose=True
         return Transportable.transport.fetch(command="file", cls=table, hash=hash,path=urlargs, verbose=verbose, contenttype=contenttype, **kwargs  )
     file.arglist=["table", "hash"]
 
@@ -130,7 +131,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         mbm = MutableBlock(master=True, hash=hash, contenthash=sb._hash, verbose=verbose).signandstore(verbose=verbose)
         #Exception PrivateKeyException if passed public key and master=True
         return {"Content-type": "text/plain",       # Always returning plain text as the URL whatever type stored
-                "data": self.url(mbm, command="file", table="mb", hash=mbm._keypair.publichash)}
+                "data": self.url(mbm, command="file", table="mb", hash=mbm.publichash)}
     update.arglist=["hash","contenttype"]
 
 
