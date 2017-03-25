@@ -48,6 +48,7 @@ This list is at a much finer lever of granularity than Roadmap above.
 * FUNCTIONALITY: Add authentication layer
     * Test via MB/MBM
     * See Authentication.rst
+    * Store ACL info on mbm (already on item)
     * Encrypt storage of MBM private key
     * Do in Javascript and via gateway
     * Embed on index and test pages

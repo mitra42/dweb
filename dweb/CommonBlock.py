@@ -1,5 +1,6 @@
 # encoding: utf-8
 import dateutil.parser  # pip py-dateutil
+import base64
 from misc import ObsoleteException
 
 class Transportable(object):
@@ -10,6 +11,9 @@ class Transportable(object):
      _data getter and setter to return the data and to load from opaque bytes returned by transport. (Note SmartDict does this)
      __init__(data=None, hash=None, ...) That can be called after raw data retrieved (default calls getter/setter for _data
 
+    Fields:
+    _data   Usually a virtual property (see getter and setter) that stores data to dictionary etc
+    _hash   Hash of block holding the data
     """
     transport = None
 
@@ -66,7 +70,6 @@ class Transportable(object):
         if verbose: print "Transportable.file _hash=",self._hash, "len data=",len(self._data) if self._data else 0
         if self._hash and ((not self._data) or (len(self._data) <= 2)): # Empty data is '{}'
             self._data = self.transport.rawfetch(hash=self._hash, verbose=verbose, **options)
-        print "XXX@69----Transportable.fetch returning"
         return self # For Chaining
 
     def file(self, verbose=False, contenttype=None, **options):
@@ -93,7 +96,7 @@ class SmartDict(Transportable):
     The SmartDict class allows for merging of the functionality of a Dict and an object,
     allowing setting from a dictionary and access to elements by name.
 
-     _acl If set defines storage as encrypted
+     _acl If set (on master) defines storage as encrypted
     """
     def __getattr__(self, name):
         return self.__dict__.get(name)
@@ -113,6 +116,12 @@ class SmartDict(Transportable):
         return repr(self.__dict__)
 
     def __init__(self, data=None, hash=None, verbose=False, **options):
+        """
+
+        :param hash: Object to fetch data from
+        :param data: Used via _data's setter function to initialize object
+        :param options: Set fields of SmartDict AFTER initialized from data
+        """
         super(SmartDict, self).__init__(data=data, hash=hash) # Uses _data.setter to set data
         for k in options:
             self.__setattr__(k, options[k])
@@ -133,7 +142,7 @@ class SmartDict(Transportable):
             print self.__dict__
             raise e
         if self._acl:   # Need to encrypt
-            encdata = CryptoLib.sym_encrypt(res, self._acl.accesskey, b64=True)
+            encdata = CryptoLib.sym_encrypt(res, base64.urlsafe_b64decode(self._acl.accesskey), b64=True)
             dic = {"encrypted": encdata, "acl": self._acl._publichash}
             res = CryptoLib.dumps(dic)
         return res

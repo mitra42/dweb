@@ -4,6 +4,7 @@ import unittest
 import os
 from pathlib2 import Path
 from json import loads, dumps
+import base64
 
 from misc import _print
 from CryptoLib import CryptoLib, KeyPair
@@ -125,6 +126,7 @@ class Testing(unittest.TestCase):
         assert block._data == self.quickbrownfox, "Should return data stored"
 
     def test_file(self):
+        self.verbose=True
         Transportable.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         content = File.load(filepath=self.exampledir + "index.html", verbose=self.verbose).content(verbose=self.verbose)
         sb = StructuredBlock(**{"Content-type":"text/html"})  # ** because cant use args with hyphens\
@@ -238,21 +240,22 @@ class Testing(unittest.TestCase):
         #self.verbose = True
         if self.verbose: print "ACL 0 Setup the ACL and viewer"
         accesskey=CryptoLib.randomkey()
-        accesskey="ABCDEFGHIJKLMNOP"    # Uncomment for Easier for repeat tests and debugging
-        acl = AccessControlList(master=True, keypair=self.keyfromfile("test_acl1_rsa", private=True), verbose=self.verbose).store(verbose=self.verbose)
+        #accesskey="ABCDEFGHIJKLMNOP"    # Uncomment for Easier for repeat tests and debugging
+        acl = AccessControlList(master=True, keypair=self.keyfromfile("test_acl1_rsa", private=True),
+                                accesskey=base64.urlsafe_b64encode(accesskey), verbose=self.verbose).store(verbose=self.verbose)
         viewerkeypair = KeyPair(key=self.keyfromfile("test_viewer1_rsa", private=True)).store()
         AccessControlList.addviewer(viewerkeypair)  # Add it for decryption
         if self.verbose: print "ACL 1: give the viewer access via the ACL - only need to know the publichash, not private key."
-        acl.add(accesskey=accesskey, viewerpublichash=viewerkeypair.publichash, verbose=self.verbose)
+        acl.add(viewerpublichash=viewerkeypair.publichash, verbose=self.verbose)
         if self.verbose: print "ACL 2 publish the item"
         sb = StructuredBlock()
         sb.data = self.quickbrownfox
-        acl.accesskey = accesskey
         sb._acl = acl
         sb.store()  # Automatically encrypts based on ACL
         # Work around this intermediate - both to import, and to create and store it
         sb2 = StructuredBlock(hash=sb._hash).fetch(verbose=self.verbose)    # Fetches from dweb and automatically decrypts based on encrypted and acl fields
         assert sb2.data == self.quickbrownfox, "Data should survive round trip"
+        print sb2._hash
         #TODO-AUTHENTICATION Then try via a MBM
         #TODO-AUTHENTICATION Then try encrypting storage of MBM private key
 

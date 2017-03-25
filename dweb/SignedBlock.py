@@ -99,6 +99,7 @@ class SignedBlocks(list):
         :return: { sb.earliestsignaturedate: sb * }
         """
         return {sb._signatures.earliest(): sb for sb in self}  # Use date of first sig
+        #TODO I think this should be by latest as if republish earlier block it gets lost
 
     def latest(self):
         dated = self._dated()
@@ -107,7 +108,7 @@ class SignedBlocks(list):
 
     def sorteddeduplicated(self):
         """
-        Extract the latest, and return a deduplicated, ordered list of rest
+        Extract the latest, and return a deduplicated, ordered list
         :return: latest signed block, [ signed blocks in date order excluding latest ]*
         """
         dated = self._dated()

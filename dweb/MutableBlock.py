@@ -20,6 +20,9 @@ class CommonList(SmartDict):
     _list: [ StructuredBlock* ] Blocks on this list
     _master bool                True if this is the controlling object, has private keys etc
 
+    From SmartDict: _acl,
+    From Transportable: _data, _hash
+
     """
     # Comments on use of superclass methods without overriding here
 
@@ -37,6 +40,7 @@ class CommonList(SmartDict):
         :param KeyPair|str keypair: Keypair or export of Key identifying this list
         :param data: Exported data to import
         :param hash: Hash to exported data
+        :param options: Set on SmartDict unless specifically handled here
         """
         #if verbose: print "master=%s, keypair=%s, key=%s, hash=%s, verbose=%s, options=%s)" % (master, keypair, key, hash, verbose, options)
         self._master = master
@@ -51,7 +55,7 @@ class CommonList(SmartDict):
                 if not self._keypair._key.has_private:
                     raise PrivateKeyException(keypair.privatehash)
             else:   # master & !keypair
-                self._keypair = KeyPair.keygen(**options)
+                self._keypair = KeyPair.keygen(**options)   # Note these options are also set on smartdict, so catch explicitly if known.
         else:
             self._publichash = hash # Maybe None.
 
@@ -134,7 +138,14 @@ class MutableBlock(CommonList):
     Encapsulates a block that can change.
     Get/Set non-private attributes writes to the StructuredBlock at _current.
 
-    { _keypair: KeyPair, _current: StructuredBlock, _list: [ StructuredBlock* ] }
+    { _ keypair: KeyPair,               The key used for this list, has public and may have private component dependent on _master
+        _current: StructuredBlock       Most recently published item
+        _list: [ StructuredBlock* ] }   List of all published item (think of as previous versions)
+        contentaclhash                  Hash of ACL to use for content (note the MB itself is encrypted with via its own _acl field)
+        _contentacl:                    ACL to be applied to content (stored as "acl" on StructuredBlock and conten
+        From CommonList: _publichash, _list: [ StructuredBlock* ], _master bool
+        From SmartDict: _acl,
+        From Transportable: _data, _hash
     """
     _table = "mb"
 
@@ -207,7 +218,7 @@ class AccessControlList(CommonList):
     """
     myviewerkeys = []       # Set with keys we can use
 
-    def __init__(self, master=False, keypair=None, data=None, hash=None, verbose=False, **options):
+    def __init__(self, master=False, keypair=None, data=None, hash=None, accesskey=None, verbose=False, **options):
         #TODO-REFACTOR check all callers to this in test()
         """
         Create and initialize a AccessControlList
@@ -216,11 +227,12 @@ class AccessControlList(CommonList):
         :param KeyPair keypair: Public and Optionally private key
         :param hash: of key (alternative to key)
         :param master: True if its the master of the list, False, if its just a copy.
-        :param options: # Can indicate how to initialize content
+        :param accesskey: Key to use for access - typically random
+        :param options: Set on smart dict unless specifically handled
         """
-        super(AccessControlList, self).__init__(master=master, keypair=keypair, data=data, hash=hash, verbose=verbose, **options)
+        super(AccessControlList, self).__init__(master=master, keypair=keypair, data=data, hash=hash, accesskey=accesskey, verbose=verbose, **options)
 
-    def add(self, accesskey=None, viewerpublichash=None, verbose=False, **options):
+    def add(self, viewerpublichash=None, verbose=False, **options):
         """
         Add a new ACL entry
         Needs publickey of viewer
@@ -232,7 +244,8 @@ class AccessControlList(CommonList):
             raise ForbiddenException(what="Cant add viewers to ACL copy")
         viewerpublickeypair = KeyPair(hash=viewerpublichash)
         aclinfo = {
-            "token": viewerpublickeypair.encrypt(accesskey, b64=True),
+            # Need to go B64->binary->encrypt->B64
+            "token": viewerpublickeypair.encrypt(base64.urlsafe_b64decode(self.accesskey), b64=True),
             "viewer": viewerpublichash,
         }
         sb = StructuredBlock(data=aclinfo)

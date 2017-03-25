@@ -35,7 +35,8 @@ class StructuredBlock(SmartDict):
 
     def store(self, verbose=False, **options):
         """
-        Store any signatures in the Transport layer, content must already have been stored before signing
+        Store content if not already stored (note it must have been stored prior to signing)
+        Store any signatures in the Transport layer
         """
         if not self._hash:
             super(StructuredBlock, self).store(verbose=False, **options)    # Sets self._hash   #TODO-EFFICIENCY DONT STORE IF NOT CHANGED
@@ -145,6 +146,7 @@ class StructuredBlock(SmartDict):
     def sign(self, commonlist, verbose=False, **options):
         """
         Add a signature to a StructuredBlock
+        Note if the SB has a _acl field it will be encrypted first, then the hash of the encrypted block used for signing.
 
         :param CommonList commonlist:   List its going on - has a ACL with a private key
         :return: self
