@@ -149,7 +149,7 @@ class MutableBlock(CommonList):
     """
     _table = "mb"
 
-    def __init__(self, master=False, keypair=None, data=None, hash=None, contenthash=None, verbose=False, **options):
+    def __init__(self, master=False, keypair=None, data=None, hash=None, contenthash=None, contentaclhash=None, verbose=False, **options):
         #TODO-REFACTOR check all callers to this in test()
         """
         Create and initialize a MutableBlock
@@ -166,8 +166,27 @@ class MutableBlock(CommonList):
         if verbose: print "MutableBlock( keypair=",keypair, "data=",data, "hash=", hash, "options=", options,")"
         super(MutableBlock, self).__init__(master=master, keypair=keypair, data=data, hash=hash, verbose=verbose, **options)
         # Exception PrivateKeyException if passed public key and master=True
+        self.contentaclhash = contentaclhash  # Hash of content when publishing, only has meaning if master - triggers setter on content
         self._current = StructuredBlock(hash=contenthash, verbose=verbose, **options) if master else None # Create a place to hold content, pass hash to load content
         #OBS - table is always mb: self.__dict__["table"] = "mbm" if master else "mb"
+
+    @property
+    def contentaclhash(self):
+        return self._contentacl._hash if self._contentacl else None
+        #TODO-AUTEHENTICATION - make sure this get retrieved when do a _data on a mbm with a contentacl
+
+    @contentaclhash.setter
+    def contentaclhash(self, value):
+        """
+        Set the _contentacl used to control whether content encrypted or not
+
+        :param value: hash, AccessControlList or None
+        """
+        if value:
+            if not isinstance(value, AccessControlList):
+                value = AccessControlList(value)
+        self._contentacl = value
+
 
     def fetch(self, verbose=False, **options):
         """
@@ -200,6 +219,10 @@ class MutableBlock(CommonList):
 
         :return: self to allow chaining of functions
         """
+        if (not self._current._acl) and self._contentacl:
+            print "XXX@223 setting SB.contentacl25"
+            self._current._acl = self._contentacl    # Make sure SB encrypted when stored
+            self._current.dirty()   # Make sure stored again if stored unencrypted. - _hash will be used by signandstore
         return super(MutableBlock, self).signandstore(self._current, verbose=verbose, **options) # ERR SignedBlockEmptyException, ForbiddenException
 
     def path(self, urlargs, verbose=False, **optionsignored):

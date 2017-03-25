@@ -257,7 +257,8 @@ class Testing(unittest.TestCase):
         assert sb2.data == self.quickbrownfox, "Data should survive round trip"
         print sb2._hash
         #TODO-AUTHENTICATION Then try via a MBM
+        mblockm = MutableBlock(master=True, verbose=self.verbose)      # Create a new block with a new key
+        mblockm._current.data = self.quickbrownfox                       # Put some data in it (goes in the StructuredBlock at _current
+        mblockm.signandstore(verbose=self.verbose)              # Sign it - this publishes it
+        print "Now look at stored version, try retrieving as master, and as non-master"
         #TODO-AUTHENTICATION Then try encrypting storage of MBM private key
-
-
-
