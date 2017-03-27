@@ -45,6 +45,14 @@ TODO LIST
 =========
 This list is at a much finer lever of granularity than Roadmap above.
 
+* FUNCTIONALITY: KeyChain
+    * Add name to MBM, ACL
+    * Add _acl field to MBM, ACL : check if done at SB or SD
+    * KeyChain: CL: accesskey, list, _acl (similar to ACL)
+    * Test - create Keychain
+    * Test - add MBM to keychain
+    * Add Viewers (used for encryption) to keychain
+    * Protect KeyChain with password
 * FUNCTIONALITY: Add authentication layer
     * See Authentication.rst
     * Add a key chain for ones own objects and words for password

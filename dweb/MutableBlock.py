@@ -143,7 +143,7 @@ class MutableBlock(CommonList):
     """
     _table = "mb"
 
-    def __init__(self, master=False, keypair=None, data=None, hash=None, contenthash=None, contentacl=None, verbose=False, **options):
+    def __init__(self, master=False, keypair=None, data=None, hash=None, name=None, contenthash=None, contentacl=None, verbose=False, **options):
         #TODO-REFACTOR check all callers to this in test()
         """
         Create and initialize a MutableBlock
@@ -158,7 +158,7 @@ class MutableBlock(CommonList):
         """
         # This next line for "hash" is odd, side effect of hash being for content with MB.master and for key with MB.!master
         if verbose: print "MutableBlock( keypair=",keypair, "data=",data, "hash=", hash, "options=", options,")"
-        super(MutableBlock, self).__init__(master=master, keypair=keypair, data=data, hash=hash, verbose=verbose, **options)
+        super(MutableBlock, self).__init__(master=master, keypair=keypair, data=data, hash=hash, name=name, verbose=verbose, **options)
         # Exception PrivateKeyException if passed public key and master=True
         self.contentacl = contentacl    # Hash of content when publishing - calls contentacl.setter which retrieves it , only has meaning if master - triggers setter on content
         self._current = StructuredBlock(hash=contenthash, verbose=verbose) if master else None # Create a place to hold content, pass hash to load content
@@ -232,7 +232,7 @@ class AccessControlList(CommonList):
     """
     myviewerkeys = []       # Set with keys we can use
 
-    def __init__(self, master=False, keypair=None, data=None, hash=None, accesskey=None, verbose=False, **options):
+    def __init__(self, master=False, keypair=None, data=None, hash=None, accesskey=None, name=None, verbose=False, **options):
         #TODO-REFACTOR check all callers to this in test()
         """
         Create and initialize a AccessControlList
@@ -244,7 +244,7 @@ class AccessControlList(CommonList):
         :param accesskey: Key to use for access - typically random
         :param options: Set on smart dict unless specifically handled
         """
-        super(AccessControlList, self).__init__(master=master, keypair=keypair, data=data, hash=hash, accesskey=accesskey, verbose=verbose, **options)
+        super(AccessControlList, self).__init__(master=master, keypair=keypair, data=data, hash=hash, accesskey=accesskey, name=name, verbose=verbose, **options)
 
     def add(self, viewerpublichash=None, verbose=False, **options):
         """
