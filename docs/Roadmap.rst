@@ -46,16 +46,11 @@ TODO LIST
 This list is at a much finer lever of granularity than Roadmap above.
 
 * FUNCTIONALITY: Add authentication layer
-    * Test via MB/MBM
     * See Authentication.rst
-    * Store ACL info on mbm (already on item)
-        * Testing
-    * DOC - how to add an item
     * Add a key chain for ones own objects and words for password
     * Encrypt storage of MBM private key
     * Do in Javascript and via gateway
     * Embed on index and test pages
-* REFACTOR: Make variables used prefered get/set seq from docs (CL._keypair)
 * FUNCTIONALITY - storing some content in lists and allowing searches of that content (listfind ? a=b c=d
 * DOCS: Pass through docs, check all current  (done API-Integration)
 * DOCS: Complete "To extend with ... new obj,

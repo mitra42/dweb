@@ -68,15 +68,19 @@ class Testing(unittest.TestCase):
 
     def test_Signatures(self):
         # Test Signatures
+        #self.verbose=True
         signedblock = StructuredBlock(data=self.mydic)
         keypair = KeyPair.keygen()
         # This test should really fail, BUT since keypair has private it passes signature
         #commonlist0 = CommonList(keypair=keypair, master=False)
         #print commonlist0
         #signedblock.sign(commonlist0, verbose=self.verbose) # This should fail, but
+        if self.verbose: print "test_Signatures CommonLost"
         commonlist = CommonList(keypair=keypair, master=True)
+        if self.verbose: print "test_Signatures sign"
         signedblock.sign(commonlist, verbose=self.verbose) # TODO-REFACTOR-SIGB - won't work based on keypair, needs MBM etc
-        assert signedblock.verify(verify_atleastone=True), "Should verify"
+        if self.verbose: print "test_Signatures verification"
+        assert signedblock.verify(verify_atleastone=True, verbose=self.verbose), "Should verify"
         signedblock.a="A++"
         signedblock.dirty()
         assert not signedblock.verify(verify_atleastone=True, verbose=self.verbose), "Should fail"
@@ -95,7 +99,7 @@ class Testing(unittest.TestCase):
         mblockm.store()
         testhash = mblockm._current._hash                       # Get a pointer to the new version
         mbmpubhash = mblockm._publichash
-        #keyhash = mblockm._keypair.store().publichash           # Get the publickey pointer to the block
+        #keyhash = mblockm.keypair.store().publichash           # Get the publickey pointer to the block
         if self.verbose: print "test_MutableBlocks: And check it"
         mblock = MutableBlock(hash=mbmpubhash, verbose=self.verbose)                     # Setup a copy (not Master) via the publickey
         mblock.fetch(verbose=self.verbose)                      # Fetch the content

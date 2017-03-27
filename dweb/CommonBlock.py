@@ -68,7 +68,7 @@ class Transportable(object):
         :return:
         """
         if verbose: print "Transportable.file _hash=",self._hash, "len data=",len(self._data) if self._data else 0
-        if self._hash and ((not self._data) or (len(self._data) <= 2)): # Empty data is '{}'
+        if self._hash and ((not self._data) or (len(self._data) <= 2)): # See if its dirty, Empty data is '{}'
             self._data = self.transport.rawfetch(hash=self._hash, verbose=verbose, **options)
         return self # For Chaining
 
@@ -126,14 +126,16 @@ class SmartDict(Transportable):
         for k in options:
             self.__setattr__(k, options[k])
 
-    def preflight(self):
+    def preflight(self, dd=None):
         """
         Run before converting to data, by default does nothing, typically subclassed to turn objects into hashes
         :return:
         """
+        if not dd:
+            dd = self.__dict__  # Note this isnt a copy, so cant make changes below
         return {
-            k: self.__dict__[k].store()._hash if isinstance(self.__dict__[k], Transportable) else self.__dict__[k]
-            for k in self.__dict__
+            k: dd[k].store()._hash if isinstance(dd[k], Transportable) else dd[k]
+            for k in dd
             if k[0] != '_'
         }
 

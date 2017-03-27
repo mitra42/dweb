@@ -15,7 +15,7 @@ class CommonList(SmartDict):
     Partially copied to dweb.js.
 
     {
-    _keypair: KeyPair           Keys for this list
+    keypair: KeyPair           Keys for this list
     _publichash:                Hash that is used for refering to list - i.e. of public version of it.
     _list: [ StructuredBlock* ] Blocks on this list
     _master bool                True if this is the controlling object, has private keys etc
@@ -49,36 +49,32 @@ class CommonList(SmartDict):
         if keypair: # Note keypair may also have been set via "data" field in super call
             if not isinstance(keypair, KeyPair): # Its an export
                 keypair = KeyPair(key = keypair)  # Convert a string or a RSA key to a keypair
-            self._keypair = keypair
+            self.keypair = keypair
         if self._master:
-            if self._keypair: # master & keypair
-                if not self._keypair._key.has_private:
+            if self.keypair: # master & keypair
+                if not self.keypair._key.has_private:
                     raise PrivateKeyException(keypair.privatehash)
             else:   # master & !keypair
-                self._keypair = KeyPair.keygen(**options)   # Note these options are also set on smartdict, so catch explicitly if known.
+                self.keypair = KeyPair.keygen(**options)   # Note these options are also set on smartdict, so catch explicitly if known.
         else:
             self._publichash = hash # Maybe None.
 
         self._list = []
 
-    def _getdata(self):
-        # Make sure export the key, depending on if master or not - note exporting key rather than hash since will probably encrypt
-        if self._master:
-            self.privateexport = self._keypair.privateexport
-        else:
-            self.publicexport = self._keypair.publicexport
-        return super(CommonList, self)._getdata()  # Dumps __dict__, encrypts if _acl set
+    def preflight(self, dd=None):
+        if not dd:
+            dd = self.__dict__.copy()
+        if dd.get("keypair"):
+            dd["keypair"] = dd["keypair"].privateexport if dd["_master"] else dd["keypair"].publicexport
+        return super(CommonList, self).preflight(dd=dd)
 
     def _setdata(self, value):
         super(CommonList, self)._setdata(value) # Sets __dict__ from values
-        if self.privateexport:
-            self._keypair = KeyPair(key=self.privateexport)
-            self._master = True
-        elif self.publicexport:
-            self._keypair = KeyPair(key=self.publicexport)
-            self._master = False
+        if self.keypair and not isinstance(self.keypair, KeyPair):
+            self.keypair = KeyPair(key=self.keypair)
+            self._master = self.keypair._key.has_private
 
-    _data = property(_getdata, _setdata)
+    _data = property(SmartDict._getdata, _setdata)
 
     def fetch(self, verbose=False, fetchlist=True, **options):
         """
@@ -97,7 +93,7 @@ class CommonList(SmartDict):
         # - uses SmartDict.store which calls _data -> _getdata which gets the key
         if verbose: print "ACL.store"
         if self._master and not self._publichash:
-            acl2 = self.__class__(master=False, keypair=self._keypair)
+            acl2 = self.__class__(master=False, keypair=self.keypair)
             acl2.store(verbose=verbose, **options)
             self._publichash = acl2._hash
         super(CommonList,self).store()   # Stores privatekey  and sets _hash
@@ -141,7 +137,7 @@ class MutableBlock(CommonList):
     {   _current: StructuredBlock       Most recently published item
         _list: [ StructuredBlock* ] }   List of all published item (think of as previous versions)
         contentacl                      ACL, or its hash to use for content (note the MB itself is encrypted with via its own _acl field)
-        From CommonList: _publichash, _master bool, _keypair
+        From CommonList: _publichash, _master bool, keypair
         From SmartDict: _acl,
         From Transportable: _data, _hash
     """

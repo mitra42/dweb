@@ -48,6 +48,7 @@ class StructuredBlock(SmartDict):
 
     def _setdata(self, value):
         super(StructuredBlock,self)._setdata(value) # Set _data and attributes from dictionary in data
+        # Note self.links doesnt require handling in preflight or getdata because output as array of StructuredBlock
         if self.links:
             self.links = [l if isinstance(l, StructuredBlock) else StructuredBlock(l) for l in self.links ]
 
@@ -154,7 +155,7 @@ class StructuredBlock(SmartDict):
         from SignedBlock import Signature
         if not self._hash:
             self.store()  # Sets _hash which is needed for signatures #TODO-EFFICIENCY only store if not stored
-        self._signatures.append(Signature.sign(commonlist=commonlist, hash=self._hash))
+        self._signatures.append(Signature.sign(commonlist=commonlist, hash=self._hash, verbose=verbose))
         return self  # For chaining
 
     def verify(self, verbose=False, verify_atleastone=False, **options):
