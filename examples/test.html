@@ -5,7 +5,7 @@
     <title>DWEB Test page</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script><!-- Jquery via Google -->
     <!--<script src="/file/sb/SHA3256B64URL.BDCbn_l9rrlCdVkB9o6qozSP84HBCGors5dBLxdyro8="></script><!-- jquery-3.1.1.js-->
-    <script src="/file/mb/SHA3256B64URL.eyEsArmxOE43aDT_fbc84TMEQlhR1XADRVCFGjqaLTw="></script><!-- dweb.js -->
+    <script src="/file/mb/SHA3256B64URL.WkqRqNvT6sHEmYRgIe6FUqUZqi3GFft5w-XXYFw36nQ="></script><!-- dweb.js -->
     <script>
         // This is my current testing script first of block
     </script>
@@ -13,13 +13,12 @@
         // This is a script that previously worked
         function working() {
             console.log("StructuredBlock=======");
-            //sbhash="SHA3256B64URL.5xMdQpGDhxZYOpuf6q1ElOr19LBO47WZV8Sjn5uPGY0="
             sbhash="SHA3256B64URL.S8kZfMcWYNmCqKDu-DcYzvgDDkiJdcse87gaaIAdSuY=" // This is teh hash field from any line of list/..mbhash..
             let sb = new StructuredBlock(sbhash);
             sb.load(true, {"path": ["langs","readme.md"], "dom_id": "myList.0"} );
             console.log("MutableBlock=======");
-            <!-- also works with /file/mb/SHA3256B64URL.YrvSAjWrdcrrsakv9C3TbMmVThpyJEgNKbenynze048=/langs/readme.md -->
-            mbhash = "SHA3256B64URL.YrvSAjWrdcrrsakv9C3TbMmVThpyJEgNKbenynze048=";  // Hash reported out at tinymce.html
+            <!-- also works with /file/mb/SHA3256B64URL.R9gsQUpGDUa77jUy5H6c-rPUJDpM_TwaKJIkifx7kfE=/langs/readme.md -->
+            mbhash = "SHA3256B64URL.R9gsQUpGDUa77jUy5H6c-rPUJDpM_TwaKJIkifx7kfE=";  // Hash reported out at tinymce.html
             let mb = new MutableBlock(mbhash);  //TODO-KEY check all similar calls to make sure MutableBlock still takes parm 0 = hash
             mb.load(true, {"path": ["langs","readme.md"], "dom_id": "myList.1"}  );
             <!-- Now test path using dwebfile -->

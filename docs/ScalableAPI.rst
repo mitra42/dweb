@@ -157,16 +157,3 @@ hash
 
 keypair
     A KeyPair object (might be just the public key)
-
-Extending
-=========
-To extend
-Adding a new Object
--------------------
-On top of Structured Block, Smart Dict, Transportable
-Adding a new List
------------------
-On top of MB, CommonList
-
-Adding functionality on a list - e.g. Search or Earliest
-Adding functionality on a objects e.g. searchable

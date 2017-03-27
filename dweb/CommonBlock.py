@@ -1,7 +1,7 @@
 # encoding: utf-8
 import dateutil.parser  # pip py-dateutil
 import base64
-from misc import ObsoleteException
+from misc import ObsoleteException, _print
 
 class Transportable(object):
     """
@@ -126,6 +126,17 @@ class SmartDict(Transportable):
         for k in options:
             self.__setattr__(k, options[k])
 
+    def preflight(self):
+        """
+        Run before converting to data, by default does nothing, typically subclassed to turn objects into hashes
+        :return:
+        """
+        return {
+            k: self.__dict__[k].store()._hash if isinstance(self.__dict__[k], Transportable) else self.__dict__[k]
+            for k in self.__dict__
+            if k[0] != '_'
+        }
+
     def _getdata(self):
         """
         By default SmartDict subclasses are stored as JSON (CryptoLib.dumps) of the __dict__
@@ -136,7 +147,7 @@ class SmartDict(Transportable):
         """
         from CryptoLib import CryptoLib
         try:
-            res = CryptoLib.dumps(self) # Should call self.dumps below { k:self.__dict__[k] for k in self.__dict__ if k[0]!="_" })
+            res = CryptoLib.dumps(self.preflight()) # Should call self.dumps below { k:self.__dict__[k] for k in self.__dict__ if k[0]!="_" })
         except UnicodeDecodeError as e:
             print "Unicode error in StructuredBlock"
             print self.__dict__

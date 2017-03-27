@@ -24,6 +24,7 @@ Locking the Web Open
    Design
    Modules
    Javascript
+   Extending
    Glossary
 
 

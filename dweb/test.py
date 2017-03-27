@@ -126,7 +126,7 @@ class Testing(unittest.TestCase):
         assert block._data == self.quickbrownfox, "Should return data stored"
 
     def test_file(self):
-        self.verbose=True
+        #self.verbose=True
         Transportable.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         content = File.load(filepath=self.exampledir + "index.html", verbose=self.verbose).content(verbose=self.verbose)
         sb = StructuredBlock(**{"Content-type":"text/html"})  # ** because cant use args with hyphens\
@@ -257,8 +257,13 @@ class Testing(unittest.TestCase):
         assert sb2.data == self.quickbrownfox, "Data should survive round trip"
         print sb2._hash
         #TODO-AUTHENTICATION Then try via a MBM
-        mblockm = MutableBlock(master=True, verbose=self.verbose)      # Create a new block with a new key
-        mblockm._current.data = self.quickbrownfox                       # Put some data in it (goes in the StructuredBlock at _current
+        mblockm = MutableBlock(master=True, contentacl=acl, verbose=self.verbose)      # Create a new block with a new key
+        mblockm._current.data = self.quickbrownfox # Put some data in it (goes in the StructuredBlock at _current
+        mblockm.store()
         mblockm.signandstore(verbose=self.verbose)              # Sign it - this publishes it
-        print "Now look at stored version, try retrieving as master, and as non-master"
+        mbhash = mblockm._publichash
+        print mbhash
+        mb = MutableBlock(hash=mbhash, verbose=self.verbose)
+        assert mb.content(verbose=self.verbose) == self.quickbrownfox, "should round trip through acl"
+        #_print(mblockm.__dict__)
         #TODO-AUTHENTICATION Then try encrypting storage of MBM private key
