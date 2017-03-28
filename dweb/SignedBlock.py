@@ -7,6 +7,7 @@ from misc import MyBaseException, AssertionFail, _print
 from CryptoLib import CryptoLib, KeyPair
 from CommonBlock import Transportable
 from StructuredBlock import SmartDict, StructuredBlock
+from Transport import TransportURLNotFound
 
 
 """
@@ -35,7 +36,7 @@ class Signature(SmartDict):
 
 
     @classmethod
-    def sign(cls, commonlist, hash, verbose=False):    #TODO-REFACTOR-SIGB - sign based on MBM/ACL not on Key
+    def sign(cls, commonlist, hash, verbose=False):
         date = datetime.now()
         signature = CryptoLib.signature(commonlist.keypair, date, hash)
         return cls({"date": date, "signature": signature, "signedby": commonlist.store(verbose=verbose)._publichash})
@@ -70,6 +71,7 @@ class SignedBlocks(list):
     def fetch(cls, hash=None, verbose=False, **options):
         """
         Find all the related Signatures.
+        Exception: TransportURLNotFound if empty or bad URL
 
         :param hash:
         :param verbose:
@@ -78,20 +80,24 @@ class SignedBlocks(list):
         """
         #key = CryptoLib.export(publickey) if publickey is not None else None,
         if verbose: print "SignedBlocks.fetch looking for hash=",hash
-        lines = Transportable.transport.rawlist(hash=hash, verbose=verbose, **options)
-        if verbose: print "SignedBlocks.fetch found ",len(lines) if lines else None
-        results = {}
-        for block in lines:
-            #TODO - can push this deduplication adn verification into the Signatures class
-            s = Signature(block)
-            key = s.hash
-            if not results.get(key, None):
-                results[key] = StructuredBlock(hash=key)
-            if CryptoLib.verify(s):
-                results[key]._signatures.append(s)
+        try:
+            lines = Transportable.transport.rawlist(hash=hash, verbose=verbose, **options)
+        except TransportURLNotFound as e:
+            return SignedBlocks([])    # Its ok to fail as list may be empty
+        else:
+            if verbose: print "SignedBlocks.fetch found ",len(lines) if lines else None
+            results = {}
+            for block in lines:
+                #TODO - can push this deduplication adn verification into the Signatures class
+                s = Signature(block)
+                key = s.hash
+                if not results.get(key, None):
+                    results[key] = StructuredBlock(hash=key)
+                if CryptoLib.verify(s):
+                    results[key]._signatures.append(s)
 
-        # Turn it into a list of StructuredBlock - stores the hashes but doesnt fetch the data
-        sbs = SignedBlocks([ results[key] for key in results])
+            # Turn it into a list of StructuredBlock - stores the hashes but doesnt fetch the data
+            sbs = SignedBlocks([ results[key] for key in results])
         return sbs
 
     def _dated(self):

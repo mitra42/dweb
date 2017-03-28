@@ -30,7 +30,6 @@ class CommonList(SmartDict):
         return "%s(%s)" % (self.__class__.__name__, self.__dict__)
 
     def __init__(self, master=False, keypair=None, data=None, hash=None, verbose=False, **options):  # Note hash is of data
-        #TODO-REFACTOR check all callers to this in this file
         """
         Create and initialize a MutableBlock
         Typically called either with args (master, keypair) if creating, or with data or hash to load from dWeb
@@ -55,6 +54,7 @@ class CommonList(SmartDict):
                 if not self.keypair._key.has_private:
                     raise PrivateKeyException(keypair.privatehash)
             else:   # master & !keypair
+                if verbose: print "CommonList.__init__ generating key"
                 self.keypair = KeyPair.keygen(**options)   # Note these options are also set on smartdict, so catch explicitly if known.
         else:
             self._publichash = hash # Maybe None.
@@ -86,7 +86,8 @@ class CommonList(SmartDict):
         """
         super(CommonList, self).fetch(verbose=verbose, **options)   # Sets keypair etc via _data -> _setdata
         if fetchlist:
-            self._list = SignedBlocks.fetch(hash=self._publichash, verbose=verbose, **options).sorteddeduplicated()
+            print "XXX@89",self._publichash or self.keypair.publichash
+            self._list = SignedBlocks.fetch(hash=self._publichash or self.keypair.publichash, verbose=verbose, **options).sorteddeduplicated()
         return self # for chaining
 
     def store(self, verbose=False, **options):
@@ -115,7 +116,7 @@ class CommonList(SmartDict):
 
     def signandstore(self, obj, verbose=False, **options):
         """
-        Sign and store a StructuredBlock on a list
+        Sign and store a StructuredBlock on a list - via the SB's signatures - see add for doing independent of SB
 
         :param StructuredBlock obj:
         :param verbose:
@@ -127,6 +128,17 @@ class CommonList(SmartDict):
         # The obj.store stores signatures as well (e.g. see StructuredBlock.store)
         obj.sign(self).store(verbose=verbose, **options)
         return self
+
+    def add(self, obj, verbose=False, **options):
+        """
+        Add a object, typically MBM or ACL (i.e. not a StructuredBlock) to a List,
+        """
+        hash = obj if isinstance(obj, basestring) else obj._hash
+        from SignedBlock import Signature
+        sig = Signature.sign(self, hash, verbose=verbose, **options)
+        self.transport.add(obj=self, date=sig.date,
+                   signature=sig.signature, signedby=sig.signedby, verbose=verbose, **options)
+        # Caller will probably want to add obj to list , not done here since MB handles differently.
 
 
 class MutableBlock(CommonList):
@@ -143,8 +155,7 @@ class MutableBlock(CommonList):
     """
     _table = "mb"
 
-    def __init__(self, master=False, keypair=None, data=None, hash=None, name=None, contenthash=None, contentacl=None, verbose=False, **options):
-        #TODO-REFACTOR check all callers to this in test()
+    def __init__(self, master=False, keypair=None, data=None, hash=None, contenthash=None, contentacl=None, verbose=False, **options):
         """
         Create and initialize a MutableBlock
         Adapted to dweb.js.MutableBlock.constructor
@@ -158,7 +169,7 @@ class MutableBlock(CommonList):
         """
         # This next line for "hash" is odd, side effect of hash being for content with MB.master and for key with MB.!master
         if verbose: print "MutableBlock( keypair=",keypair, "data=",data, "hash=", hash, "options=", options,")"
-        super(MutableBlock, self).__init__(master=master, keypair=keypair, data=data, hash=hash, name=name, verbose=verbose, **options)
+        super(MutableBlock, self).__init__(master=master, keypair=keypair, data=data, hash=hash, verbose=verbose, **options)
         # Exception PrivateKeyException if passed public key and master=True
         self.contentacl = contentacl    # Hash of content when publishing - calls contentacl.setter which retrieves it , only has meaning if master - triggers setter on content
         self._current = StructuredBlock(hash=contenthash, verbose=verbose) if master else None # Create a place to hold content, pass hash to load content
@@ -188,9 +199,10 @@ class MutableBlock(CommonList):
         """
         if verbose: print "MutableBlock.fetch pubkey=",self._hash
         super(MutableBlock, self).fetch(verbose=verbose, **options)
-        self._current = self._list[-1]
-        if self._current:
-            self._current.fetch()   # Fetch current content
+        if len(self._list):
+            self._current = self._list[-1]
+            if self._current:
+                self._current.fetch()   # Fetch current content
         return self # For chaining
 
     def content(self, verbose=False, **options):
@@ -219,7 +231,13 @@ class MutableBlock(CommonList):
     def path(self, urlargs, verbose=False, **optionsignored):
         return self._current.path(urlargs, verbose)  # Pass to _current, (a StructuredBlock)  and walk its path
 
-class AccessControlList(CommonList):
+class EncryptionList(CommonList):
+    """
+    Common class for AccessControlList and KeyChain for things that can handle encryption
+    """
+    pass
+
+class AccessControlList(EncryptionList):
     """
     An AccessControlList is a list for each control domain, with the entries being who has access.
 
@@ -227,24 +245,11 @@ class AccessControlList(CommonList):
 
     See Authentication.rst
 
-    :param CommonList:
-    :return:
+    name        Name of this list, just for display curently
+    accesskey   Key with which things on this list are encrypted
+    From CommonList:    keypair, master
     """
     myviewerkeys = []       # Set with keys we can use
-
-    def __init__(self, master=False, keypair=None, data=None, hash=None, accesskey=None, name=None, verbose=False, **options):
-        #TODO-REFACTOR check all callers to this in test()
-        """
-        Create and initialize a AccessControlList
-        Adapted to dweb.js.MutableBlock.constructor
-
-        :param KeyPair keypair: Public and Optionally private key
-        :param hash: of key (alternative to key)
-        :param master: True if its the master of the list, False, if its just a copy.
-        :param accesskey: Key to use for access - typically random
-        :param options: Set on smart dict unless specifically handled
-        """
-        super(AccessControlList, self).__init__(master=master, keypair=keypair, data=data, hash=hash, accesskey=accesskey, name=name, verbose=verbose, **options)
 
     def add(self, viewerpublichash=None, verbose=False, **options):
         """
@@ -308,3 +313,17 @@ class AccessControlList(CommonList):
             cls.myviewerkeys += keypair
         else:
             cls.myviewerkeys.append(keypair)
+
+class KeyChain(EncryptionList):
+    """
+    A class to hold a list of encrypted Private keys. Control of Privatekey of this gives access to all of the items pointed at.
+
+    From EncryptionList accesskey       Behaves like that of the ACL
+    From CommonList:    keypair         Priv/Pub used to sign entries on the list - posession of Private gives control and access to acl
+    From SmartDict:     _acl            For encrypting the KeyChain itself
+    """
+
+    def add(self, obj, verbose=False, **options):
+        super(KeyChain, self).add(obj, verbose=verbose, **options)
+        self._list.append(obj)
+

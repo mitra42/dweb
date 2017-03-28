@@ -46,12 +46,7 @@ TODO LIST
 This list is at a much finer lever of granularity than Roadmap above.
 
 * FUNCTIONALITY: KeyChain
-    * Add name to MBM, ACL
-    * Add _acl field to MBM, ACL : check if done at SB or SD
-    * KeyChain: CL: accesskey, list, _acl (similar to ACL)
-    * Test - create Keychain
-    * Test - add MBM to keychain
-    * Add Viewers (used for encryption) to keychain
+    * Protect MBM with KeyChain
     * Protect KeyChain with password
 * FUNCTIONALITY: Add authentication layer
     * See Authentication.rst
@@ -59,6 +54,8 @@ This list is at a much finer lever of granularity than Roadmap above.
     * Encrypt storage of MBM private key
     * Do in Javascript and via gateway
     * Embed on index and test pages
+    * Add Viewers (used for encryption) to keychain
+* DEBUG - make sure not storing contentacl-private on MB-public
 * FUNCTIONALITY - storing some content in lists and allowing searches of that content (listfind ? a=b c=d
 * DOCS: Pass through docs, check all current  (done API-Integration)
 * DOCS: Complete "To extend with ... new obj,

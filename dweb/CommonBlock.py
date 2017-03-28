@@ -48,6 +48,7 @@ class Transportable(object):
         :return: hash of data
         """
         if verbose: print "Storing", self.__class__.__name__, "len=", len(data or self._data)
+        print "XXX@51",data, self._data,
         self._hash = self.transport.rawstore(data=data or self._data)  # Note uses fact that _data will be subclassed
         if verbose: print self.__class__.__name__, ".stored: hash=", self._hash
         return self
@@ -148,6 +149,7 @@ class SmartDict(Transportable):
         :return: canonical json string that handles dates, and order in dictionaries
         """
         from CryptoLib import CryptoLib
+        print "XXX@152", self
         try:
             res = CryptoLib.dumps(self.preflight()) # Should call self.dumps below { k:self.__dict__[k] for k in self.__dict__ if k[0]!="_" })
         except UnicodeDecodeError as e:

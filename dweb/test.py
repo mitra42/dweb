@@ -14,7 +14,7 @@ from TransportHTTP import TransportHTTP
 from CommonBlock import Transportable
 from Block import Block
 from StructuredBlock import StructuredBlock
-from MutableBlock import CommonList, MutableBlock, AccessControlList #TODO-AUTHENTICATION move to own file
+from MutableBlock import CommonList, MutableBlock, AccessControlList, KeyChain
 from File import File, Dir
 
 
@@ -78,7 +78,7 @@ class Testing(unittest.TestCase):
         if self.verbose: print "test_Signatures CommonLost"
         commonlist = CommonList(keypair=keypair, master=True)
         if self.verbose: print "test_Signatures sign"
-        signedblock.sign(commonlist, verbose=self.verbose) # TODO-REFACTOR-SIGB - won't work based on keypair, needs MBM etc
+        signedblock.sign(commonlist, verbose=self.verbose)
         if self.verbose: print "test_Signatures verification"
         assert signedblock.verify(verify_atleastone=True, verbose=self.verbose), "Should verify"
         signedblock.a="A++"
@@ -222,11 +222,6 @@ class Testing(unittest.TestCase):
         assert int(resp.headers["Content-Length"]) == f1sz,"Should match length of readme.md"
         # /file/mb/SHA3256B64URL.88S-FYlEN1iF3WuDRdXoR8SyMUG6crR5ehM21IvUuS0=/tinymce.min.js
 
-    def Xtest_current(self):
-        #self.verbose=True
-        print "XXXUploading index.html"
-        self._storeas("index.html", "index_html_rsa", "text/html")
-
     def test_crypto(self):
         if self.verbose: print "test_crypto: tests of the crypto library - esp round trips through functions"
         # Try symetric encrypt/decrypt
@@ -260,7 +255,7 @@ class Testing(unittest.TestCase):
         sb2 = StructuredBlock(hash=sb._hash).fetch(verbose=self.verbose)    # Fetches from dweb and automatically decrypts based on encrypted and acl fields
         assert sb2.data == self.quickbrownfox, "Data should survive round trip"
         print sb2._hash
-        #TODO-AUTHENTICATION Then try via a MBM
+        if self.verbose: print "ACL 3 via MBM"
         mblockm = MutableBlock(master=True, contentacl=acl, verbose=self.verbose)      # Create a new block with a new key
         mblockm._current.data = self.quickbrownfox # Put some data in it (goes in the StructuredBlock at _current
         mblockm.store()
@@ -271,3 +266,26 @@ class Testing(unittest.TestCase):
         assert mb.content(verbose=self.verbose) == self.quickbrownfox, "should round trip through acl"
         #_print(mblockm.__dict__)
         #TODO-AUTHENTICATION Then try encrypting storage of MBM private key
+
+    def test_current(self):
+        self.verbose=True
+        if self.verbose: print "KEYCHAIN 0 - create"
+        accesskey=CryptoLib.randomkey()
+        accesskey="ABCDEFGHIJKLMNOP"
+        kc = KeyChain(name="My Test KeyChain", master=True, keypair=self.keyfromfile("masterkey_rsa", private=True),
+                      accesskey=base64.urlsafe_b64encode(accesskey), verbose=self.verbose).store(verbose=self.verbose)
+        kchash = kc._hash
+        if self.verbose: print "KEYCHAIN 1 - add mbm to it"
+        mblockm = MutableBlock(master=True, name="test_current mbm", verbose=self.verbose)
+        #mblockm._acl = kc
+        #TODO when test below works, uncomment setting kc
+        mblockm.store()
+        mbmhash = mblockm._hash
+        print "Name=",mblockm.name
+        kc.add(mblockm, verbose=self.verbose)
+        print "Fetching ash=",mbmhash
+        mbm2 = MutableBlock(hash=mbmhash, master=True).fetch()  # TODO - why not retrieving - think its doing keygen
+        print mbm2
+        #TODO - try retrieving mblockm. I think should work as its acl field points at Master Key
+
+        #TODO-AUTHENTICATION
