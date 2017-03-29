@@ -241,7 +241,7 @@ class KeyPair(Transportable):
 
         :return: Private (RSA) key
         """
-        if not self._key.has_private:
+        if not self._key.has_private():
             raise PrivateKeyException()
         return self._key
 
@@ -254,7 +254,7 @@ class KeyPair(Transportable):
         :return:
         """
         self.key = value
-        if not self._key.has_private:  # Check it was really a Private key
+        if not self._key.has_private():  # Check it was really a Private key
             raise PrivateKeyException()
 
     @property

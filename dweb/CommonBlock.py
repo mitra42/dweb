@@ -172,9 +172,14 @@ class SmartDict(Transportable):
                 # Its data - should be JSON
                 value = CryptoLib.loads(value)  # Will throw exception if it isn't JSON
             if value.get("encrypted"):
-                from MutableBlock import AccessControlList
-                acl = AccessControlList(hash=value.get("acl"), verbose=self.verbose)    #TODO-AUTHENTICATION probably add person-to-person version
-                dec = acl.decrypt(data = value.get("encrypted"))
+                from MutableBlock import AccessControlList, KeyChain
+                hash = value.get("acl")
+                kc = KeyChain.find(publichash=hash) # Matching KeyChain or None
+                if kc:
+                    dec = kc.decrypt(data = value.get("encrypted"))   # Exception: DecryptionFail - unlikely since publichash matches
+                else:
+                    acl = AccessControlList(hash=hash, verbose=self.verbose)    #TODO-AUTHENTICATION probably add person-to-person version
+                    dec = acl.decrypt(data = value.get("encrypted"))
                 value = CryptoLib.loads(dec)
             for k in value:
                 self.__setattr__(k, value[k])

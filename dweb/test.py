@@ -68,7 +68,7 @@ class Testing(unittest.TestCase):
 
     def test_Signatures(self):
         # Test Signatures
-        self.verbose=True
+        #self.verbose=True
         signedblock = StructuredBlock(data=self.mydic)
         keypair = KeyPair.keygen()
         # This test should really fail, BUT since keypair has private it passes signature
@@ -268,25 +268,24 @@ class Testing(unittest.TestCase):
         #TODO-AUTHENTICATION Then try encrypting storage of MBM private key
 
     def test_current(self):
-        self.verbose=True
+        #self.verbose=True
         if self.verbose: print "KEYCHAIN 0 - create"
         accesskey=CryptoLib.randomkey()
         accesskey="ABCDEFGHIJKLMNOP"
         kc = KeyChain(name="My Test KeyChain", master=True, keypair=self.keyfromfile("masterkey_rsa", private=True),
                       accesskey=base64.urlsafe_b64encode(accesskey), verbose=self.verbose).store(verbose=self.verbose)
         kchash = kc._hash
+        KeyChain.addkeychains(kc)
         if self.verbose: print "KEYCHAIN 1 - add mbm to it"
         mblockm = MutableBlock(master=True, keygen=True, name="test_current mbm", verbose=self.verbose)
-        #mblockm._acl = kc
+        mblockm._acl = kc
         #TODO when test below works, uncomment setting kc
         mblockm.store()
         mbmhash = mblockm._hash
-        print "Name=",mblockm.name
         kc.add(mblockm, verbose=self.verbose)
-        print "Fetching ash=",mbmhash
+        if self.verbose: print "KEYCHAIN 2: Fetching mbm hash=",mbmhash
         mbm2 = MutableBlock(hash=mbmhash, master=True)
         mbm2.fetch(verbose=self.verbose)  # TODO - why not retrieving - think its doing keygen
-        print mbm2
-        #TODO - try retrieving mblockm. I think should work as its acl field points at Master Key
+        assert mbm2.name == mblockm.name, "Names should survive round trip"
 
-        #TODO-AUTHENTICATION
+        #TODO-AUTHENTICATION - need to encrypt KC

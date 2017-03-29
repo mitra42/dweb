@@ -62,7 +62,7 @@ class CommonList(SmartDict):
         if value and not isinstance(value, KeyPair):
             value = KeyPair(key=value)
         self.__dict__["keypair"] = value
-        self._master = value and value._key.has_private
+        self._master = value and value._key.has_private()
 
 
     def preflight(self, dd=None):
@@ -86,7 +86,6 @@ class CommonList(SmartDict):
         """
         super(CommonList, self).fetch(verbose=verbose, **options)   # only fetches if _needsfetch=True, Sets keypair etc via _data -> _setdata,
         if fetchlist:
-            print "XXX@89",self._publichash or self.keypair.publichash
             self._list = SignedBlocks.fetch(hash=self._publichash or self.keypair.publichash, verbose=verbose, **options).sorteddeduplicated()
         return self # for chaining
 
@@ -124,6 +123,7 @@ class CommonList(SmartDict):
         :param options:
         :return:
         """
+        self.fetch(fetchlist=False) # Check its fetched
         if not self._master:
             raise ForbiddenException(what="Signing a new entry when not a master list")
         # The obj.store stores signatures as well (e.g. see StructuredBlock.store)
@@ -235,6 +235,10 @@ class MutableBlock(CommonList):
 class EncryptionList(CommonList):
     """
     Common class for AccessControlList and KeyChain for things that can handle encryption
+
+    name        Name of this list, just for display curently
+    accesskey   Key with which things on this list are encrypted
+    From CommonList:    keypair, master
     """
     pass
 
@@ -245,10 +249,9 @@ class AccessControlList(EncryptionList):
     To create a list, it just requires a key pair, like any other List
 
     See Authentication.rst
+    From EncryptionList: accesskey   Key with which things on this list are encrypted
+    From CommonList:   keypair, master, name
 
-    name        Name of this list, just for display curently
-    accesskey   Key with which things on this list are encrypted
-    From CommonList:    keypair, master
     """
     myviewerkeys = []       # Set with keys we can use
 
@@ -290,6 +293,13 @@ class AccessControlList(EncryptionList):
         return toks
 
     def decrypt(self, data, viewerkeypair=None, verbose=False):
+        """
+
+        :param data: string from json - b64 encrypted
+        :param viewerkeypair:
+        :param verbose:
+        :return:
+        """
         vks = viewerkeypair or AccessControlList.myviewerkeys
         if not isinstance(vks, (list, tuple, set)):
             vks = [ vks ]
@@ -323,8 +333,34 @@ class KeyChain(EncryptionList):
     From CommonList:    keypair         Priv/Pub used to sign entries on the list - posession of Private gives control and access to acl
     From SmartDict:     _acl            For encrypting the KeyChain itself
     """
+    mykeychains = []       # Set with keys we can use
 
     def add(self, obj, verbose=False, **options):
         super(KeyChain, self).add(obj, verbose=verbose, **options)
         self._list.append(obj)
 
+    def decrypt(self, data, verbose=False):
+        """
+
+        :param data: String from json, b64 encoded
+        :param verbose:
+        :return:
+        """
+        symkey = base64.urlsafe_b64decode(self.accesskey)
+        r = CryptoLib.sym_decrypt(data, symkey, b64=True)  # Exception DecryptionFail (would be bad)
+        return r
+
+    @classmethod
+    def addkeychains(cls, *keychains):
+        """
+        Add keys I can view under to ACL
+
+        :param keychains:   Array of keychains
+        :return:
+        """
+        cls.mykeychains += keychains
+
+    @classmethod
+    def find(cls, publichash):
+        kcs = [ kc for kc in cls.mykeychains if kc._publichash == publichash ]
+        return kcs[0] if kcs else None

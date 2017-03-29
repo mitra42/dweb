@@ -104,7 +104,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
     @exposed
     def file(self, table=None, hash=None, urlargs=None, contenttype=None, verbose=False, **kwargs):
         #TODO-EFFICIENCY - next call does 2 fetches
-        verbose=True
+        #verbose=True
         return Transportable.transport.fetch(command="file", cls=table, hash=hash,path=urlargs, verbose=verbose, contenttype=contenttype, **kwargs  )
     file.arglist=["table", "hash"]
 
