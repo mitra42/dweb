@@ -68,6 +68,7 @@ class TransportHTTP(Transport):
         return r    # r is a response
 
     def rawfetch(self, hash=None, verbose=False, **options):
+        if verbose: print "TransportHTTP.rawfetch(%s)" % hash
         res = self._sendGetPost(False, "rawfetch", urlargs=[hash], verbose=verbose, params=options)
         return res.text
 

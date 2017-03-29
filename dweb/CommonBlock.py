@@ -14,6 +14,8 @@ class Transportable(object):
     Fields:
     _data   Usually a virtual property (see getter and setter) that stores data to dictionary etc
     _hash   Hash of block holding the data
+    _fetched    True if has been fetched from hash
+    _dirty      True if needs writing to dWeb
     """
     transport = None
 
@@ -27,6 +29,7 @@ class Transportable(object):
         """
         self._data = data   # Note will often call the @_data.setter function
         self._hash = hash
+        if hash and not data: self._needsfetch = True
         #TODO-VERIFY - can verify at this point
 
     @classmethod
@@ -48,7 +51,6 @@ class Transportable(object):
         :return: hash of data
         """
         if verbose: print "Storing", self.__class__.__name__, "len=", len(data or self._data)
-        print "XXX@51",data, self._data,
         self._hash = self.transport.rawstore(data=data or self._data)  # Note uses fact that _data will be subclassed
         if verbose: print self.__class__.__name__, ".stored: hash=", self._hash
         return self
@@ -68,9 +70,10 @@ class Transportable(object):
 
         :return:
         """
-        if verbose: print "Transportable.file _hash=",self._hash, "len data=",len(self._data) if self._data else 0
-        if self._hash and ((not self._data) or (len(self._data) <= 2)): # See if its dirty, Empty data is '{}'
+        if verbose: print "Transportable.fetch _hash=",self._hash
+        if self._needsfetch:
             self._data = self.transport.rawfetch(hash=self._hash, verbose=verbose, **options)
+            self._needsfetch = False
         return self # For Chaining
 
     def file(self, verbose=False, contenttype=None, **options):
@@ -149,7 +152,6 @@ class SmartDict(Transportable):
         :return: canonical json string that handles dates, and order in dictionaries
         """
         from CryptoLib import CryptoLib
-        print "XXX@152", self
         try:
             res = CryptoLib.dumps(self.preflight()) # Should call self.dumps below { k:self.__dict__[k] for k in self.__dict__ if k[0]!="_" })
         except UnicodeDecodeError as e:

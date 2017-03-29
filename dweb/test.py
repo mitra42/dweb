@@ -68,7 +68,7 @@ class Testing(unittest.TestCase):
 
     def test_Signatures(self):
         # Test Signatures
-        #self.verbose=True
+        self.verbose=True
         signedblock = StructuredBlock(data=self.mydic)
         keypair = KeyPair.keygen()
         # This test should really fail, BUT since keypair has private it passes signature
@@ -76,7 +76,7 @@ class Testing(unittest.TestCase):
         #print commonlist0
         #signedblock.sign(commonlist0, verbose=self.verbose) # This should fail, but
         if self.verbose: print "test_Signatures CommonLost"
-        commonlist = CommonList(keypair=keypair, master=True)
+        commonlist = CommonList(keypair=keypair, keygen=True, master=True)
         if self.verbose: print "test_Signatures sign"
         signedblock.sign(commonlist, verbose=self.verbose)
         if self.verbose: print "test_Signatures verification"
@@ -88,7 +88,7 @@ class Testing(unittest.TestCase):
     def test_MutableBlocks(self):
         #self.verbose=True
         if self.verbose: print "test_MutableBlocks: Create master"
-        mblockm = MutableBlock(master=True, verbose=self.verbose)      # Create a new block with a new key
+        mblockm = MutableBlock(master=True, keygen=True, verbose=self.verbose)      # Create a new block with a new key
         mblockm._current.data = self.quickbrownfox                       # Put some data in it (goes in the StructuredBlock at _current
         mblockm.signandstore(verbose=self.verbose)              # Sign it - this publishes it
         testhash0 = mblockm._current._hash                      # Get a pointer to that version
@@ -256,7 +256,7 @@ class Testing(unittest.TestCase):
         assert sb2.data == self.quickbrownfox, "Data should survive round trip"
         print sb2._hash
         if self.verbose: print "ACL 3 via MBM"
-        mblockm = MutableBlock(master=True, contentacl=acl, verbose=self.verbose)      # Create a new block with a new key
+        mblockm = MutableBlock(master=True, keygen=True, contentacl=acl, verbose=self.verbose)      # Create a new block with a new key
         mblockm._current.data = self.quickbrownfox # Put some data in it (goes in the StructuredBlock at _current
         mblockm.store()
         mblockm.signandstore(verbose=self.verbose)              # Sign it - this publishes it
@@ -276,7 +276,7 @@ class Testing(unittest.TestCase):
                       accesskey=base64.urlsafe_b64encode(accesskey), verbose=self.verbose).store(verbose=self.verbose)
         kchash = kc._hash
         if self.verbose: print "KEYCHAIN 1 - add mbm to it"
-        mblockm = MutableBlock(master=True, name="test_current mbm", verbose=self.verbose)
+        mblockm = MutableBlock(master=True, keygen=True, name="test_current mbm", verbose=self.verbose)
         #mblockm._acl = kc
         #TODO when test below works, uncomment setting kc
         mblockm.store()
@@ -284,7 +284,8 @@ class Testing(unittest.TestCase):
         print "Name=",mblockm.name
         kc.add(mblockm, verbose=self.verbose)
         print "Fetching ash=",mbmhash
-        mbm2 = MutableBlock(hash=mbmhash, master=True).fetch()  # TODO - why not retrieving - think its doing keygen
+        mbm2 = MutableBlock(hash=mbmhash, master=True)
+        mbm2.fetch(verbose=self.verbose)  # TODO - why not retrieving - think its doing keygen
         print mbm2
         #TODO - try retrieving mblockm. I think should work as its acl field points at Master Key
 

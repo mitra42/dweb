@@ -29,7 +29,7 @@ class CommonList(SmartDict):
     def __repr__(self):
         return "%s(%s)" % (self.__class__.__name__, self.__dict__)
 
-    def __init__(self, master=False, keypair=None, data=None, hash=None, verbose=False, **options):  # Note hash is of data
+    def __init__(self, master=False, keypair=None, data=None, hash=None, verbose=False, keygen=False, **options):  # Note hash is of data
         """
         Create and initialize a MutableBlock
         Typically called either with args (master, keypair) if creating, or with data or hash to load from dWeb
@@ -44,22 +44,26 @@ class CommonList(SmartDict):
         #if verbose: print "master=%s, keypair=%s, key=%s, hash=%s, verbose=%s, options=%s)" % (master, keypair, key, hash, verbose, options)
         self._master = master
         super(CommonList, self).__init__(data=data, hash=hash, verbose=verbose, **options)  # Initializes __dict__ via _data -> _setdata
-
-        if keypair: # Note keypair may also have been set via "data" field in super call
-            if not isinstance(keypair, KeyPair): # Its an export
-                keypair = KeyPair(key = keypair)  # Convert a string or a RSA key to a keypair
+        if keypair:
             self.keypair = keypair
-        if self._master:
-            if self.keypair: # master & keypair
-                if not self.keypair._key.has_private:
-                    raise PrivateKeyException(keypair.privatehash)
-            else:   # master & !keypair
-                if verbose: print "CommonList.__init__ generating key"
+        if keygen:
                 self.keypair = KeyPair.keygen(**options)   # Note these options are also set on smartdict, so catch explicitly if known.
-        else:
+        if not self._master:
             self._publichash = hash # Maybe None.
 
         self._list = []
+
+    @property
+    def keypair(self):
+        return self.__dict__.get("keypair")
+
+    @keypair.setter
+    def keypair(self, value):
+        if value and not isinstance(value, KeyPair):
+            value = KeyPair(key=value)
+        self.__dict__["keypair"] = value
+        self._master = value and value._key.has_private
+
 
     def preflight(self, dd=None):
         if not dd:
@@ -68,13 +72,9 @@ class CommonList(SmartDict):
             dd["keypair"] = dd["keypair"].privateexport if dd["_master"] else dd["keypair"].publicexport
         return super(CommonList, self).preflight(dd=dd)
 
-    def _setdata(self, value):
-        super(CommonList, self)._setdata(value) # Sets __dict__ from values
-        if self.keypair and not isinstance(self.keypair, KeyPair):
-            self.keypair = KeyPair(key=self.keypair)
-            self._master = self.keypair._key.has_private
-
-    _data = property(SmartDict._getdata, _setdata)
+    #def _setdata(self, value):
+    #    super(CommonList, self)._setdata(value) # Sets __dict__ from values including keypair via setter
+    #_data = property(SmartDict._getdata, SmartDict._setdata)
 
     def fetch(self, verbose=False, fetchlist=True, **options):
         """
@@ -84,7 +84,7 @@ class CommonList(SmartDict):
         :param verbose:
         :param options:
         """
-        super(CommonList, self).fetch(verbose=verbose, **options)   # Sets keypair etc via _data -> _setdata
+        super(CommonList, self).fetch(verbose=verbose, **options)   # only fetches if _needsfetch=True, Sets keypair etc via _data -> _setdata,
         if fetchlist:
             print "XXX@89",self._publichash or self.keypair.publichash
             self._list = SignedBlocks.fetch(hash=self._publichash or self.keypair.publichash, verbose=verbose, **options).sorteddeduplicated()
@@ -94,7 +94,8 @@ class CommonList(SmartDict):
         # - uses SmartDict.store which calls _data -> _getdata which gets the key
         if verbose: print "ACL.store"
         if self._master and not self._publichash:
-            acl2 = self.__class__(master=False, keypair=self.keypair)
+            acl2 = self.__class__(keypair=self.keypair)
+            acl2._master = False
             acl2.store(verbose=verbose, **options)
             self._publichash = acl2._hash
         super(CommonList,self).store()   # Stores privatekey  and sets _hash
