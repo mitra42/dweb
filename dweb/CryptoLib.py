@@ -177,6 +177,7 @@ class CryptoLib(object):
     def sym_encrypt(self, data, sym_key, b64=False, **options):
         iv = hashlib.sha1(data).digest()[0:AES.block_size]  # Not random, so can check result, but not checked cryptographically sound
         #iv = Random.new().read(AES.block_size) # The normal way
+        print "XXX@sym_encrypt len=",len(sym_key)
         cipher = AES.new(sym_key, AES.MODE_CFB, iv)
         res = iv + cipher.encrypt(data)
         if b64:
@@ -296,15 +297,19 @@ class KeyPair(Transportable):
     def publicexport(self):
         if isinstance(self._key, RSA._RSAobj):
             return self.public.exportKey("PEM")
+        elif isinstance(self._key, WordHashKey):
+                return self._key.publicexport()   # Not exportable
         else:
-            raise ToBeImplementedException(name="exportKey for "+self.__class__.__name__)
+            raise ToBeImplementedException(name="exportKey for "+self._key.__class__.__name__)
 
     @property
     def privateexport(self):
         if isinstance(self._key, RSA._RSAobj):
             return self.private.exportKey("PEM")
+        elif isinstance(self._key, WordHashKey):
+            return ""  # Not exportable
         else:
-            raise ToBeImplementedException(name="exportKey for "+self.__class__.__name__)
+            raise ToBeImplementedException(name="exportKey for "+self._key.__class__.__name__)
 
     @property
     def privatehash(self):
@@ -420,6 +425,9 @@ class WordHashKey(object):
 
     def has_private(self):
         return self._private is not None
+
+    def publicexport(self):
+        return self._public     # _public is a hash already
 
 def json_default(obj):
     """

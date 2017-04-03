@@ -91,15 +91,19 @@ class CommonList(SmartDict):
             self._list = SignedBlocks.fetch(hash=self._publichash or self.keypair.publichash, verbose=verbose, **options).sorteddeduplicated()
         return self # for chaining
 
-    def store(self, verbose=False, **options):
+    def _storepublic(self, verbose=False, **options):
+        acl2 = self.__class__(keypair=self.keypair)
+        acl2._master = False
+        acl2.store(verbose=verbose, **options)
+        return acl2._hash
+
+    def store(self, verbose=False, dontstoremaster=False, **options):
         # - uses SmartDict.store which calls _data -> _getdata which gets the key
         if verbose: print "ACL.store"
         if self._master and not self._publichash:
-            acl2 = self.__class__(keypair=self.keypair)
-            acl2._master = False
-            acl2.store(verbose=verbose, **options)
-            self._publichash = acl2._hash
-        super(CommonList,self).store()   # Stores privatekey  and sets _hash
+            self._publichash = self._storepublic()
+        if not (self._master and dontstoremaster):
+            super(CommonList,self).store(verbose=verbose, **options)   # Stores privatekey  and sets _hash
         return self
 
     def publicurl(self, command=None, **options):
@@ -136,10 +140,11 @@ class CommonList(SmartDict):
         """
         Add a object, typically MBM or ACL (i.e. not a StructuredBlock) to a List,
         """
+        print "XXX@143"
         hash = obj if isinstance(obj, basestring) else obj._hash
         from SignedBlock import Signature
         sig = Signature.sign(self, hash, verbose=verbose, **options)
-        self.transport.add(obj=self, date=sig.date,
+        self.transport.add(hash=hash, date=sig.date,
                    signature=sig.signature, signedby=sig.signedby, verbose=verbose, **options)
         # Caller will probably want to add obj to list , not done here since MB handles differently.
 
@@ -364,6 +369,14 @@ class KeyChain(EncryptionList):
         cls.mykeychains += keychains
 
     @classmethod
-    def find(cls, publichash):
+    def find(cls, publichash, verbose=True, **options):
         kcs = [ kc for kc in cls.mykeychains if kc._publichash == publichash ]
+        if verbose and kcs: print "KeyChain.find successful"
         return kcs[0] if kcs else None
+
+    @property
+    def accesskey(self):
+        return base64.urlsafe_b64encode(self.keypair._key._private)
+
+    def store(self, verbose=False, **options ):
+        return super(KeyChain, self).store(verbose=verbose, dontstoremaster=True, **options)  # Stores privatekey  and sets _hash

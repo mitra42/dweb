@@ -159,7 +159,9 @@ class SmartDict(Transportable):
             print self.__dict__
             raise e
         if self._acl:   # Need to encrypt
+            print "XXX@162 ENC with accesskey=",len(self._acl.accesskey)
             encdata = CryptoLib.sym_encrypt(res, base64.urlsafe_b64decode(self._acl.accesskey), b64=True)
+            print "XXX@164 encdata=",encdata
             dic = {"encrypted": encdata, "acl": self._acl._publichash}
             res = CryptoLib.dumps(dic)
         return res

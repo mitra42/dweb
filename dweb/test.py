@@ -268,67 +268,23 @@ class Testing(unittest.TestCase):
         #_print(mblockm.__dict__)
         #TODO-AUTHENTICATION Then try encrypting storage of MBM private key
 
-    def Xtest_current(self):
-        #self.verbose=True
-        if self.verbose: print "KEYCHAIN 0 - create"
-        accesskey=CryptoLib.randomkey()
-        accesskey="ABCDEFGHIJKLMNOP"
-        accesskey=CryptoLib.from_mnemonic(self.mnemonic)
-        kc = KeyChain(name="My Test KeyChain", master=True, keypair=self.keyfromfile("masterkey_rsa", private=True),
-                      accesskey=base64.urlsafe_b64encode(accesskey), verbose=self.verbose).store(verbose=self.verbose)
-        kchash = kc._hash
-        KeyChain.addkeychains(kc)
-        if self.verbose: print "KEYCHAIN 1 - add mbm to it"
-        mblockm = MutableBlock(master=True, keygen=True, name="test_current mbm", verbose=self.verbose)
-        mblockm._acl = kc
-        #TODO when test below works, uncomment setting kc
-        mblockm.store()
-        mbmhash = mblockm._hash
-        kc.add(mblockm, verbose=self.verbose)
-        if self.verbose: print "KEYCHAIN 2: Fetching mbm hash=",mbmhash
-        mbm2 = MutableBlock(hash=mbmhash, master=True)
-        mbm2.fetch(verbose=self.verbose)  # TODO - why not retrieving - think its doing keygen
-        assert mbm2.name == mblockm.name, "Names should survive round trip"
-        #TODO-AUTHENTICATION - need to encrypt KC
-        # Keygen -> Pub/Priv, (no access) ->
-        # words -> hash ->
-        """
-        Problem is that KeyPair cant know its own address. \
-            Cant derive key from address & store it, because that would modify content and change address
-                Also address -> key makes crackable if randomly find blocks
-                Cant key->address IF key stored
-                What if  key1 -> key2 -> key3, store under key3,
-            Can we protect RSA with passphrase
-            Pub/Priv -> list ->
-
-            OR words -> hash. Store on hash as list
-
-
-            kc (Pub/priv/access1). words -> hash;   Store kc on hash (but how as needs diff pub/priv key for that)
-
-            OR keychain *is* just words in accesskey.
-            Adding to keychain adds to list  (HOW)  (acl, enc), sig, signedby=wordhash
-
-            Priv = words, Pub = Hash of words  - not stored,
-        """
 
     def test_current(self):
         self.verbose=True
         if self.verbose: print "KEYCHAIN 0 - create"
-        kc = KeyChain(mnemonic=self.mnemonic)
+        kc = KeyChain(mnemonic=self.mnemonic, verbose=self.verbose).store(verbose=self.verbose)
         KeyChain.addkeychains(kc)
         if self.verbose: print "KEYCHAIN 1 - add mbm to it"
         mblockm = MutableBlock(master=True, keygen=True, name="test_current mbm", verbose=self.verbose)
         mblockm._acl = kc
-        #TODO when test below works, uncomment setting kc
         mblockm.store()
         mbmhash = mblockm._hash
         kc.add(mblockm, verbose=self.verbose)
         if self.verbose: print "KEYCHAIN 2: Fetching mbm hash=",mbmhash
-        mbm2 = MutableBlock(hash=mbmhash, master=True)
+        mbm2 = MutableBlock(hash=mbmhash, master=True, verbose=self.verbose)
         mbm2.fetch(verbose=self.verbose)  # TODO - why not retrieving - think its doing keygen
         assert mbm2.name == mblockm.name, "Names should survive round trip"
-        #TODO-AUTHENTICATION - need to encrypt KC
+        #TODO check can reconstruct kc and get mbm2
         # Keygen -> Pub/Priv, (no access) ->
         # words -> hash ->
 
