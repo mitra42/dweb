@@ -78,7 +78,7 @@ class CommonList(SmartDict):
     #    super(CommonList, self)._setdata(value) # Sets __dict__ from values including keypair via setter
     #_data = property(SmartDict._getdata, SmartDict._setdata)
 
-    def fetch(self, verbose=False, fetchlist=True, **options):
+    def fetch(self, verbose=False, fetchBody=True, fetchlist=True, **options):
         """
         Copied to dweb.js.
 
@@ -86,7 +86,8 @@ class CommonList(SmartDict):
         :param verbose:
         :param options:
         """
-        super(CommonList, self).fetch(verbose=verbose, **options)   # only fetches if _needsfetch=True, Sets keypair etc via _data -> _setdata,
+        if fetchBody:
+            super(CommonList, self).fetch(verbose=verbose, **options)   # only fetches if _needsfetch=True, Sets keypair etc via _data -> _setdata,
         if fetchlist:
             self._list = SignedBlocks.fetch(hash=self._publichash or self.keypair.publichash, verbose=verbose, **options).sorteddeduplicated()
         return self # for chaining
@@ -140,7 +141,6 @@ class CommonList(SmartDict):
         """
         Add a object, typically MBM or ACL (i.e. not a StructuredBlock) to a List,
         """
-        print "XXX@143"
         hash = obj if isinstance(obj, basestring) else obj._hash
         from SignedBlock import Signature
         sig = Signature.sign(self, hash, verbose=verbose, **options)
@@ -369,7 +369,7 @@ class KeyChain(EncryptionList):
         cls.mykeychains += keychains
 
     @classmethod
-    def find(cls, publichash, verbose=True, **options):
+    def find(cls, publichash, verbose=False, **options):
         kcs = [ kc for kc in cls.mykeychains if kc._publichash == publichash ]
         if verbose and kcs: print "KeyChain.find successful"
         return kcs[0] if kcs else None
@@ -380,3 +380,6 @@ class KeyChain(EncryptionList):
 
     def store(self, verbose=False, **options ):
         return super(KeyChain, self).store(verbose=verbose, dontstoremaster=True, **options)  # Stores privatekey  and sets _hash
+
+    def fetch(self, verbose=False, **options):
+        return super(KeyChain, self).fetch(fetchBody=False, verbose=verbose, **options)  # Dont fetch body, it wasn't stored

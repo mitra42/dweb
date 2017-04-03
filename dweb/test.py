@@ -255,22 +255,20 @@ class Testing(unittest.TestCase):
         # Work around this intermediate - both to import, and to create and store it
         sb2 = StructuredBlock(hash=sb._hash).fetch(verbose=self.verbose)    # Fetches from dweb and automatically decrypts based on encrypted and acl fields
         assert sb2.data == self.quickbrownfox, "Data should survive round trip"
-        print sb2._hash
         if self.verbose: print "ACL 3 via MBM"
         mblockm = MutableBlock(master=True, keygen=True, contentacl=acl, verbose=self.verbose)      # Create a new block with a new key
         mblockm._current.data = self.quickbrownfox # Put some data in it (goes in the StructuredBlock at _current
         mblockm.store()
         mblockm.signandstore(verbose=self.verbose)              # Sign it - this publishes it
         mbhash = mblockm._publichash
-        print mbhash
         mb = MutableBlock(hash=mbhash, verbose=self.verbose)
         assert mb.content(verbose=self.verbose) == self.quickbrownfox, "should round trip through acl"
         #_print(mblockm.__dict__)
         #TODO-AUTHENTICATION Then try encrypting storage of MBM private key
 
 
-    def test_current(self):
-        self.verbose=True
+    def test_keychain(self):
+        #self.verbose=True
         if self.verbose: print "KEYCHAIN 0 - create"
         kc = KeyChain(mnemonic=self.mnemonic, verbose=self.verbose).store(verbose=self.verbose)
         KeyChain.addkeychains(kc)
@@ -285,6 +283,19 @@ class Testing(unittest.TestCase):
         mbm2.fetch(verbose=self.verbose)  # TODO - why not retrieving - think its doing keygen
         assert mbm2.name == mblockm.name, "Names should survive round trip"
         #TODO check can reconstruct kc and get mbm2
+        if self.verbose: print "KEYCHAIN 3: new KeyChain and fetch"
+        KeyChain.mykeychains = [] # Clear Key Chains
+        kcs2 = KeyChain(mnemonic=self.mnemonic, verbose=self.verbose)
+        kcs2.store(verbose=self.verbose)
+        kcs2.fetch(verbose=self.verbose)
+        KeyChain.addkeychains(kcs2)
+        lasthash = kcs2._list[-1]._hash # Find last thing on the keychain (probably the MBM)
+        mbm3 = MutableBlock(hash=lasthash, master=True, verbose=self.verbose)
+        mbm3.fetch(verbose=self.verbose)  # TODO - why not retrieving - think its doing keygen
+        assert mbm3.name == mblockm.name, "Names should survive round trip"
+
+
+
         # Keygen -> Pub/Priv, (no access) ->
         # words -> hash ->
 

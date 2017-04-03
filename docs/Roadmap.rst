@@ -50,12 +50,6 @@ This list is at a much finer lever of granularity than Roadmap above.
     * Protect KeyChain with password
 * FUNCTIONALITY: Add authentication layer
     * See Authentication.rst
-    * Add a key chain for ones own objects and words for password
-        * Encrypt Key Chain
-            * Make CryptoLib handle different kinds of keys,
-            * CryptoLib.verify with Word/Hash key - always ok
-            * Keychain has Word/Hash keys, nothing stored but does have list.
-            * Doc checks if acl is in keycain
     * Do in Javascript and via gateway
     * Embed on index and test pages
     * Add Viewers (used for encryption) to keychain

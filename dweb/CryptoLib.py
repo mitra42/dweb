@@ -131,7 +131,7 @@ class CryptoLib(object):
         if isinstance(keypair._key, RSA._RSAobj):
             return check == keypair.public.encrypt(sigtocheck, 32)[0]
         elif isinstance(keypair._key, WordHashKey):
-            return keypair.verify(sigtocheck, check)
+            return keypair._key.verify(sigtocheck, check)
         else:
             raise ToBeImplementedException(name="verify for " + keypair.__class__.__name__)
 
@@ -161,6 +161,28 @@ class CryptoLib(object):
         """
         return loads(data)
 
+    @classmethod
+    def decryptdata(self, value, verbose=False):
+        """
+        Takes a dictionary that may contain { acl, encrypted } and returns the decrypted data.
+        No assumption is made about waht is in the decrypted data
+
+        :param value:
+        :return:
+        """
+        if value.get("encrypted"):
+            from MutableBlock import AccessControlList, KeyChain
+            hash = value.get("acl")
+            kc = KeyChain.find(publichash=hash)  # Matching KeyChain or None
+            if kc:
+                dec = kc.decrypt(data=value.get("encrypted"))  # Exception: DecryptionFail - unlikely since publichash matches
+            else:
+                acl = AccessControlList(hash=hash, verbose=verbose)  # TODO-AUTHENTICATION probably add person-to-person version
+                dec = acl.decrypt(data=value.get("encrypted"))
+            return dec
+        else:
+            return value
+
     # ============ METHODS dealing with Symetric keys ==============================
     @staticmethod
     def randomkey():
@@ -177,7 +199,6 @@ class CryptoLib(object):
     def sym_encrypt(self, data, sym_key, b64=False, **options):
         iv = hashlib.sha1(data).digest()[0:AES.block_size]  # Not random, so can check result, but not checked cryptographically sound
         #iv = Random.new().read(AES.block_size) # The normal way
-        print "XXX@sym_encrypt len=",len(sym_key)
         cipher = AES.new(sym_key, AES.MODE_CFB, iv)
         res = iv + cipher.encrypt(data)
         if b64:
@@ -216,7 +237,7 @@ class KeyPair(Transportable):
 
     @property
     def _data(self):
-        return
+        raise ToBeImplementedException(name="KeyPaid._data")    # I'm pretty sure this isn't used - see "store" below
 
     def __repr__(self):
         return "KeyPair" + repr(self.__dict__)  #TODO only useful for debugging,
@@ -248,6 +269,9 @@ class KeyPair(Transportable):
         if isinstance(value, basestring):  # Should be exported string, maybe public or private
             if "-----BEGIN " in value:
                 self._key = RSA.importKey(value)
+            elif "WORDHASH " in value:
+                unused, public = value.split()
+                self._key = WordHashKey(public=public)
             else:
                 raise ToBeImplementedException(name="key import for "+value)
         else:
@@ -403,10 +427,16 @@ class WordHashKey(object):
     _public  hash of private
     _private    binary key from the mnemonic words
     """
-    def __init__(self, mnemonic):
-        self._private = str(Mnemonic("english").to_entropy(mnemonic))
-        # TODO-AUTHENTICATION - in many places where use randomkey could allow setting with words
-        self._public = CryptoLib.Curlhash(self._private)
+    def __init__(self, mnemonic=None, public=None):
+        if mnemonic:
+            self._private = str(Mnemonic("english").to_entropy(mnemonic))
+            # TODO-AUTHENTICATION - in many places where use randomkey could allow setting with words
+            self._public = CryptoLib.Curlhash(self._private)
+        elif public:
+            self._private = None
+            self._public = public
+        else:
+            raise ToBeImplementedException("WordHashKey init if neither mnemonic or public")
 
     def publickey(self):  # Dummy, as functions are on key overall, not on private/public
         return self
@@ -427,7 +457,7 @@ class WordHashKey(object):
         return self._private is not None
 
     def publicexport(self):
-        return self._public     # _public is a hash already
+        return "WORDHASH "+self._public     # _public is a hash already
 
 def json_default(obj):
     """

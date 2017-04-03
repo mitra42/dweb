@@ -159,9 +159,7 @@ class SmartDict(Transportable):
             print self.__dict__
             raise e
         if self._acl:   # Need to encrypt
-            print "XXX@162 ENC with accesskey=",len(self._acl.accesskey)
             encdata = CryptoLib.sym_encrypt(res, base64.urlsafe_b64decode(self._acl.accesskey), b64=True)
-            print "XXX@164 encdata=",encdata
             dic = {"encrypted": encdata, "acl": self._acl._publichash}
             res = CryptoLib.dumps(dic)
         return res
@@ -173,16 +171,8 @@ class SmartDict(Transportable):
             if not isinstance(value, dict):
                 # Its data - should be JSON
                 value = CryptoLib.loads(value)  # Will throw exception if it isn't JSON
-            if value.get("encrypted"):
-                from MutableBlock import AccessControlList, KeyChain
-                hash = value.get("acl")
-                kc = KeyChain.find(publichash=hash) # Matching KeyChain or None
-                if kc:
-                    dec = kc.decrypt(data = value.get("encrypted"))   # Exception: DecryptionFail - unlikely since publichash matches
-                else:
-                    acl = AccessControlList(hash=hash, verbose=self.verbose)    #TODO-AUTHENTICATION probably add person-to-person version
-                    dec = acl.decrypt(data = value.get("encrypted"))
-                value = CryptoLib.loads(dec)
+            if "encrypted" in value:
+                value = CryptoLib.loads(CryptoLib.decryptdata(value))    # Decrypt, null operation if not encrypted
             for k in value:
                 self.__setattr__(k, value[k])
 
