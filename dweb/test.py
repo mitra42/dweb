@@ -289,7 +289,6 @@ class Testing(unittest.TestCase):
         mbm2 = MutableBlock(hash=mbmhash, master=True)
         mbm2.fetch(verbose=self.verbose)  # TODO - why not retrieving - think its doing keygen
         assert mbm2.name == mblockm.name, "Names should survive round trip"
-
         #TODO-AUTHENTICATION - need to encrypt KC
         # Keygen -> Pub/Priv, (no access) ->
         # words -> hash ->
@@ -312,3 +311,24 @@ class Testing(unittest.TestCase):
 
             Priv = words, Pub = Hash of words  - not stored,
         """
+
+    def test_current(self):
+        self.verbose=True
+        if self.verbose: print "KEYCHAIN 0 - create"
+        kc = KeyChain(mnemonic=self.mnemonic)
+        KeyChain.addkeychains(kc)
+        if self.verbose: print "KEYCHAIN 1 - add mbm to it"
+        mblockm = MutableBlock(master=True, keygen=True, name="test_current mbm", verbose=self.verbose)
+        mblockm._acl = kc
+        #TODO when test below works, uncomment setting kc
+        mblockm.store()
+        mbmhash = mblockm._hash
+        kc.add(mblockm, verbose=self.verbose)
+        if self.verbose: print "KEYCHAIN 2: Fetching mbm hash=",mbmhash
+        mbm2 = MutableBlock(hash=mbmhash, master=True)
+        mbm2.fetch(verbose=self.verbose)  # TODO - why not retrieving - think its doing keygen
+        assert mbm2.name == mblockm.name, "Names should survive round trip"
+        #TODO-AUTHENTICATION - need to encrypt KC
+        # Keygen -> Pub/Priv, (no access) ->
+        # words -> hash ->
+

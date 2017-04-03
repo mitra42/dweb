@@ -103,7 +103,8 @@ class CryptoLib(object):
         :param date: Date that signing (usually now)
         :return: signature that can be verified with verify
         """
-        #TODO-AUTHENITICATION - replace with better signing/verification e.g. from http://pydoc.net/Python/pycrypto/2.6.1/Crypto.Signature.PKCS1_v1_5/
+        #TODO-AUTHENTICATION - replace with better signing/verification e.g. from http://pydoc.net/Python/pycrypto/2.6.1/Crypto.Signature.PKCS1_v1_5/
+        #TODO-AUTHENTICATION - note this will require reworking WordHash.decrypt
         return base64.urlsafe_b64encode(keypair.private.decrypt(CryptoLib._signable(date, data)))
 
     @staticmethod
@@ -120,13 +121,19 @@ class CryptoLib(object):
         """
         from MutableBlock import CommonList
         cl = CommonList(hash=sig.signedby).fetch(fetchlist=False)
-        # Dont know what kind of list - e.g. MutableBlock or AccessControlList but dont care as not used
+        # Dont know what kind of list - e.g. MutableBlock or AccessControlList but dont care as only use keys
         keypair = cl.keypair    # Sideeffect of loading from dweb
         #b64decode requires a str, but signature may be unicode
-        #TODO-AUTHENITICATION - replace with better signing/verification e.g. from http://pydoc.net/Python/pycrypto/2.6.1/Crypto.Signature.PKCS1_v1_5/
-        decrypted = keypair.public.encrypt(base64.urlsafe_b64decode(str(sig.signature)), 32)[0]
+        #TODO-AUTHENTICATION - replace with better signing/verification e.g. from http://pydoc.net/Python/pycrypto/2.6.1/Crypto.Signature.PKCS1_v1_5/
+        #TODO-AUTHENTICATION - note this will require reworking WordHash.decrypt
         check = CryptoLib._signable(sig.date, hash or sig.hash)
-        return check == decrypted
+        sigtocheck = base64.urlsafe_b64decode(str(sig.signature))
+        if isinstance(keypair._key, RSA._RSAobj):
+            return check == keypair.public.encrypt(sigtocheck, 32)[0]
+        elif isinstance(keypair._key, WordHashKey):
+            return keypair.verify(sigtocheck, check)
+        else:
+            raise ToBeImplementedException(name="verify for " + keypair.__class__.__name__)
 
     @staticmethod
     def dumps(data):
@@ -189,10 +196,6 @@ class CryptoLib(object):
             raise DecryptionFail()
         return dec
 
-    @classmethod
-    def from_mnemonic(cls, words):
-        #TODO-AUTHENTICATION - wherever use randomkey allow setting words
-        return Mnemonic("english").to_entropy(words)
 
 
 class KeyPair(Transportable):
@@ -220,7 +223,7 @@ class KeyPair(Transportable):
     @classmethod
     def keygen(cls, **options):
         """
-        Generate a new key
+        Generate a new RSA key
 
         :param options: unused
         :return: KeyPair
@@ -242,7 +245,10 @@ class KeyPair(Transportable):
         :return:
         """
         if isinstance(value, basestring):  # Should be exported string, maybe public or private
-            self._key = RSA.importKey(value)
+            if "-----BEGIN " in value:
+                self._key = RSA.importKey(value)
+            else:
+                raise ToBeImplementedException(name="key import for "+value)
         else:
             self._key = value
 
@@ -288,11 +294,17 @@ class KeyPair(Transportable):
 
     @property
     def publicexport(self):
-        return self.public.exportKey("PEM")
+        if isinstance(self._key, RSA._RSAobj):
+            return self.public.exportKey("PEM")
+        else:
+            raise ToBeImplementedException(name="exportKey for "+self.__class__.__name__)
 
     @property
     def privateexport(self):
-        return self.private.exportKey("PEM")
+        if isinstance(self._key, RSA._RSAobj):
+            return self.private.exportKey("PEM")
+        else:
+            raise ToBeImplementedException(name="exportKey for "+self.__class__.__name__)
 
     @property
     def privatehash(self):
@@ -312,7 +324,7 @@ class KeyPair(Transportable):
         :param value:
         :return:
         """
-        self._key = RSA.importKey(self.transport.rawfetch(hash=value)) #TODO what happens if cant find
+        self.key = self.transport.rawfetch(hash=value)
 
     @property
     def publichash(self):
@@ -327,7 +339,7 @@ class KeyPair(Transportable):
         :param value:
         :return:
         """
-        self._key = RSA.importKey(self.transport.rawfetch(hash=value))
+        self.key = self.transport.rawfetch(hash=value)
         #TODO-AUTHENTICATION what happens if cant find
         if self.publichash != value and self.privatehash != value:
             self._key = None    # Blank out bad key
@@ -376,6 +388,38 @@ class KeyPair(Transportable):
         aeskey = cipher.decrypt(enckey)     # Matches aeskey in encrypt
         return CryptoLib.sym_decrypt(data, aeskey)
 
+
+class WordHashKey(object):
+    """
+    This is an odd, not really private/public key pair but it pretends to be.
+    It uses a key selected by the mnemonic words as the "private" key, and its hash as the public key.
+    The key is not stored with a keypair, either private or public since storing it would potentially expose it.
+
+    _public  hash of private
+    _private    binary key from the mnemonic words
+    """
+    def __init__(self, mnemonic):
+        self._private = str(Mnemonic("english").to_entropy(mnemonic))
+        # TODO-AUTHENTICATION - in many places where use randomkey could allow setting with words
+        self._public = CryptoLib.Curlhash(self._private)
+
+    def publickey(self):  # Dummy, as functions are on key overall, not on private/public
+        return self
+
+    def sign(self, value, **options):
+        return CryptoLib.sym_encrypt(value, self._private, b64=False, **options)    # b64 false because caller does it
+
+    def verify(self, sigtocheck, check, **options):
+        if self._private: # Check if we have _private, i.e. it is pretending to be on our KeyChain
+            return CryptoLib.sym_encrypt(value, self._private, b64=False, **options) == check
+        else:
+            return True # Always verifies OK on for example Transport
+
+    def decrypt(self, value, **options):  # Used by CryptoLib.signature to sign a date+data string
+        return self.sign(value, **options)
+
+    def has_private(self):
+        return self._private is not None
 
 def json_default(obj):
     """

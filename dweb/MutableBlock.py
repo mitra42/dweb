@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 from Block import Block
-from CryptoLib import CryptoLib, KeyPair, PrivateKeyException, AuthenticationException, DecryptionFail # Suite of functions for hashing, signing, encrypting
+from CryptoLib import CryptoLib, KeyPair, WordHashKey, PrivateKeyException, AuthenticationException, DecryptionFail # Suite of functions for hashing, signing, encrypting
 import base64
 from StructuredBlock import StructuredBlock
 from SignedBlock import SignedBlocks
@@ -29,7 +29,7 @@ class CommonList(SmartDict):
     def __repr__(self):
         return "%s(%s)" % (self.__class__.__name__, self.__dict__)
 
-    def __init__(self, master=False, keypair=None, data=None, hash=None, verbose=False, keygen=False, **options):  # Note hash is of data
+    def __init__(self, master=False, keypair=None, data=None, hash=None, verbose=False, keygen=False, mnemonic=None, **options):  # Note hash is of data
         """
         Create and initialize a MutableBlock
         Typically called either with args (master, keypair) if creating, or with data or hash to load from dWeb
@@ -44,6 +44,8 @@ class CommonList(SmartDict):
         #if verbose: print "master=%s, keypair=%s, key=%s, hash=%s, verbose=%s, options=%s)" % (master, keypair, key, hash, verbose, options)
         self._master = master
         super(CommonList, self).__init__(data=data, hash=hash, verbose=verbose, **options)  # Initializes __dict__ via _data -> _setdata
+        if mnemonic:
+            self.keypair = WordHashKey(mnemonic)
         if keypair:
             self.keypair = keypair
         if keygen:
@@ -334,6 +336,7 @@ class KeyChain(EncryptionList):
     From SmartDict:     _acl            For encrypting the KeyChain itself
     """
     mykeychains = []       # Set with keys we can use
+
 
     def add(self, obj, verbose=False, **options):
         super(KeyChain, self).add(obj, verbose=verbose, **options)
