@@ -29,6 +29,7 @@ class Testing(unittest.TestCase):
         self.ipandport = ('localhost', 4243)  # Serve it via HTTP on all addresses
         #self.ipandport = ('192.168.1.156', 4243)  # Serve it via HTTP on all addresses
         self.exampledir = "../examples/"    # Where example files placed
+        self.mnemonic = "lecture name virus model jealous whisper stone broom harvest april notable lunch" # Random valid mnemonic
         if testTransport == TransportLocal:
             Transportable.setup(TransportLocal, verbose=self.verbose, dir="../cache")
         elif testTransport == TransportHTTP:
@@ -267,11 +268,12 @@ class Testing(unittest.TestCase):
         #_print(mblockm.__dict__)
         #TODO-AUTHENTICATION Then try encrypting storage of MBM private key
 
-    def test_current(self):
+    def Xtest_current(self):
         #self.verbose=True
         if self.verbose: print "KEYCHAIN 0 - create"
         accesskey=CryptoLib.randomkey()
         accesskey="ABCDEFGHIJKLMNOP"
+        accesskey=CryptoLib.from_mnemonic(self.mnemonic)
         kc = KeyChain(name="My Test KeyChain", master=True, keypair=self.keyfromfile("masterkey_rsa", private=True),
                       accesskey=base64.urlsafe_b64encode(accesskey), verbose=self.verbose).store(verbose=self.verbose)
         kchash = kc._hash
@@ -289,3 +291,24 @@ class Testing(unittest.TestCase):
         assert mbm2.name == mblockm.name, "Names should survive round trip"
 
         #TODO-AUTHENTICATION - need to encrypt KC
+        # Keygen -> Pub/Priv, (no access) ->
+        # words -> hash ->
+        """
+        Problem is that KeyPair cant know its own address. \
+            Cant derive key from address & store it, because that would modify content and change address
+                Also address -> key makes crackable if randomly find blocks
+                Cant key->address IF key stored
+                What if  key1 -> key2 -> key3, store under key3,
+            Can we protect RSA with passphrase
+            Pub/Priv -> list ->
+
+            OR words -> hash. Store on hash as list
+
+
+            kc (Pub/priv/access1). words -> hash;   Store kc on hash (but how as needs diff pub/priv key for that)
+
+            OR keychain *is* just words in accesskey.
+            Adding to keychain adds to list  (HOW)  (acl, enc), sig, signedby=wordhash
+
+            Priv = words, Pub = Hash of words  - not stored,
+        """

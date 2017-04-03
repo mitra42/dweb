@@ -7,6 +7,8 @@ from datetime import datetime
 from Crypto import Random
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES, PKCS1_OAEP
+import os
+from mnemonic import Mnemonic
 
 from misc import MyBaseException, ToBeImplementedException, AssertionFail
 import sha3 # To add to hashlib
@@ -152,6 +154,7 @@ class CryptoLib(object):
         """
         return loads(data)
 
+    # ============ METHODS dealing with Symetric keys ==============================
     @staticmethod
     def randomkey():
         """
@@ -159,7 +162,9 @@ class CryptoLib(object):
 
         :return:
         """
-        return Random.get_random_bytes(16)
+        #TODO-AUTHENTICATION - check this is the right function to use for 16 random bytes see http://stackoverflow.com/questions/20460061/pythons-pycrypto-library-for-random-number-generation-vs-os-urandom
+        return os.urandom(16)
+        #return Random.get_random_bytes(16)
 
     @classmethod
     def sym_encrypt(self, data, sym_key, b64=False, **options):
@@ -184,6 +189,12 @@ class CryptoLib(object):
             raise DecryptionFail()
         return dec
 
+    @classmethod
+    def from_mnemonic(cls, words):
+        #TODO-AUTHENTICATION - wherever use randomkey allow setting words
+        return Mnemonic("english").to_entropy(words)
+
+
 class KeyPair(Transportable):
     """
     This uses the CryptoLib functions to encapsulate KeyPairs
@@ -197,7 +208,7 @@ class KeyPair(Transportable):
         elif hash:
             self.publichash = hash          # Side effect of loading from dWeb, note also works if its hash of privatekey
         else:
-            self._key = None
+            self.key = None
 
     @property
     def _data(self):

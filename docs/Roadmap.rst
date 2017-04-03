@@ -51,7 +51,7 @@ This list is at a much finer lever of granularity than Roadmap above.
 * FUNCTIONALITY: Add authentication layer
     * See Authentication.rst
     * Add a key chain for ones own objects and words for password
-    * Encrypt storage of MBM private key
+        * Encrypt Key Chain
     * Do in Javascript and via gateway
     * Embed on index and test pages
     * Add Viewers (used for encryption) to keychain
