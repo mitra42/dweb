@@ -1,7 +1,7 @@
 # encoding: utf-8
 import dateutil.parser  # pip py-dateutil
 import base64
-from misc import ObsoleteException, _print
+from misc import ObsoleteException, _print, ToBeImplementedException
 
 class Transportable(object):
     """
@@ -137,11 +137,14 @@ class SmartDict(Transportable):
         """
         if not dd:
             dd = self.__dict__  # Note this isnt a copy, so cant make changes below
-        return {
+        res = {
             k: dd[k].store()._hash if isinstance(dd[k], Transportable) else dd[k]
             for k in dd
             if k[0] != '_'
         }
+        res["table"] = res.get("table",self.table)  # Assumes if used table as a field, that not relying on it being the table for loading
+        if not res["table"]: raise ToBeImplementedException(name="preflight table for "+self.__class__.__name__)
+        return res
 
     def _getdata(self):
         """
@@ -160,7 +163,7 @@ class SmartDict(Transportable):
             raise e
         if self._acl:   # Need to encrypt
             encdata = CryptoLib.sym_encrypt(res, base64.urlsafe_b64decode(self._acl.accesskey), b64=True)
-            dic = {"encrypted": encdata, "acl": self._acl._publichash}
+            dic = {"encrypted": encdata, "acl": self._acl._publichash, "table": self.table}
             res = CryptoLib.dumps(dic)
         return res
 

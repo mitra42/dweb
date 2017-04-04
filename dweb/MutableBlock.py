@@ -70,7 +70,7 @@ class CommonList(SmartDict):
     def preflight(self, dd=None):
         if not dd:
             dd = self.__dict__.copy()
-        if dd.get("keypair"):
+        if dd.get("keypair"):   # Based on whether the CommonList is master, rather than if the key is (key could be master, and CL not)
             dd["keypair"] = dd["keypair"].privateexport if dd["_master"] else dd["keypair"].publicexport
         return super(CommonList, self).preflight(dd=dd)
 
