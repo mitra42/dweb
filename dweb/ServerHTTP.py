@@ -11,9 +11,9 @@ import CryptoLib
 
 
 LetterToClass = {
-    Block._table: Block,
-    StructuredBlock._table: StructuredBlock,
-    MutableBlock._table: MutableBlock,
+    Block.table: Block,
+    StructuredBlock.table: StructuredBlock,
+    MutableBlock.table: MutableBlock,
 }
 
 class DwebHTTPRequestHandler(MyHTTPRequestHandler):
@@ -145,10 +145,10 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         hash = hash or obj._hash
         if command in ["file"]:
             if url_output=="getpost":
-                return [False, command, [table or obj._table, hash]]
+                return [False, command, [table or obj.table, hash]]
             else:
                 url = "http://%s:%s/%s/%s/%s" \
-                    % (self.ipandport[0], self.ipandport[1], command, table or obj._table, hash)
+                    % (self.ipandport[0], self.ipandport[1], command, table or obj.table, hash)
         else:
             if url_output=="getpost":
                 raise ToBeImplementedException(name="TransportHTTP.url:command="+command+",url_output="+url_output)

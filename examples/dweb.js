@@ -98,7 +98,7 @@ class Block {
     constructor(hash, data) {
         this._hash = hash;  // Hash of the _data
         this._data = data;  // The data being stored
-        this._table = 'b';  // Table hash found in, TODO might want to move to _table python
+        this.table = 'b';  // Table hash found in, TODO might want to move to _table python
     }
 
     load(verbose, options) {
@@ -121,7 +121,7 @@ class Block {
 class StructuredBlock extends Block { //TODO can subclass SmartDict if used elsewhere
     constructor(hash) { //TODO support other things in construction
         super(hash, null); // _hash is _hash of SB, not of data
-        this._table = "sb"; // Note this is cls.table on python but need to separate from dictionary
+        this.table = "sb"; // Note this is cls.table on python but need to separate from dictionary
     }
     _setproperties(dict) {
         for (let prop in dict) {

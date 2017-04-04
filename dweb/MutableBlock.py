@@ -161,7 +161,7 @@ class MutableBlock(CommonList):
         From SmartDict: _acl,
         From Transportable: _data, _hash
     """
-    _table = "mb"
+    table = "mb"
 
     def __init__(self, master=False, keypair=None, data=None, hash=None, contenthash=None, contentacl=None, verbose=False, **options):
         """
@@ -261,6 +261,7 @@ class AccessControlList(EncryptionList):
 
     """
     myviewerkeys = []       # Set with keys we can use
+    table = "acl"
 
     def add(self, viewerpublichash=None, verbose=False, **options):
         """
@@ -341,6 +342,7 @@ class KeyChain(EncryptionList):
     From SmartDict:     _acl            For encrypting the KeyChain itself
     """
     mykeychains = []       # Set with keys we can use
+    table = "kc"
 
 
     def add(self, obj, verbose=False, **options):

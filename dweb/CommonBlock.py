@@ -83,13 +83,13 @@ class Transportable(object):
     def url(self, url_output=None, table=None, **options):
         """
         Get the body of a URL based on the transport just used.
-        Subclasses must define _table if want to support URL's
-        And retrieval depends on that _table being in ServerHTTP.LetterToClass
+        Subclasses must define table if want to support URL's
+        And retrieval depends on that table being in ServerHTTP.LetterToClass
 
         :param str url_output: "URL"/default for URL, "getpost" for getpost parms
         :return:    URL or other representation of this object
         """
-        table = table or self._table
+        table = table or self.table
         if not table:
             raise AssertionFail(message=self.__class__.__name__+" doesnt support url()")
         return self.transport.url(self, url_output=url_output, table=table, **options)
