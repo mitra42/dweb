@@ -225,7 +225,7 @@ class KeyPair(Transportable):
     This uses the CryptoLib functions to encapsulate KeyPairs
     """
 
-    def __init__(self, hash=None, key=None, data=None, master=None):
+    def __init__(self, hash=None, key=None, data=None, master=None, name=None):
         if data:                            # Support data kwarg so can call from Transportable.store
             key = data
         if key:
@@ -234,6 +234,7 @@ class KeyPair(Transportable):
             self.publichash = hash          # Side effect of loading from dWeb, note also works if its hash of privatekey
         else:
             self.key = None
+        self.name = name                    # Not used currently
 
     @property
     def _data(self):
@@ -376,6 +377,7 @@ class KeyPair(Transportable):
             #TODO-AUTHENTICATION copy this verification code up to privatehash
 
     def store(self, private=False, verbose=False):
+        if verbose: print "KeyPair.store priv=", private
         super(KeyPair, self).store(data=self.privateexport if private else self.publicexport, verbose=verbose)
         if self._hash != (self.privatehash if private else self.publichash):
             raise AssertionFail("Stored hash of key should match local hash algorithm")

@@ -93,7 +93,7 @@ class CommonList(SmartDict):
         return self # for chaining
 
     def _storepublic(self, verbose=False, **options):
-        acl2 = self.__class__(keypair=self.keypair)
+        acl2 = self.__class__(keypair=self.keypair, name=self.name)
         acl2._master = False
         acl2.store(verbose=verbose, **options)
         return acl2._hash

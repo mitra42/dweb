@@ -237,31 +237,32 @@ class Testing(unittest.TestCase):
         assert dec == self.quickbrownfox
 
     def test_acl(self):    # For testing ACL
-        #self.verbose = True
+        self.verbose = True
         if self.verbose: print "ACL 0 Setup the ACL and viewer"
         accesskey=CryptoLib.randomkey()
         #accesskey="ABCDEFGHIJKLMNOP"    # Uncomment for Easier for repeat tests and debugging
-        acl = AccessControlList(master=True, keypair=self.keyfromfile("test_acl1_rsa", private=True),
+        acl = AccessControlList(name="test_acl.acl", master=True, keypair=self.keyfromfile("test_acl1_rsa", private=True),
                                 accesskey=base64.urlsafe_b64encode(accesskey), verbose=self.verbose).store(verbose=self.verbose)
-        viewerkeypair = KeyPair(key=self.keyfromfile("test_viewer1_rsa", private=True)).store()
+        viewerkeypair = KeyPair(name="test_acl viewerkeypair", key=self.keyfromfile("test_viewer1_rsa", private=True)).store(verbose=self.verbose) # Defaults to store private=False
         AccessControlList.addviewer(viewerkeypair)  # Add it for decryption
         if self.verbose: print "ACL 1: give the viewer access via the ACL - only need to know the publichash, not private key."
         acl.add(viewerpublichash=viewerkeypair.publichash, verbose=self.verbose)
         if self.verbose: print "ACL 2 publish the item"
         sb = StructuredBlock()
+        sb.name = "test_acl.sb"
         sb.data = self.quickbrownfox
         sb._acl = acl
-        sb.store()  # Automatically encrypts based on ACL
+        sb.store(verbose=self.verbose)  # Automatically encrypts based on ACL
         # Work around this intermediate - both to import, and to create and store it
         sb2 = StructuredBlock(hash=sb._hash).fetch(verbose=self.verbose)    # Fetches from dweb and automatically decrypts based on encrypted and acl fields
         assert sb2.data == self.quickbrownfox, "Data should survive round trip"
         if self.verbose: print "ACL 3 via MBM"
-        mblockm = MutableBlock(master=True, keygen=True, contentacl=acl, verbose=self.verbose)      # Create a new block with a new key
+        mblockm = MutableBlock(name="test_acl mblockm", master=True, keygen=True, contentacl=acl, verbose=self.verbose)      # Create a new block with a new key
         mblockm._current.data = self.quickbrownfox # Put some data in it (goes in the StructuredBlock at _current
         mblockm.store()
         mblockm.signandstore(verbose=self.verbose)              # Sign it - this publishes it
         mbhash = mblockm._publichash
-        mb = MutableBlock(hash=mbhash, verbose=self.verbose)
+        mb = MutableBlock(name="test_acl mb", hash=mbhash, verbose=self.verbose)
         assert mb.content(verbose=self.verbose) == self.quickbrownfox, "should round trip through acl"
         #_print(mblockm.__dict__)
         #TODO-AUTHENTICATION Then try encrypting storage of MBM private key
