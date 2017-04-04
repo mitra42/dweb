@@ -5,7 +5,7 @@ import dateutil.parser  # pip py-dateutil
 from json import loads
 from misc import MyBaseException, AssertionFail, _print
 from CryptoLib import CryptoLib, KeyPair
-from CommonBlock import Transportable
+from CommonBlock import Transportable, UnknownBlock
 from StructuredBlock import SmartDict, StructuredBlock
 from Transport import TransportURLNotFound
 
@@ -68,7 +68,7 @@ class SignedBlocks(list):
     """
 
     @classmethod
-    def fetch(cls, hash=None, verbose=False, **options):
+    def fetch(cls, hash=None, verbose=False, fetchblocks=False, **options):
         """
         Find all the related Signatures.
         Exception: TransportURLNotFound if empty or bad URL
@@ -79,7 +79,7 @@ class SignedBlocks(list):
         :return: SignedBlocks which is a list of StructuredBlock
         """
         #key = CryptoLib.export(publickey) if publickey is not None else None,
-        if verbose: print "SignedBlocks.fetch looking for hash=",hash
+        if verbose: print "SignedBlocks.fetch looking for hash=",hash,"fetchblocks=", fetchblocks
         try:
             lines = Transportable.transport.rawlist(hash=hash, verbose=verbose, **options)
         except TransportURLNotFound as e:
@@ -92,8 +92,13 @@ class SignedBlocks(list):
                 s = Signature(block)
                 key = s.hash
                 if not results.get(key, None):
-                    results[key] = StructuredBlock(hash=key)
+                    if fetchblocks:
+                        results[key] = UnknownBlock(hash=key).fetch()  # Was StructuredBlock, but we don't know its a SB
+                    else:
+                        results[key] = UnknownBlock(hash=key)  # Was StructuredBlock, but we don't know its a SB
                 if CryptoLib.verify(s):
+                    if not results[key]._signatures:
+                        results[key]._signatures = Signatures([])
                     results[key]._signatures.append(s)
 
             # Turn it into a list of StructuredBlock - stores the hashes but doesnt fetch the data
@@ -122,3 +127,9 @@ class SignedBlocks(list):
         sorted.sort()       # Earliest first
         return [ dated[date] for date in sorted ]
 
+    def resolvetables(self):
+        """
+        Takes a list of deduped SignedBlocks, and fetches them to determine their real class
+
+        :return:
+        """

@@ -78,7 +78,7 @@ class CommonList(SmartDict):
     #    super(CommonList, self)._setdata(value) # Sets __dict__ from values including keypair via setter
     #_data = property(SmartDict._getdata, SmartDict._setdata)
 
-    def fetch(self, verbose=False, fetchBody=True, fetchlist=True, **options):
+    def fetch(self, verbose=False, fetchBody=True, fetchlist=True, fetchblocks=False, **options):
         """
         Copied to dweb.js.
 
@@ -89,7 +89,7 @@ class CommonList(SmartDict):
         if fetchBody:
             super(CommonList, self).fetch(verbose=verbose, **options)   # only fetches if _needsfetch=True, Sets keypair etc via _data -> _setdata,
         if fetchlist:
-            self._list = SignedBlocks.fetch(hash=self._publichash or self.keypair.publichash, verbose=verbose, **options).sorteddeduplicated()
+            self._list = SignedBlocks.fetch(hash=self._publichash or self.keypair.publichash, fetchblocks=fetchblocks, verbose=verbose, **options).sorteddeduplicated()
         return self # for chaining
 
     def _storepublic(self, verbose=False, **options):
@@ -206,15 +206,15 @@ class MutableBlock(CommonList):
         :return: self for chaining
         """
         if verbose: print "MutableBlock.fetch pubkey=",self._hash
-        super(MutableBlock, self).fetch(verbose=verbose, **options)
+        super(MutableBlock, self).fetch(verbose=verbose, fetchblocks=False, **options)  # Dont fetch old versions
         if len(self._list):
-            self._current = self._list[-1]
-            if self._current:
-                self._current.fetch()   # Fetch current content
+            curr = self._list[-1]
+            self._current = curr and curr.fetch() # Fetch current content
         return self # For chaining
 
     def content(self, verbose=False, **options):
-        self.fetch()
+        self.fetch()    # defaults fetchlist=True, fetchblocks=False
+        self._current = self._current.fetch()   # To fetch just the current block (the assignment is because will change class)
         return self._current.content(verbose=verbose, **options)
 
     def file(self, verbose=False, **options):
@@ -293,7 +293,8 @@ class AccessControlList(EncryptionList):
         :param options:
         :return:
         """
-        self.fetch(verbose=verbose)
+        if verbose: print "AccessControlList.tokens decrypt=",decrypt
+        self.fetch(verbose=verbose, fetchblocks=True)
         viewerpublichash = viewerkeypair.publichash
         toks = [ a.token for a in self._list if a.fetch().viewer == viewerpublichash]
         if decrypt:
@@ -312,7 +313,7 @@ class AccessControlList(EncryptionList):
         if not isinstance(vks, (list, tuple, set)):
             vks = [ vks ]
         for vk in vks:
-            for symkey in self.tokens(viewerkeypair = vk, decrypt=True):
+            for symkey in self.tokens(viewerkeypair = vk, decrypt=True, verbose=verbose):
                 try:
                     r = CryptoLib.sym_decrypt(data, symkey, b64=True) #Exception DecryptionFail
                     return r    # Dont continue to process when find one

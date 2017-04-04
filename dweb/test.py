@@ -77,7 +77,8 @@ class Testing(unittest.TestCase):
         #print commonlist0
         #signedblock.sign(commonlist0, verbose=self.verbose) # This should fail, but
         if self.verbose: print "test_Signatures CommonLost"
-        commonlist = CommonList(keypair=keypair, keygen=True, master=True)
+        CommonList.table = "BOGUS"  # Defeat errors
+        commonlist = CommonList(keypair=keypair, keygen=True, master=True, name="test_Signatures.commonlist")
         if self.verbose: print "test_Signatures sign"
         signedblock.sign(commonlist, verbose=self.verbose)
         if self.verbose: print "test_Signatures verification"
@@ -254,7 +255,7 @@ class Testing(unittest.TestCase):
         sb._acl = acl
         sb.store(verbose=self.verbose)  # Automatically encrypts based on ACL
         # Work around this intermediate - both to import, and to create and store it
-        sb2 = StructuredBlock(hash=sb._hash).fetch(verbose=self.verbose)    # Fetches from dweb and automatically decrypts based on encrypted and acl fields
+        sb2 = StructuredBlock(hash=sb._hash, verbose=self.verbose).fetch(verbose=self.verbose)    # Fetches from dweb and automatically decrypts based on encrypted and acl fields
         assert sb2.data == self.quickbrownfox, "Data should survive round trip"
         if self.verbose: print "ACL 3 via MBM"
         mblockm = MutableBlock(name="test_acl mblockm", master=True, keygen=True, contentacl=acl, verbose=self.verbose)      # Create a new block with a new key
@@ -265,11 +266,10 @@ class Testing(unittest.TestCase):
         mb = MutableBlock(name="test_acl mb", hash=mbhash, verbose=self.verbose)
         assert mb.content(verbose=self.verbose) == self.quickbrownfox, "should round trip through acl"
         #_print(mblockm.__dict__)
-        #TODO-AUTHENTICATION Then try encrypting storage of MBM private key
 
 
-    def test_keychain(self):
-        #self.verbose=True
+    def test_keychain(self): # TODO rename test_keychain
+        self.verbose=True
         if self.verbose: print "KEYCHAIN 0 - create"
         kc = KeyChain(mnemonic=self.mnemonic, verbose=self.verbose).store(verbose=self.verbose)
         KeyChain.addkeychains(kc)
@@ -281,20 +281,19 @@ class Testing(unittest.TestCase):
         kc.add(mblockm, verbose=self.verbose)
         if self.verbose: print "KEYCHAIN 2: Fetching mbm hash=",mbmhash
         mbm2 = MutableBlock(hash=mbmhash, master=True, verbose=self.verbose)
-        mbm2.fetch(verbose=self.verbose)  # TODO - why not retrieving - think its doing keygen
+        mbm2.fetch(verbose=self.verbose)
         assert mbm2.name == mblockm.name, "Names should survive round trip"
-        #TODO check can reconstruct kc and get mbm2
-        if self.verbose: print "KEYCHAIN 3: new KeyChain and fetch"
+        if self.verbose: print "KEYCHAIN 3: reconstructing KeyChain and fetch"
         KeyChain.mykeychains = [] # Clear Key Chains
         kcs2 = KeyChain(mnemonic=self.mnemonic, verbose=self.verbose)
         kcs2.store(verbose=self.verbose)
-        kcs2.fetch(verbose=self.verbose)
         KeyChain.addkeychains(kcs2)
-        lasthash = kcs2._list[-1]._hash # Find last thing on the keychain (probably the MBM)
-        mbm3 = MutableBlock(hash=lasthash, master=True, verbose=self.verbose)
-        mbm3.fetch(verbose=self.verbose)  # TODO - why not retrieving - think its doing keygen
+        kcs2.fetch(verbose=self.verbose, fetchblocks=True)
+        mbm3 = kcs2._list[-1]
+        assert mbm3.__class__.__name__ == "MutableBlock", "Should be a mutable block"
         assert mbm3.name == mblockm.name, "Names should survive round trip"
-
+        if self.verbose: print "test_keychain: done"
+        #TODO - put viewer into keychain (but first need to do MBM / SB stuff above)
 
 
         # Keygen -> Pub/Priv, (no access) ->

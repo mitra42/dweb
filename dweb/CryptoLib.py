@@ -178,7 +178,7 @@ class CryptoLib(object):
                 dec = kc.decrypt(data=value.get("encrypted"))  # Exception: DecryptionFail - unlikely since publichash matches
             else:
                 acl = AccessControlList(hash=hash, verbose=verbose)  # TODO-AUTHENTICATION probably add person-to-person version
-                dec = acl.decrypt(data=value.get("encrypted"))
+                dec = acl.decrypt(data=value.get("encrypted"), verbose=verbose)
             return dec
         else:
             return value

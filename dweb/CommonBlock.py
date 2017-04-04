@@ -143,7 +143,8 @@ class SmartDict(Transportable):
             if k[0] != '_'
         }
         res["table"] = res.get("table",self.table)  # Assumes if used table as a field, that not relying on it being the table for loading
-        if not res["table"]: raise ToBeImplementedException(name="preflight table for "+self.__class__.__name__)
+        if not res["table"]:
+            raise ToBeImplementedException(name="preflight table for "+self.__class__.__name__)
         return res
 
     def _getdata(self):
@@ -188,3 +189,42 @@ class SmartDict(Transportable):
     def copy(self):
         return self.__class__(self.__dict__.copy())
 
+
+class UnknownBlock(SmartDict):
+    """
+    A class for when we don't know if its a StructuredBlock, or MutableBlock or something else
+    """
+    def __init__(self, data=None, hash=None, verbose=False, **options):
+        """
+
+        :param hash: Object to fetch data from
+        :param data: Used via _data's setter function to initialize object
+        :param options: Set fields of SmartDict AFTER initialized from data
+        """
+        if options:
+            raise ToBeImplementedException(name="UnknownBlock.__init__ with options") # Normally don't pass options as dont know obj to set
+        if data:
+            raise ToBeImplementedException(
+                name="UnknownBlock.__init__ with data")  # Normally don't pass data as dont know type of obj to set - if have data, then use to determine type
+        super(UnknownBlock, self).__init__(hash=hash, verbose=verbose) # Uses _data.setter to set data
+
+    def fetch(self, verbose=False, **options):
+        """
+        Retrieve the data of an object from the hash
+        Usage typically foo = UnknownBlock(hash=A1B2).fetch()
+
+        :return:
+        """
+        from ServerHTTP import LetterToClass
+        from CryptoLib import CryptoLib
+        if verbose: print "Transportable.fetch _hash=", self._hash
+        data = self.transport.rawfetch(hash=self._hash, verbose=verbose, **options)
+        dic = CryptoLib.loads(data)
+        table = dic["table"]
+        if not table:
+            raise ToBeImplementedException(name="Table field stored in "+self._hash)
+        cls = LetterToClass.get(table, None)
+        if not cls:
+            raise ToBeImplementedException(name="LetterToClass for "+table)
+        newobj = cls(hash=self._hash, data=dic)
+        return newobj  # For caller to store
