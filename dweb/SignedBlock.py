@@ -7,7 +7,7 @@ from misc import MyBaseException, AssertionFail, _print
 from CryptoLib import CryptoLib, KeyPair
 from CommonBlock import Transportable, UnknownBlock
 from StructuredBlock import SmartDict, StructuredBlock
-from Transport import TransportURLNotFound
+from Transport import TransportURLNotFound, TransportFileNotFound
 
 
 """
@@ -82,7 +82,7 @@ class SignedBlocks(list):
         if verbose: print "SignedBlocks.fetch looking for hash=",hash,"fetchblocks=", fetchblocks
         try:
             lines = Transportable.transport.rawlist(hash=hash, verbose=verbose, **options)
-        except TransportURLNotFound as e:
+        except (TransportURLNotFound, TransportFileNotFound) as e:
             return SignedBlocks([])    # Its ok to fail as list may be empty
         else:
             if verbose: print "SignedBlocks.fetch found ",len(lines) if lines else None

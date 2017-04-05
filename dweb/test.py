@@ -8,7 +8,7 @@ import base64
 
 from misc import _print
 from CryptoLib import CryptoLib, KeyPair
-from Transport import TransportBlockNotFound, TransportURLNotFound
+from Transport import TransportBlockNotFound, TransportURLNotFound, TransportFileNotFound
 from TransportLocal import TransportLocal
 from TransportHTTP import TransportHTTP
 from CommonBlock import Transportable
@@ -21,7 +21,7 @@ from File import File, Dir
 class Testing(unittest.TestCase):
     def setUp(self):
         super(Testing, self).setUp()
-        testTransport = TransportHTTP  # Can switch between TransportLocal and TransportHTTP to test both
+        testTransport = TransportLocal  # Can switch between TransportLocal and TransportHTTP to test both
         self.verbose=False
         self.quickbrownfox =  "The quick brown fox ran over the lazy duck"
         self.dog = "But the clever dog chased the fox"
@@ -169,7 +169,7 @@ class Testing(unittest.TestCase):
         assert resp.content == content, "Should return data stored"
 
     def test_badblock(self):
-        Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
+        Transportable.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         try:
             resp = Transportable.transport._sendGetPost(False, "rawfetch", [ "12345"], params={"contenttype": "image/png"})
         except TransportURLNotFound as e:
@@ -247,7 +247,8 @@ class Testing(unittest.TestCase):
         viewerkeypair = KeyPair(name="test_acl viewerkeypair", key=self.keyfromfile("test_viewer1_rsa", private=True)).store(verbose=self.verbose) # Defaults to store private=False
         AccessControlList.addviewer(viewerkeypair)  # Add it for decryption
         if self.verbose: print "ACL 1: give the viewer access via the ACL - only need to know the publichash, not private key."
-        acl.add(viewerpublichash=viewerkeypair.publichash, verbose=self.verbose)
+        print viewerkeypair._hash
+        acl.add(viewerpublichash=viewerkeypair._hash, verbose=self.verbose)
         if self.verbose: print "ACL 2 publish the item"
         sb = StructuredBlock()
         sb.name = "test_acl.sb"
@@ -276,11 +277,17 @@ class Testing(unittest.TestCase):
         if self.verbose: print "KEYCHAIN 1 - add mbm to it"
         mblockm = MutableBlock(master=True, keygen=True, name="test_current mbm", verbose=self.verbose)
         mblockm._acl = kc
-        mblockm.store()
+        mblockm.store() # Will store encrypted version because of _acl setting above
         mbmhash = mblockm._hash
-        kc.add(mblockm, verbose=self.verbose)
+        kc.add(mblockm, verbose=self.verbose)   # Sign and store on KC's list
+        if self.verbose: print "KEYCHAIN 2 - add viewerkeypair to it"
+        viewerkeypair = KeyPair(name="test_acl viewerkeypair", key=self.keyfromfile("test_viewer1_rsa", private=True))
+        viewerkeypair.store(verbose=self.verbose) # Defaults to store private=False
+        viewerkeypair._acl = kc
+
         if self.verbose: print "KEYCHAIN 2: Fetching mbm hash=",mbmhash
         mbm2 = MutableBlock(hash=mbmhash, master=True, verbose=self.verbose)
+        print mbm2
         mbm2.fetch(verbose=self.verbose)
         assert mbm2.name == mblockm.name, "Names should survive round trip"
         if self.verbose: print "KEYCHAIN 3: reconstructing KeyChain and fetch"
@@ -294,7 +301,10 @@ class Testing(unittest.TestCase):
         assert mbm3.name == mblockm.name, "Names should survive round trip"
         if self.verbose: print "test_keychain: done"
         #TODO - put viewer into keychain (but first need to do MBM / SB stuff above)
+        #TODO - named things in keychain
 
+    def Xtest_current(self):
+        self.test_keychain()
 
         # Keygen -> Pub/Priv, (no access) ->
         # words -> hash ->

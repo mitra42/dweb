@@ -13,7 +13,7 @@ from mnemonic import Mnemonic
 from misc import MyBaseException, ToBeImplementedException, AssertionFail
 import sha3 # To add to hashlib
 from multihash import encode, SHA1,SHA2_256, SHA2_512, SHA3
-from CommonBlock import Transportable
+from CommonBlock import Transportable, SmartDict
 
 class PrivateKeyException(MyBaseException):
     """
@@ -220,12 +220,12 @@ class CryptoLib(object):
 
 
 
-class KeyPair(Transportable):
+class KeyPair(SmartDict):
     """
     This uses the CryptoLib functions to encapsulate KeyPairs
     """
 
-    def __init__(self, hash=None, key=None, data=None, master=None, name=None):
+    def __init__(self, hash=None, key=None, acl=None, data=None, master=None, name=None):
         if data:                            # Support data kwarg so can call from Transportable.store
             key = data
         if key:
@@ -235,10 +235,14 @@ class KeyPair(Transportable):
         else:
             self.key = None
         self.name = name                    # Not used currently
+        self._acl = acl
 
     @property
     def _data(self):
-        raise ToBeImplementedException(name="KeyPaid._data")    # I'm pretty sure this isn't used - see "store" below
+        #return CryptoLib.dumps({
+        #    "keypair": self.privateexport if self._key.has_private() else self.publicexport,
+        #})
+        return self.privateexport if self._key.has_private() else self.publicexport
 
     def __repr__(self):
         return "KeyPair" + repr(self.__dict__)  #TODO only useful for debugging,
@@ -375,13 +379,6 @@ class KeyPair(Transportable):
             self._key = None    # Blank out bad key
             raise AuthenticationException(message="Retrieved key doesnt match hash="+value)
             #TODO-AUTHENTICATION copy this verification code up to privatehash
-
-    def store(self, private=False, verbose=False):
-        if verbose: print "KeyPair.store priv=", private
-        super(KeyPair, self).store(data=self.privateexport if private else self.publicexport, verbose=verbose)
-        if self._hash != (self.privatehash if private else self.publichash):
-            raise AssertionFail("Stored hash of key should match local hash algorithm")
-        return self # For chaining
 
     def encrypt(self, data, b64=False):
         """

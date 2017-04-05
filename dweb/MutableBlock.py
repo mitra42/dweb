@@ -89,6 +89,8 @@ class CommonList(SmartDict):
         if fetchBody:
             super(CommonList, self).fetch(verbose=verbose, **options)   # only fetches if _needsfetch=True, Sets keypair etc via _data -> _setdata,
         if fetchlist:
+            print "XXX@92",self._publichash,self.keypair.publichash
+            print "XXX@93",self
             self._list = SignedBlocks.fetch(hash=self._publichash or self.keypair.publichash, fetchblocks=fetchblocks, verbose=verbose, **options).sorteddeduplicated()
         return self # for chaining
 
@@ -271,6 +273,7 @@ class AccessControlList(EncryptionList):
         :param self:
         :return:
         """
+        if verbose: print "AccessControlList.add viewerpublichash=",viewerpublichash
         if not self._master:
             raise ForbiddenException(what="Cant add viewers to ACL copy")
         viewerpublickeypair = KeyPair(hash=viewerpublichash)
@@ -295,8 +298,8 @@ class AccessControlList(EncryptionList):
         """
         if verbose: print "AccessControlList.tokens decrypt=",decrypt
         self.fetch(verbose=verbose, fetchblocks=True)
-        viewerpublichash = viewerkeypair.publichash
-        toks = [ a.token for a in self._list if a.fetch().viewer == viewerpublichash]
+        viewerhash = viewerkeypair._hash
+        toks = [ a.token for a in self._list if a.fetch().viewer == viewerhash]
         if decrypt:
             toks = [ viewerkeypair.decrypt(str(a), b64=True) for a in toks ]
         return toks
