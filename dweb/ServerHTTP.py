@@ -7,13 +7,14 @@ from MutableBlock import MutableBlock
 from MyHTTPServer import MyHTTPRequestHandler, exposed
 from misc import ToBeImplementedException
 from CommonBlock import Transportable
-import CryptoLib
+from CryptoLib import CryptoLib, KeyPair
 
 
 LetterToClass = {
     Block.table: Block,
     StructuredBlock.table: StructuredBlock,
     MutableBlock.table: MutableBlock,
+    KeyPair.table: KeyPair,
 }
 
 class DwebHTTPRequestHandler(MyHTTPRequestHandler):

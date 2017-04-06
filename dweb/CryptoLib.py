@@ -35,6 +35,9 @@ class DecryptionFail(MyBaseException):
     """
     msg = "Decryption fail"
 
+class SecurityWarning(MyBaseException):
+    msg = "Security warning: {message}"
+
 class CryptoLib(object):
     """
     Encapsulate all the Crypto functions in one place so can revise independently of rest of dweb
@@ -224,25 +227,17 @@ class KeyPair(SmartDict):
     """
     This uses the CryptoLib functions to encapsulate KeyPairs
     """
+    table = "kp"
+    _allowunsafestore = False
 
-    def __init__(self, hash=None, key=None, acl=None, data=None, master=None, name=None):
-        if data:                            # Support data kwarg so can call from Transportable.store
-            key = data
-        if key:
-            self.key = key                  # Converts if key is an exported string
-        elif hash:
-            self.publichash = hash          # Side effect of loading from dWeb, note also works if its hash of privatekey
-        else:
-            self.key = None
-        self.name = name                    # Not used currently
-        self._acl = acl
-
-    @property
-    def _data(self):
-        #return CryptoLib.dumps({
-        #    "keypair": self.privateexport if self._key.has_private() else self.publicexport,
-        #})
-        return self.privateexport if self._key.has_private() else self.publicexport
+    def preflight(self, dd=None):
+        if not dd:
+            dd = self.__dict__.copy()
+        if dd["_key"].has_private() and not dd.get("_acl") and not self._allowunsafestore:
+            raise SecurityWarning(message="Probably shouldnt be storing private key")   # Can set KeyPair._allowunsafestore to allow this when testing
+        if dd.get("_key"):   # Based on whether the CommonList is master, rather than if the key is (key could be master, and CL not)
+            dd["key"] = self.privateexport if dd["_key"].has_private() else self.publicexport
+        return super(KeyPair, self).preflight(dd=dd)
 
     def __repr__(self):
         return "KeyPair" + repr(self.__dict__)  #TODO only useful for debugging,

@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 from Block import Block
-from CryptoLib import CryptoLib, KeyPair, WordHashKey, PrivateKeyException, AuthenticationException, DecryptionFail # Suite of functions for hashing, signing, encrypting
+from CryptoLib import CryptoLib, KeyPair, WordHashKey, PrivateKeyException, AuthenticationException, DecryptionFail, SecurityWarning
 import base64
 from StructuredBlock import StructuredBlock
 from SignedBlock import SignedBlocks
@@ -20,7 +20,7 @@ class CommonList(SmartDict):
     _list: [ StructuredBlock* ] Blocks on this list
     _master bool                True if this is the controlling object, has private keys etc
 
-    From SmartDict: _acl,
+    From SmartDict: _acl, name
     From Transportable: _data, _hash
 
     """
@@ -71,6 +71,8 @@ class CommonList(SmartDict):
         if not dd:
             dd = self.__dict__.copy()
         if dd.get("keypair"):   # Based on whether the CommonList is master, rather than if the key is (key could be master, and CL not)
+            if dd["_master"] and not dd.get("_acl") and not self._allowunsafestore:
+                raise SecurityWarning(message="Probably shouldnt be storing private key on this "+self.__class__.__name__)  # Can set KeyPair._allowunsafestore to allow this when testing
             dd["keypair"] = dd["keypair"].privateexport if dd["_master"] else dd["keypair"].publicexport
         return super(CommonList, self).preflight(dd=dd)
 
@@ -89,9 +91,7 @@ class CommonList(SmartDict):
         if fetchBody:
             super(CommonList, self).fetch(verbose=verbose, **options)   # only fetches if _needsfetch=True, Sets keypair etc via _data -> _setdata,
         if fetchlist:
-            print "XXX@92",self._publichash,self.keypair.publichash
-            print "XXX@93",self
-            self._list = SignedBlocks.fetch(hash=self._publichash or self.keypair.publichash, fetchblocks=fetchblocks, verbose=verbose, **options).sorteddeduplicated()
+            self._list = SignedBlocks.fetch(hash=self._publichash or self.keypair._hash, fetchblocks=fetchblocks, verbose=verbose, **options).sorteddeduplicated()
         return self # for chaining
 
     def _storepublic(self, verbose=False, **options):
@@ -102,7 +102,7 @@ class CommonList(SmartDict):
 
     def store(self, verbose=False, dontstoremaster=False, **options):
         # - uses SmartDict.store which calls _data -> _getdata which gets the key
-        if verbose: print "ACL.store"
+        if verbose: print "CL.store"
         if self._master and not self._publichash:
             self._publichash = self._storepublic()
         if not (self._master and dontstoremaster):
@@ -245,9 +245,8 @@ class EncryptionList(CommonList):
     """
     Common class for AccessControlList and KeyChain for things that can handle encryption
 
-    name        Name of this list, just for display curently
     accesskey   Key with which things on this list are encrypted
-    From CommonList:    keypair, master
+    From CommonList: keypair, _publichash, _list, _master, name
     """
     pass
 
@@ -259,10 +258,9 @@ class AccessControlList(EncryptionList):
 
     See Authentication.rst
     From EncryptionList: accesskey   Key with which things on this list are encrypted
-    From CommonList:   keypair, master, name
+    From CommonList: keypair, _publichash, _list, _master, name
 
     """
-    myviewerkeys = []       # Set with keys we can use
     table = "acl"
 
     def add(self, viewerpublichash=None, verbose=False, **options):
@@ -276,7 +274,7 @@ class AccessControlList(EncryptionList):
         if verbose: print "AccessControlList.add viewerpublichash=",viewerpublichash
         if not self._master:
             raise ForbiddenException(what="Cant add viewers to ACL copy")
-        viewerpublickeypair = KeyPair(hash=viewerpublichash)
+        viewerpublickeypair = KeyPair(hash=viewerpublichash).fetch(verbose=verbose)
         aclinfo = {
             # Need to go B64->binary->encrypt->B64
             "token": viewerpublickeypair.encrypt(base64.urlsafe_b64decode(self.accesskey), b64=True),
@@ -284,6 +282,7 @@ class AccessControlList(EncryptionList):
         }
         sb = StructuredBlock(data=aclinfo)
         self.signandstore(sb, verbose, **options)
+        return self # For chaining
 
     def tokens(self, viewerkeypair=None, verbose=False, decrypt=True, **options):
         """
@@ -312,7 +311,8 @@ class AccessControlList(EncryptionList):
         :param verbose:
         :return:
         """
-        vks = viewerkeypair or AccessControlList.myviewerkeys
+        #vks = viewerkeypair or AccessControlList.myviewerkeys
+        vks = viewerkeypair or KeyChain.myviewerkeys()
         if not isinstance(vks, (list, tuple, set)):
             vks = [ vks ]
         for vk in vks:
@@ -324,25 +324,12 @@ class AccessControlList(EncryptionList):
                     pass    # Ignore if cant decode maybe other keys will work
         raise AuthenticationException(message="ACL.decrypt: No valid keys found")
 
-    @classmethod
-    def addviewer(cls, keypair=None):
-        """
-        Add keys I can view under to ACL
-
-        :param keypair:
-        :return:
-        """
-        if isinstance(keypair, (list, tuple, set)):
-            cls.myviewerkeys += keypair
-        else:
-            cls.myviewerkeys.append(keypair)
-
 class KeyChain(EncryptionList):
     """
     A class to hold a list of encrypted Private keys. Control of Privatekey of this gives access to all of the items pointed at.
 
     From EncryptionList accesskey       Behaves like that of the ACL
-    From CommonList:    keypair         Priv/Pub used to sign entries on the list - posession of Private gives control and access to acl
+    From CommonList: keypair, _publichash, _list, _master, name
     From SmartDict:     _acl            For encrypting the KeyChain itself
     """
     mykeychains = []       # Set with keys we can use
@@ -389,3 +376,15 @@ class KeyChain(EncryptionList):
 
     def fetch(self, verbose=False, **options):
         return super(KeyChain, self).fetch(fetchBody=False, verbose=verbose, **options)  # Dont fetch body, it wasn't stored
+
+    @classmethod
+    def myviewerkeys(cls):
+        """
+        Find any Viewer Keys on the KeyChains
+
+        :return:
+        """
+        # Super obscure double loop, but works and fast
+        return [ k for kc in cls.mykeychains for k in kc._list if isinstance(k,KeyPair) ]
+
+
