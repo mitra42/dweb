@@ -52,8 +52,8 @@ This list is at a much finer lever of granularity than Roadmap above.
     * See Authentication.rst
     * Do in Javascript and via gateway
     * Embed on index and test pages
-    * Add Viewers (used for encryption) to keychain
-* DEBUG - make sure not storing contentacl-private on MB-public
+    * Add ACLs to Key Chain
+* FUNCTIONALITY - add caching, so dont reload, BUT disable for testing
 * FUNCTIONALITY - storing some content in lists and allowing searches of that content (listfind ? a=b c=d
 * DOCS: Pass through docs, check all current  (done API-Integration)
 * DOCS: Complete "To extend with ... new obj,

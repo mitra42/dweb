@@ -316,7 +316,7 @@ class Testing(unittest.TestCase):
         KeyChain.addkeychains(kcs2)
         kcs2.fetch(verbose=self.verbose, fetchlist=True, fetchblocks=True)
         if self.verbose: print "KEYCHAIN 5: Check MBM carried ok"
-        mbm3 = kcs2._list[-1]
+        mbm3 = kcs2.mymutableBlocks()[-1]
         assert mbm3.__class__.__name__ == "MutableBlock", "Should be a mutable block"
         assert mbm3.name == mblockm.name, "Names should survive round trip"
         if self.verbose: print "KEYCHAIN 5: Check can user ViewerKeyPair"
@@ -334,11 +334,11 @@ class Testing(unittest.TestCase):
         assert mb.content(verbose=self.verbose) == self.quickbrownfox, "should round trip through acl"
         if self.verbose: print "test_keychain: done"
         #TODO - named things in keychain
-
+        #TODO - test_keychain with HTML
 
 
     def Xtest_current(self):
-        self.test_keychain()
+        self.test_file()
 
         # Keygen -> Pub/Priv, (no access) ->
         # words -> hash ->

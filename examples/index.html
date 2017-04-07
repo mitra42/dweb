@@ -4,11 +4,11 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>DWEB Demonstration page</title>
     <!--<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script><!-- Jquery via Google -->
-    <script src="/file/sb/SHA3256B64URL.lpTwLaJeTVgZsbaEVWl1LZC1IBAi0p_IdJJWw5mTLB8="></script><!-- jquery-3.1.1.js-->
-    <script src="/file/mb/SHA3256B64URL.SCg9BI_M_eTit27hS9mCKbIvWxUuEwWWoQR3Jrodfyk="></script><!-- dweb.js -->
+    <script src="/file/sb/SHA3256B64URL.NbMBEb-Iq7EwgfCWqtrGB14tIcAcv5v5s2m9o7aLu6Y="></script><!-- jquery-3.1.1.js-->
+    <script src="/file/mb/SHA3256B64URL.vVaaIWT976GT8_oVr_eKQxIgWqUdCH9Nf0PCZhQ2iTw="></script><!-- dweb.js -->
     <!--<script src='/dweb/tinymce/tinymce.min.js'></script><!-- TinyMCE -->
     <!--<script src='//cloud.tinymce.com/stable/tinymce.min.js'></script><!-- TinyMCE -->
-    <script src='/file/mb/SHA3256B64URL.Ccx261HWIBMadjGai46-Nb03hwoVRfqQjhQii8ymsUE=/tinymce.min.js'></script><!-- TinyMCE via relative URL-->
+    <script src='/file/mb/SHA3256B64URL.JHqfnJNzZzaY76qZSbSO21N3PK8gXBmtjAK48ONpA9k=/tinymce.min.js'></script><!-- TinyMCE via relative URL-->
     <script>//TODO this needs lots of work to be pretty editor
         // url for content is: SHA3256B64URL.CLw7p4lteb5oxmXBkuk9lDqM89hRic7RPITGWg1AAD4=
         //dwebfile("mytextarea", "mb", "SHA3256B64URL.CLw7p4lteb5oxmXBkuk9lDqM89hRic7RPITGWg1AAD4="); // Via Public URL
@@ -19,7 +19,7 @@
             toolbar: "save",
             save_onsavecallback: function() {
                 content = tinyMCE.get('mytextarea').getContent();
-                hash = "SHA3256B64URL.AlyQrkywFPCJ5Ymg2nM6HeXho2dulR1JUgW1LrSAF_U="; // The privatehash of the "snippet.html editable - should be a parameter
+                hash = "SHA3256B64URL.gy5hH5zw_rUlb9RG1DeXDXGtbTvXJ5sERJC5tFtYIII="; // The privatehash of the "snippet.html editable - should be a parameter
                 // alert(content);
                 type = "text%2Fhtml";
                 dwebupdate(hash, type, content, {"dom_id": "myDiv"});  // Post to Dweb and store URL at myDiv
@@ -33,11 +33,11 @@
         b.load(true, {"dom_id": "myList.0"});      // Load block in background
         // Now of SB
         console.log("StructuredBlock=======");
-        let sb = new StructuredBlock("SHA3256B64URL.hEJQi1hJ0J1ezab0aC5BxEGyD1-fRl2E7aVCizRdQAU="); // This comes from looking in list/..hash of MB below..
+        let sb = new StructuredBlock("SHA3256B64URL.-t0rXKuIYpnxrvsVeAffH57bGtoSjjYBQ2gZgUJB5i4="); // This comes from looking in list/..hash of MB below..
         sb.load(true, {"dom_id": "myList.1"} ); // hash of SB containing data containing "I'm a paragraph" // Load SB in background
         // Now MB
         console.log("MutableBlock=======");
-        dweblist("List2", "SHA3256B64URL.WXmVUHc3DumeXBlNY3eyPqfa_DrBmgHO5IvB8-KezBU=", true);  // Hash of snippet.html
+        dweblist("List2", "SHA3256B64URL.4MyChBfwQgiMKKy8hzJRU7QkTIa8L9sjQzMys4XLT5U=", true);  // Hash of snippet.html
     </script>
 
 </head>
@@ -46,7 +46,7 @@
 <p>This page is a demonstration page for the Decentralized Web.</p>
 <p>It will includue a range of features as they are added to DWEB</p>
 <p>
-    <img src="http://localhost:4243/file/sb/SHA3256B64URL.im-yRzrCOHZjUc8cz287Oe_W__PM2pUjLoO1sUNTUKc=" width="50px" align="left"><!--wrench-->
+    <img src="/file/sb/SHA3256B64URL.4HKTuYB7dvj8dB7JTTFt9_r51TFKQ3du-Cfi5xbrCXw=" width="50px" align="left"><!--wrench-->
     This is an image loaded by an absolute dweb URL not via the library</p>
 
 <ul id="myList"><li id="myList.0">Text replaced with a Block</li><li id="myList.1">Text replaced with a StructuredBlock</li></ul>
@@ -54,7 +54,7 @@
 <ul id="List2"><li>What was there before - should be replaced</li></ul>
 <h4>Architecture of DWeb</h4>
 <p>
-    <img src="/file/mb/SHA3256B64URL.TCEdRyeMyj3Vxa_4aApGgw_f8APpCh3hCsdckfAV8mo="><!--diagram-->
+    <img src="/file/mb/SHA3256B64URL.20kEtLsILxSHUFgyN5yFC8UlF4fQAsKZXiWx6di_rRA="><!--diagram-->
 </p>
 <form method="post"><!--TODO see if it needs the form-->
     <textarea id="mytextarea" width="60%">Testing</textarea>
@@ -62,8 +62,8 @@
 <div>Last saved to:<span id="myDiv" name="myDiv">Unreplaced text</span></div>
 <h3>Experimental from here on down</h3>
 <p>This is a good place to put links to other tests - working or not.</p>
-<a href="/file/mb/SHA3256B64URL.Ea0TU_JN7sqhfI6RxTzw_IVayc_Z22bAMan8sWWqJIk=/index.html">Documentation in Sphinx</a>
-<a href="/file/mb/SHA3256B64URL.JCR90e0P8FjwzkgzQW4Q1TdP2dpIBL0teS6prKfy6vM=">test.html</a>
+<a href="/file/mb/SHA3256B64URL.pDaVoHks4FVLN1KcSk5i5c_xOQVh2bZpfnWSrOCwemQ=/index.html">Documentation in Sphinx</a>
+<a href="/file/mb/SHA3256B64URL.10X6_IGbmgts2BqFk7qozQajP9y3ClBYXMAengFba1E=">test.html</a>
 <h4>List to be loaded by a button</h4>
 
 <p>This page is a current test, will just be testing current (usually broken) stuff.</p>

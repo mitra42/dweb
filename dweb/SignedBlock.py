@@ -39,7 +39,9 @@ class Signature(SmartDict):
     def sign(cls, commonlist, hash, verbose=False):
         date = datetime.now()
         signature = CryptoLib.signature(commonlist.keypair, date, hash)
-        return cls({"date": date, "signature": signature, "signedby": commonlist.store(verbose=verbose)._publichash})
+        if not commonlist._publichash:
+            commonlist.store(verbose=verbose)
+        return cls({"date": date, "signature": signature, "signedby": commonlist._publichash})
 
     def verify(self, hash=None):
         return CryptoLib.verify(self, hash=hash)
@@ -79,6 +81,7 @@ class SignedBlocks(list):
         :return: SignedBlocks which is a list of StructuredBlock
         """
         #key = CryptoLib.export(publickey) if publickey is not None else None,
+        assert hash is not None
         if verbose: print "SignedBlocks.fetch looking for hash=",hash,"fetchblocks=", fetchblocks
         try:
             lines = Transportable.transport.rawlist(hash=hash, verbose=verbose, **options)

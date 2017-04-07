@@ -10,7 +10,7 @@ from Crypto.Cipher import AES, PKCS1_OAEP
 import os
 from mnemonic import Mnemonic
 
-from misc import MyBaseException, ToBeImplementedException, AssertionFail
+from misc import MyBaseException, ToBeImplementedException
 import sha3 # To add to hashlib
 from multihash import encode, SHA1,SHA2_256, SHA2_512, SHA3
 from CommonBlock import Transportable, SmartDict

@@ -5,7 +5,7 @@ from CryptoLib import CryptoLib, KeyPair, WordHashKey, PrivateKeyException, Auth
 import base64
 from StructuredBlock import StructuredBlock
 from SignedBlock import SignedBlocks
-from misc import ForbiddenException, _print
+from misc import ForbiddenException, _print, AssertionFail
 from CommonBlock import Transportable, SmartDict
 
 
@@ -52,7 +52,6 @@ class CommonList(SmartDict):
                 self.keypair = KeyPair.keygen(**options)   # Note these options are also set on smartdict, so catch explicitly if known.
         if not self._master:
             self._publichash = hash # Maybe None.
-
         self._list = []
 
     @property
@@ -70,11 +69,16 @@ class CommonList(SmartDict):
     def preflight(self, dd=None):
         if not dd:
             dd = self.__dict__.copy()
+        master = dd["_master"]  # Use master from dd if modified
         if dd.get("keypair"):   # Based on whether the CommonList is master, rather than if the key is (key could be master, and CL not)
-            if dd["_master"] and not dd.get("_acl") and not self._allowunsafestore:
+            if master and not dd.get("_acl") and not self._allowunsafestore:
                 raise SecurityWarning(message="Probably shouldnt be storing private key on this "+self.__class__.__name__)  # Can set KeyPair._allowunsafestore to allow this when testing
-            dd["keypair"] = dd["keypair"].privateexport if dd["_master"] else dd["keypair"].publicexport
-        return super(CommonList, self).preflight(dd=dd)
+            dd["keypair"] = dd["keypair"].privateexport if master else dd["keypair"].publicexport
+        publichash = dd.get("_publichash")
+        dd = super(CommonList, self).preflight(dd=dd)  # Will edit dd in place since its a dic,
+        dd["_publichash"] = publichash   # May be None, hae to do this AFTER the super call as super filters out "_*"  #TODO-REFACTOR_PUBLICHASH
+        return dd
+
 
     #def _setdata(self, value):
     #    super(CommonList, self)._setdata(value) # Sets __dict__ from values including keypair via setter
@@ -91,7 +95,10 @@ class CommonList(SmartDict):
         if fetchBody:
             super(CommonList, self).fetch(verbose=verbose, **options)   # only fetches if _needsfetch=True, Sets keypair etc via _data -> _setdata,
         if fetchlist:
-            self._list = SignedBlocks.fetch(hash=self._publichash or self.keypair._hash, fetchblocks=fetchblocks, verbose=verbose, **options).sorteddeduplicated()
+            # This is ugly - self._publichash needed for MB-master; self._hash&!_master for ACl.!master; keypair for VK
+            listhash = self._publichash or ((not self._master) and self._hash) or self.keypair._hash
+            assert listhash,"Must be a hash to look on a list"
+            self._list = SignedBlocks.fetch(hash=listhash, fetchblocks=fetchblocks, verbose=verbose, **options).sorteddeduplicated()
         return self # for chaining
 
     def _storepublic(self, verbose=False, **options):
@@ -142,6 +149,8 @@ class CommonList(SmartDict):
     def add(self, obj, verbose=False, **options):
         """
         Add a object, typically MBM or ACL (i.e. not a StructuredBlock) to a List,
+
+        :param obj: Object to store on this list
         """
         hash = obj if isinstance(obj, basestring) else obj._hash
         from SignedBlock import Signature
@@ -378,13 +387,24 @@ class KeyChain(EncryptionList):
         return super(KeyChain, self).fetch(fetchBody=False, verbose=verbose, **options)  # Dont fetch body, it wasn't stored
 
     @classmethod
+    def _findbyclass(cls, clstarget):
+        # Super obscure double loop, but works and fast
+        return [ k for kc in cls.mykeychains for k in kc._list if isinstance(k,clstarget) ]
+
+    @classmethod
     def myviewerkeys(cls):
         """
         Find any Viewer Keys on the KeyChains
 
         :return:
         """
-        # Super obscure double loop, but works and fast
-        return [ k for kc in cls.mykeychains for k in kc._list if isinstance(k,KeyPair) ]
+        return cls._findbyclass(KeyPair)
 
+    @classmethod
+    def mymutableBlocks(cls):
+        """
+        Find any Mutable Blocks Keys on the KeyChains
 
+        :return:
+        """
+        return cls._findbyclass(MutableBlock)
