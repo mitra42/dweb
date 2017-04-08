@@ -47,13 +47,19 @@ class StructuredBlock(SmartDict):
                                      signature = ss.signature, signedby = ss.signedby, verbose=verbose, **options)
         return self # For chaining
 
-    def _setdata(self, value):
-        super(StructuredBlock,self)._setdata(value) # Set _data and attributes from dictionary in data
-        # Note self.links doesnt require handling in preflight or getdata because output as array of StructuredBlock
-        if self.links:
-            self.links = [l if isinstance(l, StructuredBlock) else StructuredBlock(l) for l in self.links ]
+    @property
+    def links(self):
+        return self.__dict__.get("links")
 
-    _data = property(SmartDict._getdata, _setdata)
+    @links.setter
+    def links(self, value):
+        """
+        Convert returned list to array of StructuredBlocks
+
+        :param value:  [ link as dict or StructuredBlock
+        :return:
+        """
+        self.__dict__["links"] = [l if isinstance(l, StructuredBlock) else StructuredBlock(l) for l in value ]
 
     def dirty(self):
         super(StructuredBlock, self).dirty()
