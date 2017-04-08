@@ -3,6 +3,7 @@ from json import loads
 from Block import Block
 from CryptoLib import CryptoLib
 from CommonBlock import Transportable, SmartDict
+from Dweb import Dweb
 
 
 class StructuredBlock(SmartDict):
@@ -42,7 +43,7 @@ class StructuredBlock(SmartDict):
             super(StructuredBlock, self).store(verbose=False, **options)    # Sets self._hash   #TODO-EFFICIENCY DONT STORE IF NOT CHANGED
         for s in self._signatures:
             ss = s.copy()
-            self.transport.add(hash=self._hash, date = ss.date,
+            Dweb.transport.add(hash=self._hash, date = ss.date,
                                      signature = ss.signature, signedby = ss.signedby, verbose=verbose, **options)
         return self # For chaining
 
@@ -88,7 +89,7 @@ class StructuredBlock(SmartDict):
         self.fetch()
         return (
             self.data or
-            (self.hash and Transportable.transport.rawfetch(hash = self.hash, verbose=verbose, **options)) or # Hash must point to raw data, not another SB
+            (self.hash and Dweb.transport.rawfetch(hash = self.hash, verbose=verbose, **options)) or # Hash must point to raw data, not another SB
             (self.links and "".join(l.content(verbose=verbose, **options) for l in self.links)) or # Each link is a SB
             "")
 
@@ -121,7 +122,7 @@ class StructuredBlock(SmartDict):
         return (
             self.__dict__.get("size",None) or
             (self.data and len(self.data)) or
-            (self.hash and len(Transportable.transport.rawfetch(hash = self.hash, verbose=verbose, **options))) or
+            (self.hash and len(Dweb.transport.rawfetch(hash = self.hash, verbose=verbose, **options))) or
             (self.links and sum(l.size(verbose=verbose, **options) for l in self.links)) or # Each link is a SB
             None)
 

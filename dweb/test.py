@@ -5,6 +5,7 @@ import os
 from pathlib2 import Path
 from json import loads, dumps
 import base64
+from Crypto.PublicKey import RSA
 
 from misc import _print
 from CryptoLib import CryptoLib, KeyPair
@@ -16,6 +17,7 @@ from Block import Block
 from StructuredBlock import StructuredBlock
 from MutableBlock import CommonList, MutableBlock, AccessControlList, KeyChain
 from File import File, Dir
+from Dweb import Dweb
 
 
 class Testing(unittest.TestCase):
@@ -31,10 +33,10 @@ class Testing(unittest.TestCase):
         self.exampledir = "../examples/"    # Where example files placed
         self.mnemonic = "lecture name virus model jealous whisper stone broom harvest april notable lunch" # Random valid mnemonic
         if testTransport == TransportLocal:
-            Transportable.setup(TransportLocal, verbose=self.verbose, dir="../cache")
+            Dweb.settransport(transportclass=TransportLocal, verbose=self.verbose, dir="../cache")
         elif testTransport == TransportHTTP:
             # Run python -m ServerHTTP; before this
-            Transportable.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
+            Dweb.settransport(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         else:
             assert False, "Unimplemented test for Transport "+testTransport.__class__.__name__
 
@@ -75,18 +77,6 @@ class Testing(unittest.TestCase):
         if self.verbose: print "Created Structured Block hash=",sb._hash
         return sb
 
-    def _mb(self, contentacl=None, _allowunsafestore=False): # See test_mutableblok for canonical testing of this
-        if self.verbose: print "_mb: Creating MutableBlock"
-        mblockm = MutableBlock(name="test _mb", master=True, keygen=True, contentacl=contentacl,
-                               verbose=self.verbose)  # Create a new block with a new key
-        mblockm._current.data = self.quickbrownfox  # Put some data in it (goes in the StructuredBlock at _current
-        mblockm._allowunsafestore = _allowunsafestore
-        mblockm.keypair._allowunsafestore = _allowunsafestore
-        mblockm.store()
-        mblockm.signandstore(verbose=self.verbose)  # Sign it - this publishes it
-        if self.verbose: print "_mb: Created MutableBlock hash=", mblockm._hash
-        return mblockm
-
     # ======== END OF STANDARD CREATION ROUTINES
 
 
@@ -116,7 +106,7 @@ class Testing(unittest.TestCase):
         #signedblock.sign(commonlist0, verbose=self.verbose) # This should fail, but
         if self.verbose: print "test_Signatures CommonLost"
         CommonList.table = "BOGUS"  # Defeat errors
-        commonlist = CommonList(keypair=keypair, keygen=True, master=True, name="test_Signatures.commonlist")
+        commonlist = CommonList(keypair=keypair, keygen=RSA, master=True, name="test_Signatures.commonlist")
         if self.verbose: print "test_Signatures sign"
         commonlist._allowunsafestore = True
         signedblock.sign(commonlist, verbose=self.verbose)
@@ -130,7 +120,7 @@ class Testing(unittest.TestCase):
     def test_MutableBlocks(self):
         #self.verbose=True
         if self.verbose: print "test_MutableBlocks: Create master"
-        mblockm = MutableBlock(master=True, keygen=True, verbose=self.verbose)      # Create a new block with a new key
+        mblockm = MutableBlock(master=True, keygen=RSA, verbose=self.verbose)      # Create a new block with a new key
         mblockm._current.data = self.quickbrownfox                       # Put some data in it (goes in the StructuredBlock at _current
         mblockm._allowunsafestore = True                        # Avoid dependency on ACL and encryption in this test
         mblockm.signandstore(verbose=self.verbose)              # Sign it - this publishes it
@@ -170,21 +160,21 @@ class Testing(unittest.TestCase):
 
     def test_http(self):
         # Run python -m ServerHTTP; before this
-        Block.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
+        Dweb.settransport(transportclass=TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         multihash = Block(data=self.quickbrownfox).store(verbose=self.verbose)._hash
         block = Block(hash=multihash, verbose=self.verbose).fetch(verbose=self.verbose)
         assert block._data == self.quickbrownfox, "Should return data stored"
 
     def test_file(self):
         #self.verbose=True
-        Transportable.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
+        Dweb.settransport(transportclass=TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         content = File.load(filepath=self.exampledir + "index.html", verbose=self.verbose).content(verbose=self.verbose)
         sb = StructuredBlock(**{"Content-type":"text/html"})  # ** because cant use args with hyphens\
         sb.data = content
         sb.store()
         sburl = sb.url(command="file", url_output="getpost")
         assert sburl == [False, "file", ["sb", sb._hash]]
-        resp = Transportable.transport._sendGetPost(sburl[0], sburl[1], sburl[2], verbose=False)
+        resp = Dweb.transport._sendGetPost(sburl[0], sburl[1], sburl[2], verbose=False)
         assert resp.text == content, "Should return data stored"
         assert resp.headers["Content-type"] == "text/html", "Should get type"
         # Now test a MutableBlock that uses this content
@@ -198,26 +188,26 @@ class Testing(unittest.TestCase):
         mb.fetch()      # Just fetches the signatures
         assert mb.content() == mbm.content(), "Should round-trip HTML content"
         getpostargs=mb.url(command="file", url_output="getpost")
-        mbcontent2 = Transportable.transport._sendGetPost(*getpostargs).text
+        mbcontent2 = Dweb.transport._sendGetPost(*getpostargs).text
         assert mbcontent2 == mbm.content(), "Should fetch MB content via its URL"
 
     def test_typeoverride(self):    # See if can override the type on a block
-        Transportable.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
+        Dweb.settransport(transportclass=TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         # Store the wrench icon
         content = File.load(filepath=self.exampledir + "WrenchIcon.png").content()
         wrenchhash = Block(data=content).store(verbose=self.verbose)._hash
         # And check it got there
-        resp = Transportable.transport._sendGetPost(False, "rawfetch",  [wrenchhash], params={"contenttype": "image/png"})
+        resp = Dweb.transport._sendGetPost(False, "rawfetch",  [wrenchhash], params={"contenttype": "image/png"})
         assert resp.headers["Content-type"] == "image/png", "Should get type"
         assert resp.content == content, "Should return data stored"
-        resp = Transportable.transport._sendGetPost(False, "file",  ["b", wrenchhash], params={"contenttype": "image/png"})
+        resp = Dweb.transport._sendGetPost(False, "file",  ["b", wrenchhash], params={"contenttype": "image/png"})
         assert resp.headers["Content-type"] == "image/png", "Should get type"
         assert resp.content == content, "Should return data stored"
 
     def test_badblock(self):
-        Transportable.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
+        Dweb.settransport(transportclass=TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         try:
-            resp = Transportable.transport._sendGetPost(False, "rawfetch", [ "12345"], params={"contenttype": "image/png"})
+            resp = Dweb.transport._sendGetPost(False, "rawfetch", [ "12345"], params={"contenttype": "image/png"})
         except TransportURLNotFound as e:
             pass
         else:
@@ -246,7 +236,7 @@ class Testing(unittest.TestCase):
     def test_uploads(self):
         # A set of tools to upload things so available for testing.
         # All the functionality in storeas should have been tested elsewhere.
-        Transportable.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
+        Dweb.settransport(transportclass=TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         b=Block(data=self.dog); b.store(); print self.dog,b.url()
         self._storeas("dweb.js", "dweb_js_rsa", "application/javascript")
         self._storeas("jquery-3.1.1.js", None, "application/javascript")
@@ -261,14 +251,14 @@ class Testing(unittest.TestCase):
 
     def test_uploadandrelativepaths(self):
         # Test that a directory can be uploaded and then accessed by a relative path
-        Transportable.setup(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
+        Dweb.settransport(transportclass=TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         f1sz = File.load("../tinymce/langs/readme.md").size
         # Upload a multi-level directory
         f = Dir.load(filepath="../tinymce", upload=True, verbose=self.verbose,)
         #print f.url()  # url of sb at top of directory
         sb = StructuredBlock(hash=f._hash, verbose=self.verbose).fetch(verbose=self.verbose)
         assert len(sb.links) == 8, "tinymce has 8 files"
-        resp = Transportable.transport._sendGetPost(False, "file", ["sb", f._hash,"langs/readme.md"])
+        resp = Dweb.transport._sendGetPost(False, "file", ["sb", f._hash,"langs/readme.md"])
         assert int(resp.headers["Content-Length"]) == f1sz,"Should match length of readme.md"
         # /file/mb/SHA3256B64URL.88S-FYlEN1iF3WuDRdXoR8SyMUG6crR5ehM21IvUuS0=/tinymce.min.js
 
@@ -294,9 +284,7 @@ class Testing(unittest.TestCase):
         kc = KeyChain(mnemonic=self.mnemonic, verbose=self.verbose, name="test_keychain kc").store(verbose=self.verbose)
         KeyChain.addkeychains(kc)
         if self.verbose: print "KEYCHAIN 1 - add mbm to it"
-        mblockm = MutableBlock(master=True, keygen=True, name="test_keychain mblockm", verbose=self.verbose)
-        mblockm._acl = kc       # Put it on my keychain
-        mblockm.store()         # Will store encrypted version because of _acl setting above
+        mblockm = MutableBlock.new(name="test_keychain mblockm", acl=kc, content=self.quickbrownfox, _allowunsafestore=True, signandstore=True, verbose=self.verbose)
         mbmhash = mblockm._hash
         kc.add(mblockm, verbose=self.verbose)   # Sign and store on KC's list
         if self.verbose: print "KEYCHAIN 2 - add viewerkeypair to it"
@@ -310,11 +298,8 @@ class Testing(unittest.TestCase):
         mbm2.fetch(verbose=self.verbose)
         assert mbm2.name == mblockm.name, "Names should survive round trip"
         if self.verbose: print "KEYCHAIN 4: reconstructing KeyChain and fetch"
-        KeyChain.mykeychains = [] # Clear Key Chains
-        kcs2 = KeyChain(mnemonic=self.mnemonic, verbose=self.verbose, name="test_keychain kc")    # Note only fetches if name matches
-        kcs2.store(verbose=self.verbose)
-        KeyChain.addkeychains(kcs2)
-        kcs2.fetch(verbose=self.verbose, fetchlist=True, fetchblocks=True)
+        Dweb.keychains = [] # Clear Key Chains
+        kcs2 = KeyChain.new(mnemonic=self.mnemonic, verbose=self.verbose, name="test_keychain kc") # Note only fetches if name matches
         if self.verbose: print "KEYCHAIN 5: Check MBM carried ok"
         mbm3 = kcs2.mymutableBlocks()[-1]
         assert mbm3.__class__.__name__ == "MutableBlock", "Should be a mutable block"
@@ -329,7 +314,7 @@ class Testing(unittest.TestCase):
         sb2 = StructuredBlock(hash=sb._hash, verbose=self.verbose).fetch(verbose=self.verbose) # Fetch & decrypt
         assert sb2.data == self.quickbrownfox, "Data should survive round trip"
         if self.verbose: print "KEYCHAIN 7: Check can store content via an MB"
-        mblockm = self._mb(contentacl=acl, _allowunsafestore=True)  # Simulate other end
+        mblockm = MutableBlock.new(contentacl=acl, _allowunsafestore=True, content=self.quickbrownfox, signandstore=True, verbose=self.verbose)  # Simulate other end
         mb = MutableBlock(name="test_acl mb", hash=mblockm._publichash, verbose=self.verbose)
         assert mb.content(verbose=self.verbose) == self.quickbrownfox, "should round trip through acl"
         if self.verbose: print "test_keychain: done"
@@ -338,7 +323,7 @@ class Testing(unittest.TestCase):
 
 
     def Xtest_current(self):
-        self.test_file()
+        self.test_keychain()
 
         # Keygen -> Pub/Priv, (no access) ->
         # words -> hash ->

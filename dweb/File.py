@@ -7,6 +7,7 @@ from StructuredBlock import StructuredBlock
 import mimetypes
 mimetypes.init()
 mimetypes.add_type('text/plain','.md')
+from Dweb import Dweb
 
 class File(StructuredBlock):
     """
@@ -45,7 +46,7 @@ class File(StructuredBlock):
         :return:        File() with _hash and data set
         """
         # Utility method to upload binary content as a Block and attach.
-        hash = cls.transport.rawstore(data=content, verbose=verbose)
+        hash = Dweb.transport.rawstore(data=content, verbose=verbose)
         f = cls(**meta)
         f.hash = hash
         f.store(verbose=verbose)  # This will have data and _hash, the _hash reflects the SB not the data

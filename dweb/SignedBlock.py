@@ -8,6 +8,7 @@ from CryptoLib import CryptoLib, KeyPair
 from CommonBlock import Transportable, UnknownBlock
 from StructuredBlock import SmartDict, StructuredBlock
 from Transport import TransportURLNotFound, TransportFileNotFound
+from Dweb import Dweb
 
 
 """
@@ -84,7 +85,7 @@ class SignedBlocks(list):
         assert hash is not None
         if verbose: print "SignedBlocks.fetch looking for hash=",hash,"fetchblocks=", fetchblocks
         try:
-            lines = Transportable.transport.rawlist(hash=hash, verbose=verbose, **options)
+            lines = Dweb.transport.rawlist(hash=hash, verbose=verbose, **options)
         except (TransportURLNotFound, TransportFileNotFound) as e:
             return SignedBlocks([])    # Its ok to fail as list may be empty
         else:

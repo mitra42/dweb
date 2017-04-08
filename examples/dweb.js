@@ -92,6 +92,7 @@ class TransportHttp {
     }
 }
 
+//REFACTOR PHASE 0
 var transport = TransportHttp.setup([dwebserver, dwebport], {});
 
 class Block {

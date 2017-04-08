@@ -1,12 +1,12 @@
 # encoding: utf-8
 
-from Block import Block
 from CryptoLib import CryptoLib, KeyPair, WordHashKey, PrivateKeyException, AuthenticationException, DecryptionFail, SecurityWarning
 import base64
 from StructuredBlock import StructuredBlock
 from SignedBlock import SignedBlocks
 from misc import ForbiddenException, _print, AssertionFail
 from CommonBlock import Transportable, SmartDict
+from Dweb import Dweb
 
 
 class CommonList(SmartDict):
@@ -39,6 +39,7 @@ class CommonList(SmartDict):
         :param KeyPair|str keypair: Keypair or export of Key identifying this list
         :param data: Exported data to import
         :param hash: Hash to exported data
+        :param keychain: Set to class to use for Key (supports RSA or WordHashKey)
         :param options: Set on SmartDict unless specifically handled here
         """
         #if verbose: print "master=%s, keypair=%s, key=%s, hash=%s, verbose=%s, options=%s)" % (master, keypair, key, hash, verbose, options)
@@ -49,7 +50,7 @@ class CommonList(SmartDict):
         if keypair:
             self.keypair = keypair
         if keygen:
-                self.keypair = KeyPair.keygen(**options)   # Note these options are also set on smartdict, so catch explicitly if known.
+                self.keypair = KeyPair.keygen(keyclass=keygen, verbose=verbose, **options)   # Note these options are also set on smartdict, so catch explicitly if known.
         if not self._master:
             self._publichash = hash # Maybe None.
         self._list = []
@@ -72,6 +73,7 @@ class CommonList(SmartDict):
         master = dd["_master"]  # Use master from dd if modified
         if dd.get("keypair"):   # Based on whether the CommonList is master, rather than if the key is (key could be master, and CL not)
             if master and not dd.get("_acl") and not self._allowunsafestore:
+                print "XXX@76",self
                 raise SecurityWarning(message="Probably shouldnt be storing private key on this "+self.__class__.__name__)  # Can set KeyPair._allowunsafestore to allow this when testing
             dd["keypair"] = dd["keypair"].privateexport if master else dd["keypair"].publicexport
         publichash = dd.get("_publichash")
@@ -117,7 +119,7 @@ class CommonList(SmartDict):
         return self
 
     def publicurl(self, command=None, **options):
-        return Transportable.transport.url(self, command=command or "list", hash=self._publichash, **options) #, contenttype=self.__getattr__("Content-type"))
+        return Dweb.transport.url(self, command=command or "list", hash=self._publichash, **options) #, contenttype=self.__getattr__("Content-type"))
 
     def privateurl(self):
         """
@@ -126,7 +128,7 @@ class CommonList(SmartDict):
 
         :return:
         """
-        return Transportable.transport.url(self, command="update", hash=self.privatehash, contenttype=self._current.__getattr__("Content-type"))
+        return Dweb.transport.url(self, command="update", hash=self.privatehash, contenttype=self._current.__getattr__("Content-type"))
         #TODO-AUTHENTICATION - this is particularly vulnerable w/o authentication as stores PrivateKey in unencrypted form
 
 
@@ -155,7 +157,7 @@ class CommonList(SmartDict):
         hash = obj if isinstance(obj, basestring) else obj._hash
         from SignedBlock import Signature
         sig = Signature.sign(self, hash, verbose=verbose, **options)
-        self.transport.add(hash=hash, date=sig.date,
+        Dweb.transport.add(hash=hash, date=sig.date,
                    signature=sig.signature, signedby=sig.signedby, verbose=verbose, **options)
         # Caller will probably want to add obj to list , not done here since MB handles differently.
 
@@ -250,6 +252,37 @@ class MutableBlock(CommonList):
     def path(self, urlargs, verbose=False, **optionsignored):
         return self._current.path(urlargs, verbose)  # Pass to _current, (a StructuredBlock)  and walk its path
 
+
+    @classmethod
+    def new(cls, acl=None, contentacl=None, name=None, _allowunsafestore=False, content=None, verbose=False, signandstore=False, **options):
+        """
+        Utility function to allow creation of MB in one step
+
+        :param acl:             Set to an AccessControlList or KeyChain if storing encrypted (normal)
+        :param contentacl:      Set to enryption for content
+        :param name:            Name of block (optional)
+        :param _allowunsafestore: Set to True if not setting acl, otherwise wont allow storage
+        :param content:         Initial data for content
+        :param verbose:
+        :param signandstore:    Set to True if want to sign and store content, can do later
+        :param options:
+        :return:
+        """
+        # See test_mutableblock for canonical testing of this
+        if verbose: print "MutableBlock.new: Creating MutableBlock", name
+        mblockm = cls(name=name, master=True, keygen=True, contentacl=contentacl, verbose=verbose)  # Create a new block with a new key
+        mblockm._acl = acl              # Secure it
+        mblockm._current.data = content  # Preload with data in _current.data
+        if _allowunsafestore:
+            mblockm._allowunsafestore = True
+            mblockm.keypair._allowunsafestore = True
+        mblockm.store()
+        if signandstore and content:
+            mblockm.signandstore(verbose=verbose)  # Sign it - this publishes it
+        if verbose: print "Created MutableBlock hash=", mblockm._hash
+        return mblockm
+
+
 class EncryptionList(CommonList):
     """
     Common class for AccessControlList and KeyChain for things that can handle encryption
@@ -341,9 +374,26 @@ class KeyChain(EncryptionList):
     From CommonList: keypair, _publichash, _list, _master, name
     From SmartDict:     _acl            For encrypting the KeyChain itself
     """
-    mykeychains = []       # Set with keys we can use
     table = "kc"
 
+    @classmethod
+    def new(cls, mnemonic=None, keygen=False, name="My KeyChain", verbose=False):
+        """
+        Utility function grouping the most common things done with a new key
+        Creates the key, stores if reqd, fetches anything already on it
+
+        :param mnemonic:    Words to translate into keypair
+        :param bool keygen: If True generate a key
+        """
+        if verbose: print "KeyChain.new mnemonic=",mnemonic,"keygen=",keygen
+        # master=False, keypair=None, data=None, hash=None, verbose=False, keygen=False, mnemonic=None, **options):  # Note hash is of data
+        kc = cls(mnemonic=mnemonic, keygen=keygen, verbose=verbose, name=name)  # Note only fetches if name matches
+        kc.store(verbose=verbose)   # Set the _publichash
+        KeyChain.addkeychains(kc)
+        kc.fetch(verbose=verbose, fetchlist=True, fetchblocks=True)
+        if verbose: print "Created keychain for:", kc.keypair.private.mnemonic
+        if verbose: print "Record these words if you want to access again"
+        return kc
 
     def add(self, obj, verbose=False, **options):
         super(KeyChain, self).add(obj, verbose=verbose, **options)
@@ -368,11 +418,11 @@ class KeyChain(EncryptionList):
         :param keychains:   Array of keychains
         :return:
         """
-        cls.mykeychains += keychains
+        Dweb.keychains += keychains
 
     @classmethod
     def find(cls, publichash, verbose=False, **options):
-        kcs = [ kc for kc in cls.mykeychains if kc._publichash == publichash ]
+        kcs = [ kc for kc in Dweb.keychains if kc._publichash == publichash ]
         if verbose and kcs: print "KeyChain.find successful"
         return kcs[0] if kcs else None
 
@@ -381,15 +431,15 @@ class KeyChain(EncryptionList):
         return base64.urlsafe_b64encode(self.keypair._key._private)
 
     def store(self, verbose=False, **options ):
-        return super(KeyChain, self).store(verbose=verbose, dontstoremaster=True, **options)  # Stores privatekey  and sets _hash
+        return super(KeyChain, self).store(verbose=verbose, dontstoremaster=True, **options)  # Stores public version and sets _publichash
 
     def fetch(self, verbose=False, **options):
-        return super(KeyChain, self).fetch(fetchBody=False, verbose=verbose, **options)  # Dont fetch body, it wasn't stored
+        return super(KeyChain, self).fetch(fetchBody=False, verbose=verbose, **options)  # Dont fetch body, it wasn't stored, but get list
 
     @classmethod
     def _findbyclass(cls, clstarget):
         # Super obscure double loop, but works and fast
-        return [ k for kc in cls.mykeychains for k in kc._list if isinstance(k,clstarget) ]
+        return [ k for kc in Dweb.keychains for k in kc._list if isinstance(k,clstarget) ]
 
     @classmethod
     def myviewerkeys(cls):

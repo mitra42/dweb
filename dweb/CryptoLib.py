@@ -14,6 +14,7 @@ from misc import MyBaseException, ToBeImplementedException
 import sha3 # To add to hashlib
 from multihash import encode, SHA1,SHA2_256, SHA2_512, SHA3
 from CommonBlock import Transportable, SmartDict
+from Dweb import Dweb
 
 class PrivateKeyException(MyBaseException):
     """
@@ -243,14 +244,22 @@ class KeyPair(SmartDict):
         return "KeyPair" + repr(self.__dict__)  #TODO only useful for debugging,
 
     @classmethod
-    def keygen(cls, **options):
+    def keygen(cls, keyclass=RSA, verbose=False, **options):
         """
         Generate a new RSA key
 
         :param options: unused
+        :keyclass class: Can override default of RSA to WordHash
         :return: KeyPair
         """
-        return cls(key=RSA.generate(1024, Random.new().read))
+        if verbose: print "Generating key for",keyclass
+        if keyclass in (True, RSA, "RSA"):
+            key=RSA.generate(1024, Random.new().read)
+        elif keyclass in (WordHashKey,):
+            key = WordHashKey.generate(strength=128)
+        else:
+            raise NotImplementedError(name="keygen for keyclass="+key.__class__.__name__)
+        return cls(key=key)
 
     @property
     def key(self):
@@ -353,7 +362,7 @@ class KeyPair(SmartDict):
         :param value:
         :return:
         """
-        self.key = self.transport.rawfetch(hash=value)
+        self.key = Dweb.transport.rawfetch(hash=value)
 
     @property
     def publichash(self):
@@ -368,7 +377,7 @@ class KeyPair(SmartDict):
         :param value:
         :return:
         """
-        self.key = self.transport.rawfetch(hash=value)
+        self.key = Dweb.transport.rawfetch(hash=value)
         #TODO-AUTHENTICATION what happens if cant find
         if self.publichash != value and self.privatehash != value:
             self._key = None    # Blank out bad key
@@ -452,6 +461,19 @@ class WordHashKey(object):
 
     def publicexport(self):
         return "WORDHASH "+self._public     # _public is a hash already
+
+    @classmethod
+    def generate(cls, strength=128):
+        return cls(mnemonic=Mnemonic("english").generate(strength=strength))
+
+    @property
+    def mnemonic(self):
+        """
+        Return the set of words to remember to regenerate this.
+
+        :return:
+        """
+        return Mnemonic("english").to_mnemonic(self._private)
 
 def json_default(obj):
     """

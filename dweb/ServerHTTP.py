@@ -8,6 +8,7 @@ from MyHTTPServer import MyHTTPRequestHandler, exposed
 from misc import ToBeImplementedException
 from CommonBlock import Transportable
 from CryptoLib import CryptoLib, KeyPair
+from Dweb import Dweb
 
 
 LetterToClass = {
@@ -33,7 +34,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         :return: Never Returns
         """
         from TransportLocal import TransportLocal # Avoid circular references
-        Transportable.setup(TransportLocal, verbose=False, dir="../cache_http")  # HTTP server is storing locally
+        Dweb.settransport(transportclass=TransportLocal, verbose=False, dir="../cache_http")  # HTTP server is storing locally
         cls.serve_forever(verbose=False)    # Uses defaultipandport
         #TODO-HTTP its printing log, put somewhere instead
 
@@ -47,7 +48,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         :return: { Content-Type, data: raw data from block
         """
         return {"Content-type": contenttype,
-                "data": Transportable.transport.rawfetch(hash=hash)} # Should be raw data returned
+                "data": Dweb.transport.rawfetch(hash=hash)} # Should be raw data returned
     rawfetch.arglist=["hash"]
 
     @exposed
@@ -59,7 +60,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         :return:
         """
         return { 'Content-type': 'text/json',
-                 'data': Transportable.transport.rawlist(hash=hash, **kwargs)
+                 'data': Dweb.transport.rawlist(hash=hash, **kwargs)
                }
     rawlist.arglist=["hash"]
 
@@ -72,13 +73,13 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         :return:
         """
         return {'Content-type': 'text/json',
-                'data': Transportable.transport.rawreverse(hash=hash, **kwargs)
+                'data': Dweb.transport.rawreverse(hash=hash, **kwargs)
                 }
     rawreverse.arglist = ["hash"]
 
     @exposed
     def rawstore(self, data=None, **kwargs):
-        hash = Transportable.transport.rawstore(data=data, **kwargs)
+        hash = Dweb.transport.rawstore(data=data, **kwargs)
         return { "Content-type": "appliction/octet-stream", "data": hash }
     rawstore.arglist=["data"]
 
@@ -92,21 +93,21 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         if isinstance(data, basestring): # Assume its JSON
             data = CryptoLib.loads(data)    # HTTP just delivers bytes
         return  { "Content-type": "appliction/octet-stream",
-                  "data":  Transportable.transport.rawadd(**data)
+                  "data":  Dweb.transport.rawadd(**data)
                   }
         #hash=None, date=None, signature=None, signedby=None, verbose=False, **options):
     rawadd.arglist=["data"]
 
     @exposed
     def content(self, table=None, hash=None, urlargs=None, contenttype=None, verbose=False, **kwargs):
-        return Transportable.transport.fetch("content", cls=table, hash=hash,path=urlargs, verbose=verbose, contenttype=contenttype, **kwargs  )
+        return Dweb.transport.fetch("content", cls=table, hash=hash,path=urlargs, verbose=verbose, contenttype=contenttype, **kwargs  )
     content.arglist=["table", "hash"]
 
     @exposed
     def file(self, table=None, hash=None, urlargs=None, contenttype=None, verbose=False, **kwargs):
         #TODO-EFFICIENCY - next call does 2 fetches
         #verbose=True
-        return Transportable.transport.fetch(command="file", cls=table, hash=hash,path=urlargs, verbose=verbose, contenttype=contenttype, **kwargs  )
+        return Dweb.transport.fetch(command="file", cls=table, hash=hash,path=urlargs, verbose=verbose, contenttype=contenttype, **kwargs  )
     file.arglist=["table", "hash"]
 
 

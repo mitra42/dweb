@@ -2,6 +2,7 @@
 import dateutil.parser  # pip py-dateutil
 import base64
 from misc import ObsoleteException, _print, ToBeImplementedException, AssertionFail
+from Dweb import Dweb
 
 class Transportable(object):
     """
@@ -17,7 +18,6 @@ class Transportable(object):
     _fetched    True if has been fetched from hash
     _dirty      True if needs writing to dWeb
     """
-    transport = None
 
     def __init__(self, data=None, hash=None, verbose=False, **ignoredoptions):
         """
@@ -32,15 +32,6 @@ class Transportable(object):
         if hash and not data: self._needsfetch = True
         #TODO-VERIFY - can verify at this point
 
-    @classmethod
-    def setup(cls, transportclass=None, **transportoptions):
-        """
-        Setup the Transportable class with a particular transport
-
-        :param transportclass: Subclass of Transport
-        :param transportoptions: Dictionary of options
-        """
-        cls.transport = transportclass.setup(**transportoptions)
 
     def store(self, data=None, verbose=False, **options):
         """
@@ -51,7 +42,7 @@ class Transportable(object):
         :return: hash of data
         """
         if verbose: print "Storing", self.__class__.__name__, "len=", len(data or self._data)
-        self._hash = self.transport.rawstore(data=data or self._data)  # Note uses fact that _data will be subclassed
+        self._hash = Dweb.transport.rawstore(data=data or self._data)  # Note uses fact that _data will be subclassed
         if verbose: print self.__class__.__name__, ".stored: hash=", self._hash
         return self
 
@@ -72,7 +63,7 @@ class Transportable(object):
         """
         if verbose: print "Transportable.fetch _hash=",self._hash
         if self._needsfetch:
-            self._data = self.transport.rawfetch(hash=self._hash, verbose=verbose, **options)
+            self._data = Dweb.transport.rawfetch(hash=self._hash, verbose=verbose, **options)
             self._needsfetch = False
         return self # For Chaining
 
@@ -92,7 +83,7 @@ class Transportable(object):
         table = table or self.table
         if not table:
             raise AssertionFail(message=self.__class__.__name__+" doesnt support url()")
-        return self.transport.url(self, url_output=url_output, table=table, **options)
+        return Dweb.transport.url(self, url_output=url_output, table=table, **options)
 
 
 class SmartDict(Transportable):
@@ -218,7 +209,7 @@ class UnknownBlock(SmartDict):
         from ServerHTTP import LetterToClass
         from CryptoLib import CryptoLib
         if verbose: print "Transportable.fetch _hash=", self._hash
-        data = self.transport.rawfetch(hash=self._hash, verbose=verbose, **options)
+        data = Dweb.transport.rawfetch(hash=self._hash, verbose=verbose, **options)
         dic = CryptoLib.loads(data)
         table = dic["table"]
         if not table:
