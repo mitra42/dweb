@@ -1,7 +1,7 @@
 // Javascript library for dweb
 
-var dwebserver = 'localhost';
-//var dwebserver = '192.168.1.156';
+//var dwebserver = 'localhost';
+var dwebserver = '192.168.1.156';
 var dwebport = '4243';
 
 // ==== OBJECT ORIENTED JAVASCRIPT ===============
@@ -92,20 +92,43 @@ class TransportHttp {
     }
 }
 
-//REFACTOR PHASE 0
 var transport = TransportHttp.setup([dwebserver, dwebport], {});
 
-class Block {
+// Based on Transportable class in python - generic base for anything transportable.
+
+class Transportable {
     constructor(hash, data) {
         this._hash = hash;  // Hash of the _data
-        this._data = data;  // The data being stored
-        this.table = 'b';  // Table hash found in, TODO might want to move to _table python
+        this._data = data;  // The data being stored //TODO-REFACTOR need to call data setter etc here
+        if (hash && !data) { this._needsfetch = true; }
+    }
+    //UNDEFINED FUNCTIONS in PYTHON: store, dirty, fetch, file, url
+    store() { alert("Undefined function Transportable.store"); }
+
+    dirty() {   // Flag as dirty so needs uploading - subclasses may delete other, now invalid, info like signatures
+        this._hash = null;
     }
 
-    load(verbose, options) {
-        if (verbose) { console.log("Block.load hash=",this._hash,"options=",options); }
-        transport.rawfetch(this, this._hash, verbose, options);
+    fetch() { alert("Undefined function Transportable.fetch"); } // Replaced by load
+
+    load(verbose, options) {    // Asynchronous equic of fetch, has to specify what to do via options
+        if (verbose) { console.log("Transportable.load hash=",this._hash,"options=",options); }
+        if (this._needsfetch) { // Only load if need to
+            transport.rawfetch(this, this._hash, verbose, options);
+            this._needsfetch = false
+        }
         // Block fetched in the background - dont assume loaded here, see onloaded
+    }
+
+    file() { alert("Undefined function Transportable.file"); }
+    url() { alert("Undefined function Transportable.url"); }
+}
+
+
+class Block extends Transportable {
+    constructor(hash, data) {
+        super(hash, data);
+        this.table = 'b';
     }
 
     onloaded(data, verbose, options) {
@@ -113,46 +136,69 @@ class Block {
         // copies at Block, MutableBlock
         if (verbose) { console.log("Block:onloaded:Storing _data to", options["dom_id"]); }
         this._data = data;
-        if (options["dom_id"]) {
-                    document.getElementById(options["dom_id"]).innerHTML = this._data;
-        } // TODO make it handle img, or other non-HTML as reqd
+        storeto(data, verbose, options) // TODO storeto handle img, or other non-HTML as reqd
     }
+
+    size() { alert("Undefined function Block.size"); }
+    content() { alert("Undefined function Block.content"); }
+
 }
 
-class StructuredBlock extends Block { //TODO can subclass SmartDict if used elsewhere
-    constructor(hash) { //TODO support other things in construction
-        super(hash, null); // _hash is _hash of SB, not of data
-        this.table = "sb"; // Note this is cls.table on python but need to separate from dictionary
+class SmartDict extends Transportable {
+    constructor(hash, data) {
+        super(hash, data); // _hash is _hash of SB, not of data
+        // Note this does not set fields (with _setproperties) unlike Python version which sets it in _data.setter
+    }
+    __setattr__(name, value) {
+        //TODO Need a javascript equivalent way of transforming date
+        // if (name[0] != "_") {
+        //    if "date" in name and isinstance(value,basestring):
+        //        value = dateutil.parser.parse(value)
+        //}
+        return this[name] = value; //TODO: Python-Javascript: In Python can assume will get methods of property e.g. _data, in javascript need to be explicit here, or in caller.
     }
     _setproperties(dict) {
         for (let prop in dict) {
-            if (prop == "links") {  // Assume its a SB TODO make dependent on which table
-                let links = dict[prop];
-                for (let len = links.length, i=0; i<len; i++) {
-                    let sb = new StructuredBlock();
-                    sb._setproperties(links[i]);    // Can recurse down the path
-                    links[i] = sb;
-                }
-                this[prop] = links;
-            } else {
-                this[prop] = dict[prop];
-            }
+            this.__setattr__(prop, dict[prop]);
         }
     }
-    link(name) {
-        let links = this.links;
-        for (let len = links.length, i=0; i<len; i++) {
-            if (links[i].name == name) {
-                return links[i]
-            }
+    preflight() { alert("Undefined function SmartDict.preflight"); }    // Should be being called on outgoing _data
+    _getdata() { alert("Undefined function SmartDict._getdata"); }    // Should be being called on outgoing _data includes dumps and encoding etc
+
+    _setdata(value) {
+        if (value) {    // Skip if no data
+            // value should be a dict by now, not still json as it is in Python
+            //TODO-AUTHENTICTION - decrypt here
+            this._setproperties(value); // Note value should not contain a "_data" field, so wont recurse even if catch "_data" at __setattr__()
         }
-        console.log("Didn't find",name);
-        return null;    // If not found
     }
-    onloaded(data, verbose, options) {
+}
+
+class StructuredBlock extends SmartDict {
+    constructor(hash) {
+        super(hash, null); // _hash is _hash of SB, not of data
+        this.table = "sb"; // Note this is cls.table on python but need to separate from dictionary
+    }
+    store() { alert("Undefined function StructuredBlock.store"); }
+
+    __setattr__(name, value) {  // Called by _setproperties, catch equivalent of getters and setters here
+        if (name == "links") {  // Assume its a SB TODO make dependent on which table
+            let links = value;
+            for (let len = links.length, i=0; i<len; i++) {
+                let sb = new StructuredBlock();
+                sb._setproperties(links[i]);    // Can recurse down the path
+                links[i] = sb;
+            }
+            this[name] = links;
+        } else {
+            super.__setattr__(name, value);
+        }
+    }
+
+    onloaded(data, verbose, options) {  // Equivalent of _setdata in Python
         console.log("StructuredBlock:onloaded data len=", data.length, options)
-        this._data = data;
-        this._setproperties(JSON.parse(data));
+        this._setdata(JSON.parse(data))   // Actually calls super, and calls _setproperties()
+        //this._data = data;
 
         let sb = this;
         while (options.path && options.path.length && this.links.length ) { // Have a path and can do it on sb
@@ -168,7 +214,33 @@ class StructuredBlock extends Block { //TODO can subclass SmartDict if used else
                 storeto(sb.data, verbose, options);  // See if options say to store in a DIV for example
         }
     }
+    dirty() {
+        super.dirty();
+        this._signatures = new Array(); //TODO-REFACTOR Not sure whether should be null or Signatures([])
+    }
+
+//TODO-REFACTOR PHASE 0a
+    link(name) {    // Note python version allows call by number as well as name
+        let links = this.links;
+        for (let len = links.length, i=0; i<len; i++) {
+            if (links[i].name == name) {
+                return links[i]
+            }
+        }
+        console.log("Didn't find",name);
+        return null;    // If not found
+    }
+
+    content() { alert("Undefined function StructuredBlock.store"); }
+    file() { alert("Undefined function StructuredBlock.store"); }
+    size() { alert("Undefined function StructuredBlock.store"); }
+    path() { alert("Undefined function StructuredBlock.store"); }   // Done in onloaded, asynchronous recursion.
+    sign() { alert("Undefined function StructuredBlock.store"); }
+    verify() { alert("Undefined function StructuredBlock.store"); }
+
 }
+
+//TODO-REFACTOR PHASE 0b
 class Signature {
     constructor(dic) {
         this.date = dic["date"];
@@ -324,7 +396,6 @@ function storeto(data, verbose, options) {
         options.elem.innerHTML = data;
     } // TODO make it handle img, or other non-HTML as reqd based on this["Content-type"]
 }
-
 
 // ==== NON OBJECT ORIENTED FUNCTIONS ==============
 

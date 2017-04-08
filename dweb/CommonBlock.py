@@ -174,7 +174,7 @@ class SmartDict(Transportable):
     _data = property(_getdata, _setdata)
 
 
-    def dumps(self):    # Called by json_default
+    def dumps(self):    # Called by json_default, but preflight() is used in most scenarios rather than this
         return {k: self.__dict__[k] for k in self.__dict__ if k[0] != "_"}  # Serialize the dict, excluding _xyz
 
     def copy(self):
