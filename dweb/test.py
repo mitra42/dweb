@@ -28,8 +28,8 @@ class Testing(unittest.TestCase):
         self.quickbrownfox =  "The quick brown fox ran over the lazy duck"
         self.dog = "But the clever dog chased the fox"
         self.mydic = { "a": "AAA", "1":100, "B_date": datetime.now()}  # Dic can't contain integer field names
-        self.ipandport = ('localhost', 4243)  # Serve it via HTTP on all addresses
-        #self.ipandport = ('192.168.1.156', 4243)  # Serve it via HTTP on all addresses
+        #self.ipandport = ('localhost', 4243)  # Serve it via HTTP on all addresses
+        self.ipandport = ('192.168.1.156', 4243)  # Serve it via HTTP on all addresses
         self.exampledir = "../examples/"    # Where example files placed
         self.mnemonic = "lecture name virus model jealous whisper stone broom harvest april notable lunch" # Random valid mnemonic
         if testTransport == TransportLocal:
@@ -327,4 +327,3 @@ class Testing(unittest.TestCase):
 
         # Keygen -> Pub/Priv, (no access) ->
         # words -> hash ->
-

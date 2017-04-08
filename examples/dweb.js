@@ -177,7 +177,9 @@ class SmartDict extends Transportable {
 class StructuredBlock extends SmartDict {
     constructor(hash) {
         super(hash, null); // _hash is _hash of SB, not of data
-        this.table = "sb"; // Note this is cls.table on python but need to separate from dictionary
+        this._signatures = new Array()
+        this._date = null;  // Updated in _earliestdate when loaded
+        this.table = "sb";  // Note this is cls.table on python but need to separate from dictionary
     }
     store() { alert("Undefined function StructuredBlock.store"); }
 
@@ -238,44 +240,8 @@ class StructuredBlock extends SmartDict {
     sign() { alert("Undefined function StructuredBlock.store"); }
     verify() { alert("Undefined function StructuredBlock.store"); }
 
-}
 
-//TODO-REFACTOR PHASE 0b
-class Signature {
-    constructor(dic) {
-        this.date = dic["date"];
-        this.hash = dic["hash"];
-        this.publickey = dic["publickey"];
-        this.signature = dic["signature"]
-        //console.log("Signature created",this.hash);
-    }
-    //TODO need to be able to verify signatures
-}
-
-class SignedBlock { //TODO Merge into StructuredBlock as done in Python
-    // TODO Build Signed Block - allow retrieval of SB from it
-
-    constructor(hash) { // Python also handles, structuredblock=None, signatures=None, verbose=False, **options):
-        // Adapted from Python SignedBlock
-        // if structuredblock and not isinstance(structuredblock, StructuredBlock):
-        //     structuredblock = StructuredBlock(structuredblock) # Handles dict or json of dict
-        this._structuredblock = null; // Would be from structuredblock if passed
-        this._hash = hash;              // Hash of structured block
-        this._signatures = new Array(); //Would initialize to Signatures(signatures or [])
-        this._date = null;
-    }
-
-    load(verbose, options) {
-        if (this._structuredblock) {
-            this._structuredblock.onloaded(options);
-        } else {
-            let sb = new StructuredBlock(this._hash);
-            sb.load(verbose, options);    // Asynchronous load - calls SB.onloaded
-        }
-    }
-
-
-    earliestdate() {
+    earliestdate() {    // Set the _date field to the earliest date of any signature or null if not found
         if (!this._signatures) {
             this._date = null;
         } else {
@@ -296,12 +262,26 @@ class SignedBlock { //TODO Merge into StructuredBlock as done in Python
         if (b.earliestdate() > a.earliestdate()) { return -1; }
         return 0;
     }
+
 }
+
+//TODO-REFACTOR PHASE 0b
+class Signature {
+    constructor(dic) {
+        this.date = dic["date"];
+        this.hash = dic["hash"];
+        this.publickey = dic["publickey"];
+        this.signature = dic["signature"]
+        //console.log("Signature created",this.hash);
+    }
+    //TODO need to be able to verify signatures
+}
+
 
 class MutableBlock {
     // TODO Build MutableBlock - allow fetch of signatures, and fetching them
     // TODO allow fetching of most recent
-    // { _hash, _key, _current: SignedBlock, _list: [ SignedBlock*]
+    // { _hash, _key, _current: StructuredBlock, _list: [ StructuredBlock*]
 
     constructor(hash) {
         // Note python __init__ also allows constructing with key, or with neither key nor hash
@@ -316,11 +296,11 @@ class MutableBlock {
     }
 
     onloaded(lines, verbose, options) {
-        let results = {};   // Dictionary of { SHA... : SignedBlock(hash=SHA... _signatures:[Signature*] ] ) }
+        let results = {};   // Dictionary of { SHA... : StructuredBlock(hash=SHA... _signatures:[Signature*] ] ) }
         for (let i in lines) {
             let s = new Signature(lines[i]);        // Signature ::= {date, hash, privatekey etc }
             if (! results[s.hash]) {
-                results[s.hash] = new SignedBlock(s.hash);
+                results[s.hash] = new StructuredBlock(s.hash);
             }
             //TODO turn s.date into java date
             //if isinstance(s.date, basestring):
@@ -329,12 +309,12 @@ class MutableBlock {
             //if CryptoLib.verify(s):
             results[s.hash]._signatures.push(s);
         }
-        let sbs = new Array();      // [ SignedBlock* ]
+        let sbs = new Array();      // [ StructuredBlock* ]
         for (let k in results) {
-            sbs.push(results[k]);      // Array of SignedBlock
+            sbs.push(results[k]);      // Array of StructuredBlock
         }
         //TODO sort list
-        sbs.sort(SignedBlock.compare); // Could inline: sbs.sort(function(a, b) { ... }
+        sbs.sort(StructuredBlock.compare); // Could inline: sbs.sort(function(a, b) { ... }
         this._current = sbs[sbs.length-1];
         this._list = sbs;
         if (options.path && options.path.length) {  //TODO-PATH unclear if want a path or a list - start with a list

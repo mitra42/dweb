@@ -183,3 +183,5 @@ class StructuredBlock(SmartDict):
     #METHODS TO DEAL WITH ENCRYPTION, STORED IN _acl field
     #Files have either hash or data or links field set,
     #---------------------------------------------------------------------------------------------------------
+
+    #Javascript has _date, earliestdate() & compare() to support dating based on signatures.
