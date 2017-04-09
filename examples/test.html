@@ -19,8 +19,8 @@
             console.log("MutableBlock=======");
             <!-- also works with /file/mb/.....=/langs/readme.md -->
             mbhash = "SHA3256B64URL.JHqfnJNzZzaY76qZSbSO21N3PK8gXBmtjAK48ONpA9k=";  // Hash reported out at tinymce.html
-            let mb = new MutableBlock(mbhash);  //TODO-KEY check all similar calls to make sure MutableBlock still takes parm 0 = hash
-            mb.load(true, {"path": ["langs","readme.md"], "dom_id": "myList.1"}  );
+            let mb = new MutableBlock(mbhash, null, false);  //TODO-KEY check all similar calls to make sure MutableBlock still takes parm 0 = hash
+            mb.load(true, true, true, false, {"path": ["langs","readme.md"], "dom_id": "myList.1"}  );
             <!-- Now test path using dwebfile -->
             dwebfile("sb", sbhash, "langs/readme.md", {  "dom_id": "myList.2"});
             <!-- Now test path using dwebfile -->

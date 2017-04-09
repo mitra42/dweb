@@ -305,9 +305,11 @@ class CommonList extends SmartDict {
     fetch() { alert("Undefined function CommonList.fetch"); }   // Split into load and onloaded
 
     load(verbose, fetchbody, fetchlist, fetchblocks, options) {   // Python can also fetch based on just having key
+        if (verbose) { console.log("CommonList.load:",this._hash,fetchbody, fetchlist, fetchblocks,options)}
         if (fetchbody) {
             options.fetchlist = fetchlist;
             options.fetchblocks = fetchblocks;
+            transport.rawfetch(this, this._hash, verbose, options);  // TODO this is only correct if its NOT master
         } else if (fetchlist) { // Cant fetch list to fetched body, as need hash of list
             options.fetchblocks = fetchblocks;
             transport.rawlist(this, this._hash, verbose, options);  // TODO this is only correct if its NOT master
@@ -363,23 +365,14 @@ class CommonList extends SmartDict {
     signandstore() { alert("Undefined function CommonList.signandstore"); }   // For storing data
     add() { alert("Undefined function CommonList.add"); }   // For storing data
 }
-//TODO-REFACTOR PHASE 0a
 class MutableBlock extends CommonList {
     // { _hash, _key, _current: StructuredBlock, _list: [ StructuredBlock*]
 
-    constructor(hash) {
-        super(hash, null, false);
+    constructor(hash, data, master) {
+        super(hash, null, master);
         // Note python __init__ also allows constructing with key, or with neither key nor hash
-        this._hash = hash;       // Could be None
-        this._key = null;
         this._current = null;
     }
-
-    load(verbose, options) {   // Python can also fetch based on just having key
-        transport.rawlist(this, this._hash, verbose, options);
-    }
-    //TODO-REFACTOR make calls to MB.load use parameters in CommonList.load
-
 
     onlisted(lines, verbose, options) {
         let handled = super.onlisted(lines, verbose, options);
@@ -408,34 +401,19 @@ class MutableBlock extends CommonList {
             i.load(verbose, { "elem": li });
         }
     }
-}
-//TODO-REFACTOR PHASE 0b
+    contentacl() { alert("Undefined function MutableBlock.contentacl setter and getter"); }   // Encryption of content
+    fetch() { alert("Undefined function MutableBlock.fetch"); }   // Split into load/onload/onlisted
+    content() { alert("Undefined function MutableBlock.store"); }   // Retrieving data
+    file() { alert("Undefined function MutableBlock.store"); }   // Retrieving data
+    signandstore() { alert("Undefined function MutableBlock.signandstore"); }   // Retrieving data
+    path() { alert("Undefined function MutableBlock.signandstore"); }   // Built into onloaded
+    new() { alert("Undefined function MutableBlock.signandstore"); }   // Utility function for creating mb
 
-
-class MutableBlockMaster {
-    // TODO - allow to drive editor (MCE)
-    constructor(hash) {
-        // Note python __init__ also allows constructing with key, or with neither key nor hash
-        this._hash = hash;       // Could be None
-        this._key = null;
-        this._current = null;
-        this._list = new Array();
-    }
-    update(type, data, verbose, options) {
-        transport.update(this, this._hash, type, data, verbose, options);
-    }
-    onloaded(data, verbose, options) {
-        // Called after block succeeds, can pass options through
-        // copies at Block, MutableBlock
-        if (verbose) { console.log("MBM:onloaded:Storing _data to", options["dom_id"]); }
-        this._data = data;
-        storeto(data, verbose, options)  // See if options say to store in a DIV for example
-    }
 }
+
 
 // ==== LIBRARY FUNCTIONS =======================
 function storeto(data, verbose, options) {
-    //TODO replace parts above that check dom_id
     // Can be called to check if options have instructions what to do with data
     // Its perfectly legitimate to call this, and nothing gets done with the data
     if (options.dom_id) {
@@ -456,23 +434,24 @@ function dwebfile(table, hash, path, options) {
         options.path = path.split('/');
     }
     if (table == "mb") {
-        var MorSb = new MutableBlock(hash); //TODO-KEY check all similar calls to make sure MutableBlock still takes parm 0 = hash
+        var mb = new MutableBlock(hash, null, false); //TODO-KEY check all similar calls to make sure MutableBlock still takes parm 0 = hash
+        mb.load(true, true, true, false, options); //verbose, fetchbody, fetchlist, !fetchblocks
     } else if (table == "sb") {
-        var MorSb = new StructuredBlock(hash);
+        var sb = new StructuredBlock(hash);
+        sb.load(true, options);
     } else {
         alert("dwebfile called with invalid table="+table);
     }
-    MorSb.load(true, options);
 }
 
 function dwebupdate(hash, type, data, options) {
-    mbm = new MutableBlockMaster(hash);  //TODO-KEY check all similar calls to make sure MutableBlock still takes parm 0 = hash
+    mbm = new MutableBlock(hash, null, true);  //TODO-KEY check all similar calls to make sure MutableBlock still takes parm 0 = hash
     mbm.update(type, data, true, options);
 }
 
 function dweblist(div, hash) {
-    var mb = new MutableBlock(hash);  //TODO-KEY check all similar calls to make sure MutableBlock still takes parm 0 = hash
-    mb.load(true, {"dom_id": div});
+    var mb = new MutableBlock(hash, null, false);  //TODO-KEY check all similar calls to make sure MutableBlock still takes parm 0 = hash
+    mb.load(true, true, true, false, {"dom_id": div}); //verbose, fetchbody, fetchlist, !fetchblocks
 }
 
 <!-- alert("dweb.js loaded"); -->
