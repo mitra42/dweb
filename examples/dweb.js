@@ -94,13 +94,20 @@ class TransportHttp {
 
 var transport = TransportHttp.setup([dwebserver, dwebport], {});
 
-// Based on Transportable class in python - generic base for anything transportable.
+
+// ######### Parallel development to CommonBlock.py ########
 
 class Transportable {
+    // Based on Transportable class in python - generic base for anything transportable.
+
     constructor(hash, data) {
         this._hash = hash;  // Hash of the _data
-        this._data = data;  // The data being stored //TODO-REFACTOR need to call data setter etc here
+        this._setdata(data); // The data being stored
         if (hash && !data) { this._needsfetch = true; }
+    }
+
+    _setdata(value) {
+        this._data = value;  // Default behavior, assumes opaque bytes, and not a dict
     }
     //UNDEFINED FUNCTIONS in PYTHON: store, dirty, fetch, file, url
     store() { alert("Undefined function Transportable.store"); }
@@ -124,6 +131,37 @@ class Transportable {
     url() { alert("Undefined function Transportable.url"); }
 }
 
+class SmartDict extends Transportable {
+    constructor(hash, data) {
+        super(hash, data); // _hash is _hash of SB, not of data
+        // Note this does not set fields (with _setproperties) unlike Python version which sets it in _data.setter
+    }
+    __setattr__(name, value) {
+        //TODO Need a javascript equivalent way of transforming date
+        // if (name[0] != "_") {
+        //    if "date" in name and isinstance(value,basestring):
+        //        value = dateutil.parser.parse(value)
+        //}
+        return this[name] = value; //TODO: Python-Javascript: In Python can assume will get methods of property e.g. _data, in javascript need to be explicit here, or in caller.
+    }
+    _setproperties(dict) { // < _setdata < constructor or onloaded
+        for (let prop in dict) {
+            this.__setattr__(prop, dict[prop]);
+        }
+    }
+    preflight() { alert("Undefined function SmartDict.preflight"); }    // Should be being called on outgoing _data
+    _getdata() { alert("Undefined function SmartDict._getdata"); }    // Should be being called on outgoing _data includes dumps and encoding etc
+
+    _setdata(value) {   // Note SmartDict expects value to be a dictionary, which should be the case since the HTTP requester interprets as JSON
+        if (value) {    // Skip if no data
+            // value should be a dict by now, not still json as it is in Python
+            //TODO-AUTHENTICTION - decrypt here
+            this._setproperties(value); // Note value should not contain a "_data" field, so wont recurse even if catch "_data" at __setattr__()
+        }
+    }
+}
+
+// ######### Parallel development to Block.py ########
 
 class Block extends Transportable {
     constructor(hash, data) {
@@ -144,38 +182,10 @@ class Block extends Transportable {
 
 }
 
-class SmartDict extends Transportable {
-    constructor(hash, data) {
-        super(hash, data); // _hash is _hash of SB, not of data
-        // Note this does not set fields (with _setproperties) unlike Python version which sets it in _data.setter
-    }
-    __setattr__(name, value) {
-        //TODO Need a javascript equivalent way of transforming date
-        // if (name[0] != "_") {
-        //    if "date" in name and isinstance(value,basestring):
-        //        value = dateutil.parser.parse(value)
-        //}
-        return this[name] = value; //TODO: Python-Javascript: In Python can assume will get methods of property e.g. _data, in javascript need to be explicit here, or in caller.
-    }
-    _setproperties(dict) {
-        for (let prop in dict) {
-            this.__setattr__(prop, dict[prop]);
-        }
-    }
-    preflight() { alert("Undefined function SmartDict.preflight"); }    // Should be being called on outgoing _data
-    _getdata() { alert("Undefined function SmartDict._getdata"); }    // Should be being called on outgoing _data includes dumps and encoding etc
-
-    _setdata(value) {
-        if (value) {    // Skip if no data
-            // value should be a dict by now, not still json as it is in Python
-            //TODO-AUTHENTICTION - decrypt here
-            this._setproperties(value); // Note value should not contain a "_data" field, so wont recurse even if catch "_data" at __setattr__()
-        }
-    }
-}
+// ######### Parallel development to StructuredBlock.py ########
 
 class StructuredBlock extends SmartDict {
-    constructor(hash) {
+    constructor(hash) { //TODO-REFACTOR make all calls call hash,null
         super(hash, null); // _hash is _hash of SB, not of data
         this._signatures = new Array()
         this._date = null;  // Updated in _earliestdate when loaded
@@ -183,7 +193,8 @@ class StructuredBlock extends SmartDict {
     }
     store() { alert("Undefined function StructuredBlock.store"); }
 
-    __setattr__(name, value) {  // Called by _setproperties, catch equivalent of getters and setters here
+    __setattr__(name, value) {  // Called by _setproperties < _setdata < constructor or onloaded.
+        //catch equivalent of getters and setters here
         if (name == "links") {  // Assume its a SB TODO make dependent on which table
             let links = value;
             for (let len = links.length, i=0; i<len; i++) {
@@ -221,7 +232,6 @@ class StructuredBlock extends SmartDict {
         this._signatures = new Array(); //TODO-REFACTOR Not sure whether should be null or Signatures([])
     }
 
-//TODO-REFACTOR PHASE 0a
     link(name) {    // Note python version allows call by number as well as name
         let links = this.links;
         for (let len = links.length, i=0; i<len; i++) {
@@ -265,18 +275,19 @@ class StructuredBlock extends SmartDict {
 
 }
 
-//TODO-REFACTOR PHASE 0b
-class Signature {
-    constructor(dic) {
-        this.date = dic["date"];
-        this.hash = dic["hash"];
-        this.publickey = dic["publickey"];
-        this.signature = dic["signature"]
+// ######### Parallel development to SignedBlock.py which also has SignedBlocks and Signatures classes ########
+
+class Signature extends SmartDict {
+    constructor(hash, dic) {
+        super(hash, dic);
         //console.log("Signature created",this.hash);
     }
     //TODO need to be able to verify signatures
+    sign() { alert("Undefined function Signature.sign"); }
+    verify() { alert("Undefined function Signature.verify"); }
 }
 
+// ######### Parallel development to MutableBlock.py ########
 
 class MutableBlock {
     // TODO Build MutableBlock - allow fetch of signatures, and fetching them
@@ -298,7 +309,7 @@ class MutableBlock {
     onloaded(lines, verbose, options) {
         let results = {};   // Dictionary of { SHA... : StructuredBlock(hash=SHA... _signatures:[Signature*] ] ) }
         for (let i in lines) {
-            let s = new Signature(lines[i]);        // Signature ::= {date, hash, privatekey etc }
+            let s = new Signature(null, lines[i]);        // Signature ::= {date, hash, privatekey etc }
             if (! results[s.hash]) {
                 results[s.hash] = new StructuredBlock(s.hash);
             }

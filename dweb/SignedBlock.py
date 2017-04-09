@@ -49,7 +49,7 @@ class Signature(SmartDict):
 
 class Signatures(list):
     """
-    A list of Signature
+    A list of Signature (note on Javascript this is just a list, and earliest is  static methods on the Signature class)
     """
     def earliest(self):
         """
