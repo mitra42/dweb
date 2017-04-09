@@ -20,7 +20,6 @@ class TransportHttp {
     static setup(ipandport, options) {
         return new TransportHttp(ipandport, options);
     }
-
     post(self, command, hash, type, data, verbose, options) {
         // obj being loaded
         // options: are passed to class specific onloaded
@@ -49,7 +48,7 @@ class TransportHttp {
         this.post(self, "update", hash, type, data, verbose, options);
     }
 
-    load(self, command, hash, path, verbose, options) {
+    load(self, command, hash, path, listreturned, verbose, options) {
         // obj being loaded
         // optioms: are passed to class specific onloaded
         // Locate and return a block, based on its multihash
@@ -63,7 +62,11 @@ class TransportHttp {
             success: function(data) {
                 if (verbose) { console.log("TransportHTTP:", command, ": returning data len=", data.length); }
                 // Dont appear to need to parse JSON data, its decoded already
-                self.onloaded(data, verbose, options);
+                if (listreturned) {
+                    self.onlisted(data, verbose, options);
+                } else {
+                    self.onloaded(data, verbose, options);
+                }
             },
             error: function(xhr, status, error) {
                 console.log("TransportHTTP:", command, ": error", status, "error=",error);
@@ -76,14 +79,14 @@ class TransportHttp {
         // Locate and return a block, based on its multihash
         // options: are passed to class specific onloaded
         // Locate and return a block, based on its multihash
-        this.load(self, "rawfetch", hash, [], verbose, options);    //TODO-PATH
+        this.load(self, "rawfetch", hash, [], false, verbose, options);    //TODO-PATH
     }
 
     rawlist(self, hash, verbose, options) {
         // obj being loaded
         // options: are passed to class specific onloaded
         // Locate and return a block, based on its multihash
-        this.load(self, "rawlist", hash, [], verbose, options); //TODO-PATH
+        this.load(self, "rawlist", hash, [], true, verbose, options); //TODO-PATH
     }
 
     url(command, hash) {
@@ -289,24 +292,44 @@ class Signature extends SmartDict {
 
 // ######### Parallel development to MutableBlock.py ########
 
-class MutableBlock {
-    // TODO Build MutableBlock - allow fetch of signatures, and fetching them
-    // TODO allow fetching of most recent
-    // { _hash, _key, _current: StructuredBlock, _list: [ StructuredBlock*]
 
-    constructor(hash) {
-        // Note python __init__ also allows constructing with key, or with neither key nor hash
-        this._hash = hash;       // Could be None
-        this._key = null;
-        this._current = null;
+class CommonList extends SmartDict {
+    constructor(hash, data, master) {
+        //TODO note python allows constructor with use of mnemonic, keypair, keygen and pub/private
+        super(hash, data);
+        this._master = master;
         this._list = new Array();
     }
+    _setkeypair() { alert("Undefined function CommonList._setkeypair"); }
+    preflight() { alert("Undefined function CommonList.preflight"); }   // For storing data
+    fetch() { alert("Undefined function CommonList.fetch"); }   // Split into load and onloaded
 
-    load(verbose, options) {   // Python can also fetch based on just having key
-        transport.rawlist(this, this._hash, verbose, options);
+    load(verbose, fetchbody, fetchlist, fetchblocks, options) {   // Python can also fetch based on just having key
+        if (fetchbody) {
+            options.fetchlist = fetchlist;
+            options.fetchblocks = fetchblocks;
+        } else if (fetchlist) { // Cant fetch list to fetched body, as need hash of list
+            options.fetchblocks = fetchblocks;
+            transport.rawlist(this, this._hash, verbose, options);  // TODO this is only correct if its NOT master
+            //TODO-REFACTOR would be better to call onlistloaded
+        }
     }
 
-    onloaded(lines, verbose, options) {
+    onloaded(data, verbose, options) { // Body loaded
+        console.log("CommonList:onloaded data len=", data.length, options)
+        this._setdata(JSON.parse(data))   // Actually calls super._setdata > _setproperties() > __setattr__
+        //this._data = data;
+        if (options.fetchlist) {
+            options.fetchlist = false; // Done it here, dont do it again
+            transport.rawlist(this, this._hash, verbose, options);  // TODO this is only correct if its NOT master
+            return false; // Not complete doing rawlist
+        } else {
+            return true;
+        }
+    }
+    onlisted(lines, verbose, options) { // Body loaded
+        console.log("CommonList:onlisted data len=", lines.length, options)
+        //lines = JSON.parse(lines))   Should already by a list
         let results = {};   // Dictionary of { SHA... : StructuredBlock(hash=SHA... _signatures:[Signature*] ] ) }
         for (let i in lines) {
             let s = new Signature(null, lines[i]);        // Signature ::= {date, hash, privatekey etc }
@@ -326,16 +349,51 @@ class MutableBlock {
         }
         //TODO sort list
         sbs.sort(StructuredBlock.compare); // Could inline: sbs.sort(function(a, b) { ... }
-        this._current = sbs[sbs.length-1];
         this._list = sbs;
-        if (options.path && options.path.length) {  //TODO-PATH unclear if want a path or a list - start with a list
-            this._current.load(verbose, options);
-        } else { // dom_id etc are done on the leaf, not the intermediaries
-            if (options["dom_id"]) {
-                if (verbose) { console.log("MutableBlock:onloaded:Storing data to", options["dom_id"]); }
-                let ul = document.getElementById(options["dom_id"]);
-                this.updatelist(ul, verbose);
-            } // TODO make it handle img, or other non-HTML as reqd based on this._dict["Content-type"]
+        if (options.fetchblocks) {
+            options.fetchblocks = false; // Done it here, dont do it again
+            alert("CommonList.onlisted options=fetchblocks not implemented")
+            //TODO-REFACTOR loop on all blocks
+        }
+        return true; // This layer handled, can do superclass stuff rather than wait for deeper loads
+    }
+    store() { alert("Undefined function CommonList.store"); }   // For storing data
+    publicurl() { alert("Undefined function CommonList.publicurl"); }   // For access via web
+    privateurl() { alert("Undefined function CommonList.privateurl"); }   // For access via web
+    signandstore() { alert("Undefined function CommonList.signandstore"); }   // For storing data
+    add() { alert("Undefined function CommonList.add"); }   // For storing data
+}
+//TODO-REFACTOR PHASE 0a
+class MutableBlock extends CommonList {
+    // { _hash, _key, _current: StructuredBlock, _list: [ StructuredBlock*]
+
+    constructor(hash) {
+        super(hash, null, false);
+        // Note python __init__ also allows constructing with key, or with neither key nor hash
+        this._hash = hash;       // Could be None
+        this._key = null;
+        this._current = null;
+    }
+
+    load(verbose, options) {   // Python can also fetch based on just having key
+        transport.rawlist(this, this._hash, verbose, options);
+    }
+    //TODO-REFACTOR make calls to MB.load use parameters in CommonList.load
+
+
+    onlisted(lines, verbose, options) {
+        let handled = super.onlisted(lines, verbose, options);
+        if (handled) {  // Should always be handled until fetchblocks implemented
+            this._current = this._list[this._list.length-1];
+            if (options.path && options.path.length) {  //TODO-PATH unclear if want a path or a list - start with a list
+                this._current.load(verbose, options);
+            } else { // dom_id etc are done on the leaf, not the intermediaries
+                if (options["dom_id"]) {
+                    if (verbose) { console.log("MutableBlock:onloaded:Storing data to", options["dom_id"]); }
+                    let ul = document.getElementById(options["dom_id"]);
+                    this.updatelist(ul, verbose);
+                } // TODO make it handle img, or other non-HTML as reqd based on this._dict["Content-type"]
+            }
         }
     }
 
@@ -351,6 +409,8 @@ class MutableBlock {
         }
     }
 }
+//TODO-REFACTOR PHASE 0b
+
 
 class MutableBlockMaster {
     // TODO - allow to drive editor (MCE)

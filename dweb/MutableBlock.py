@@ -86,7 +86,7 @@ class CommonList(SmartDict):
     #    super(CommonList, self)._setdata(value) # Sets __dict__ from values including keypair via setter
     #_data = property(SmartDict._getdata, SmartDict._setdata)
 
-    def fetch(self, verbose=False, fetchBody=True, fetchlist=True, fetchblocks=False, **options):
+    def fetch(self, verbose=False, fetchbody=True, fetchlist=True, fetchblocks=False, **options):
         """
         Copied to dweb.js.
 
@@ -94,7 +94,7 @@ class CommonList(SmartDict):
         :param verbose:
         :param options:
         """
-        if fetchBody:
+        if fetchbody:
             super(CommonList, self).fetch(verbose=verbose, **options)   # only fetches if _needsfetch=True, Sets keypair etc via _data -> _setdata,
         if fetchlist:
             # This is ugly - self._publichash needed for MB-master; self._hash&!_master for ACl.!master; keypair for VK
@@ -434,7 +434,7 @@ class KeyChain(EncryptionList):
         return super(KeyChain, self).store(verbose=verbose, dontstoremaster=True, **options)  # Stores public version and sets _publichash
 
     def fetch(self, verbose=False, **options):
-        return super(KeyChain, self).fetch(fetchBody=False, verbose=verbose, **options)  # Dont fetch body, it wasn't stored, but get list
+        return super(KeyChain, self).fetch(fetchbody=False, verbose=verbose, **options)  # Dont fetch body, it wasn't stored, but get list
 
     @classmethod
     def _findbyclass(cls, clstarget):
