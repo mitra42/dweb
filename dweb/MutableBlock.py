@@ -3,9 +3,9 @@
 from CryptoLib import CryptoLib, KeyPair, WordHashKey, PrivateKeyException, AuthenticationException, DecryptionFail, SecurityWarning
 import base64
 from StructuredBlock import StructuredBlock
-from SignedBlock import SignedBlocks
+from SignedBlock import Signatures
 from misc import ForbiddenException, _print, AssertionFail
-from CommonBlock import Transportable, SmartDict
+from CommonBlock import SmartDict
 from Dweb import Dweb
 
 
@@ -53,7 +53,7 @@ class CommonList(SmartDict):
                 self.keypair = KeyPair.keygen(keyclass=keygen, verbose=verbose, **options)   # Note these options are also set on smartdict, so catch explicitly if known.
         if not self._master:
             self._publichash = hash # Maybe None.
-        self._list = []
+        self._list = Signatures([])
 
     @property
     def keypair(self):
@@ -100,7 +100,9 @@ class CommonList(SmartDict):
             # This is ugly - self._publichash needed for MB-master; self._hash&!_master for ACl.!master; keypair for VK
             listhash = self._publichash or ((not self._master) and self._hash) or self.keypair._hash
             assert listhash,"Must be a hash to look on a list"
-            self._list = SignedBlocks.fetch(hash=listhash, fetchblocks=fetchblocks, verbose=verbose, **options).sorteddeduplicated()
+            self._list = Signatures.fetch(hash=listhash, fetchblocks=fetchblocks, verbose=verbose, **options)
+            #TODO-REFACTOR, where or if to do sorteddeduplicated()
+            #OBS: self._list = SignedBlocks.fetch(hash=listhash, fetchblocks=fetchblocks, verbose=verbose, **options).sorteddeduplicated()
         return self # for chaining
 
     def _storepublic(self, verbose=False, **options):
@@ -159,6 +161,7 @@ class CommonList(SmartDict):
         sig = Signature.sign(self, hash, verbose=verbose, **options)
         Dweb.transport.add(hash=hash, date=sig.date,
                    signature=sig.signature, signedby=sig.signedby, verbose=verbose, **options)
+        return sig  # Typically for adding to local copy of list
         # Caller will probably want to add obj to list , not done here since MB handles differently.
 
 
@@ -221,8 +224,8 @@ class MutableBlock(CommonList):
         if verbose: print "MutableBlock.fetch pubkey=",self._hash
         super(MutableBlock, self).fetch(verbose=verbose, fetchblocks=False, **options)  # Dont fetch old versions
         if len(self._list):
-            curr = self._list[-1]
-            self._current = curr and curr.fetch() # Fetch current content
+            sig = self._list[-1] # Note this is the last of the list, if lists can get disordered then may need to sort
+            self._current = sig and sig.block() # Fetch current content
         return self # For chaining
 
     def content(self, verbose=False, **options):
@@ -338,9 +341,9 @@ class AccessControlList(EncryptionList):
         :return:
         """
         if verbose: print "AccessControlList.tokens decrypt=",decrypt
-        self.fetch(verbose=verbose, fetchblocks=True)
+        self.fetch(verbose=verbose, fetchblocks=False)
         viewerhash = viewerkeypair._hash
-        toks = [ a.token for a in self._list if a.fetch().viewer == viewerhash]
+        toks = [ a.block().token for a in self._list if a.block().viewer == viewerhash ]
         if decrypt:
             toks = [ viewerkeypair.decrypt(str(a), b64=True) for a in toks ]
         return toks
@@ -390,14 +393,20 @@ class KeyChain(EncryptionList):
         kc = cls(mnemonic=mnemonic, keygen=keygen, verbose=verbose, name=name)  # Note only fetches if name matches
         kc.store(verbose=verbose)   # Set the _publichash
         KeyChain.addkeychains(kc)
-        kc.fetch(verbose=verbose, fetchlist=True, fetchblocks=True)
+        kc.fetch(verbose=verbose, fetchlist=True, fetchblocks=False)    # Was fetching blocks, but now done by "keys"
         if verbose: print "Created keychain for:", kc.keypair.private.mnemonic
         if verbose: print "Record these words if you want to access again"
         return kc
 
+    @property
+    def keys(self):
+        if not self._keys:
+            self._keys = self._list.blocks()
+        return self._keys
+
     def add(self, obj, verbose=False, **options):
-        super(KeyChain, self).add(obj, verbose=verbose, **options)
-        self._list.append(obj)
+        sig = super(KeyChain, self).add(obj, verbose=verbose, **options)  # Adds to dWeb list
+        self._list.append(sig)
 
     def decrypt(self, data, verbose=False):
         """
@@ -439,7 +448,7 @@ class KeyChain(EncryptionList):
     @classmethod
     def _findbyclass(cls, clstarget):
         # Super obscure double loop, but works and fast
-        return [ k for kc in Dweb.keychains for k in kc._list if isinstance(k,clstarget) ]
+        return [ k for kc in Dweb.keychains for k in kc.keys if isinstance(k,clstarget) ]
 
     @classmethod
     def myviewerkeys(cls):

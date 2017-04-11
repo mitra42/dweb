@@ -381,7 +381,7 @@ class CommonList extends SmartDict {
         //TODO note python allows constructor with use of mnemonic, keypair, keygen and pub/private
         super(hash, data);
         this._master = master;
-        this._list = new Array();
+        this._list = new Array();   // Array of signatures
     }
     _setkeypair() { alert("Undefined function CommonList._setkeypair"); }
     preflight() { alert("Undefined function CommonList.preflight"); }   // For storing data
@@ -435,7 +435,7 @@ class CommonList extends SmartDict {
         }
         //TODO sort list
         sbs.sort(StructuredBlock.compare); // Could inline: sbs.sort(function(a, b) { ... }
-        this._list = sbs;
+        this._list = sbs;   //TODO-REFACTOR store sigs and work on them
         if (options.fetchblocks) {
             options.fetchblocks = false; // Done it here, dont do it again
             alert("CommonList.onlisted options=fetchblocks not implemented")
@@ -461,7 +461,7 @@ class MutableBlock extends CommonList {
     onlisted(hash, lines, verbose, options) {
         let handled = super.onlisted(hash, lines, verbose, options);
         if (handled) {  // Should always be handled until fetchblocks implemented
-            this._current = this._list[this._list.length-1];
+            this._current = this._list[this._list.length-1]; //TODO-REFACTOR get sb from first sig
             if (options.path && options.path.length) {  //TODO-PATH unclear if want a path or a list - start with a list
                 this._current.load(verbose, options);
             } else { // dom_id etc are done on the leaf, not the intermediaries
@@ -481,8 +481,8 @@ class MutableBlock extends CommonList {
         while (ul.hasChildNodes()) {
             ul.removeChild(ul.lastChild);
         }
-        for (let ii in this._list) {     // Signed Blocks
-            let i = this._list[ii];
+        for (let ii in this._list) {     // Signed Blocks   //TODO-REFACTOR work off SB's in sigs
+            let i = this._list[ii]; //TODO-REFACTOR
             let li = document.createElement("li");
             ul.appendChild(li);
             i.load(verbose, { "elem": li });

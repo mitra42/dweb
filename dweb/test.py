@@ -23,20 +23,20 @@ from Dweb import Dweb
 class Testing(unittest.TestCase):
     def setUp(self):
         super(Testing, self).setUp()
-        testTransport = TransportLocal  # Can switch between TransportLocal and TransportHTTP to test both
+        testTransport = TransportHTTP  # Can switch between TransportLocal and TransportHTTP to test both
         self.verbose=False
         self.quickbrownfox =  "The quick brown fox ran over the lazy duck"
         self.dog = "But the clever dog chased the fox"
         self.mydic = { "a": "AAA", "1":100, "B_date": datetime.now()}  # Dic can't contain integer field names
-        #self.ipandport = ('localhost', 4243)  # Serve it via HTTP on all addresses
-        self.ipandport = ('192.168.1.156', 4243)  # Serve it via HTTP on all addresses
+        #self.ipandport = ('localhost',4243)  # Serve it via HTTP on all addresses
+        self.ipandport = ('192.168.1.156',4243)  # Serve it via HTTP on all addresses
         self.exampledir = "../examples/"    # Where example files placed
         self.mnemonic = "lecture name virus model jealous whisper stone broom harvest april notable lunch" # Random valid mnemonic
         if testTransport == TransportLocal:
             Dweb.settransport(transportclass=TransportLocal, verbose=self.verbose, dir="../cache")
         elif testTransport == TransportHTTP:
             # Run python -m ServerHTTP; before this
-            Dweb.settransport(TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
+            Dweb.settransport(transportclass=TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         else:
             assert False, "Unimplemented test for Transport "+testTransport.__class__.__name__
 
@@ -140,7 +140,7 @@ class Testing(unittest.TestCase):
         mblock = MutableBlock(hash=mbmpubhash, verbose=self.verbose)                     # Setup a copy (not Master) via the publickey
         mblock.fetch(verbose=self.verbose)                      # Fetch the content
         assert mblock._current._hash == testhash, "Should match hash stored above"
-        assert mblock._list[0]._hash == testhash0, "Prev list should hold first stored"
+        assert mblock._list[0].hash == testhash0, "Prev list should hold first stored"
 
     def test_LongFiles(self):
         from StructuredBlock import StructuredBlock
@@ -258,7 +258,7 @@ class Testing(unittest.TestCase):
         f = Dir.load(filepath="../tinymce", upload=True, verbose=self.verbose,)
         #print f.url()  # url of sb at top of directory
         sb = StructuredBlock(hash=f._hash, verbose=self.verbose).fetch(verbose=self.verbose)
-        assert len(sb.links) == 8, "tinymce has 8 files"
+        assert len(sb.links) == 7, "tinymce should have 7 files but has "+str(len(sb.links))
         resp = Dweb.transport._sendGetPost(False, "file", ["sb", f._hash,"langs/readme.md"])
         assert int(resp.headers["Content-Length"]) == f1sz,"Should match length of readme.md"
         # /file/mb/SHA3256B64URL.88S-FYlEN1iF3WuDRdXoR8SyMUG6crR5ehM21IvUuS0=/tinymce.min.js

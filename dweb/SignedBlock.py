@@ -3,7 +3,7 @@
 from datetime import datetime
 import dateutil.parser  # pip py-dateutil
 from json import loads
-from misc import MyBaseException, AssertionFail, _print
+from misc import MyBaseException, AssertionFail, _print, ToBeImplementedException
 from CryptoLib import CryptoLib, KeyPair
 from CommonBlock import Transportable, UnknownBlock
 from StructuredBlock import SmartDict, StructuredBlock
@@ -47,6 +47,18 @@ class Signature(SmartDict):
     def verify(self, hash=None):
         return CryptoLib.verify(self, hash=hash)
 
+    def block(self, fetchblocks=True):
+        """
+        Find the block signed by this signature, usually a Structured Block but not always
+
+        :return:
+        """
+        if fetchblocks:
+            return UnknownBlock(hash=self.hash).fetch()  # We don't know its a SB, UnknownBlock.fetch() will convert
+        else:
+            return UnknownBlock(hash=self.hash)  # We don't know its a SB
+
+
 class Signatures(list):
     """
     A list of Signature (note on Javascript this is just a list, and earliest is  static methods on the Signature class)
@@ -63,12 +75,6 @@ class Signatures(list):
         :return: True if all signatures verify
         """
         return all(s.verify(hash=hash) for s in self)
-
-class SignedBlocks(list):
-    """
-    A list of StructuredBlocks with signatures
-    #TODO - probably replace with a CommonList for the signatures, and then convert to StructuredBlocks list
-    """
 
     @classmethod
     def fetch(cls, hash=None, verbose=False, fetchblocks=False, **options):
@@ -87,53 +93,31 @@ class SignedBlocks(list):
         try:
             lines = Dweb.transport.rawlist(hash=hash, verbose=verbose, **options)
         except (TransportURLNotFound, TransportFileNotFound) as e:
-            return SignedBlocks([])    # Its ok to fail as list may be empty
+            return Signatures([])    # Its ok to fail as list may be empty
         else:
-            if verbose: print "SignedBlocks.fetch found ",len(lines) if lines else None
+            if verbose: print "Signatures.fetch found ",len(lines) if lines else None
             results = {}
-            for block in lines:
-                #TODO - can push this deduplication adn verification into the Signatures class
-                s = Signature(block)
-                key = s.hash
-                if not results.get(key, None):
-                    if fetchblocks:
-                        results[key] = UnknownBlock(hash=key).fetch()  # Was StructuredBlock, but we don't know its a SB
-                    else:
-                        results[key] = UnknownBlock(hash=key)  # Was StructuredBlock, but we don't know its a SB
-                if CryptoLib.verify(s):
-                    if not results[key]._signatures:
-                        results[key]._signatures = Signatures([])
-                    results[key]._signatures.append(s)
+            sigs = Signatures(Signature(s) for s in lines )
+            if fetchblocks:
+                raise ToBeImplementedException(msg="fetchblocks for Signatures")    # Note havent defined a way to store the block on the sig
+            return Signatures([ s for s in sigs if CryptoLib.verify(s) ])
 
-            # Turn it into a list of StructuredBlock - stores the hashes but doesnt fetch the data
-            sbs = SignedBlocks([ results[key] for key in results])
-        return sbs
+    def blocks(self, fetchblocks=True, verbose=False):
+        results = {}
+        for s in self:
+            hash = s.hash
+            if not results.get(hash, None):
 
-    def _dated(self):
-        """
-        :return: { sb.earliestsignaturedate: sb * }
-        """
-        return {sb._signatures.earliest(): sb for sb in self}  # Use date of first sig
-        #TODO I think this should be by latest as if republish earlier block it gets lost
+                if fetchblocks:
+                    results[hash] = UnknownBlock(hash=hash).fetch()  # We don't know its a SB, UnknownBlock.fetch() will convert
+                else:
+                    results[hash] = UnknownBlock(hash=hash)  # We don't know its a SB
+            if not results[hash]._signatures:
+                results[hash]._signatures = Signatures([])
+            results[hash]._signatures.append(s)
+        return [ results[hash] for hash in results]
 
     def latest(self):
         dated = self._dated()
         latest = max(key for key in dated)      # Find date of SB with latest first sig
         return dated[latest]
-
-    def sorteddeduplicated(self):
-        """
-        Extract the latest, and return a deduplicated, ordered list
-        :return: latest signed block, [ signed blocks in date order excluding latest ]*
-        """
-        dated = self._dated()
-        sorted = dated.keys()
-        sorted.sort()       # Earliest first
-        return [ dated[date] for date in sorted ]
-
-    def resolvetables(self):
-        """
-        Takes a list of deduped SignedBlocks, and fetches them to determine their real class
-
-        :return:
-        """

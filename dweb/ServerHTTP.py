@@ -35,7 +35,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         """
         from TransportLocal import TransportLocal # Avoid circular references
         Dweb.settransport(transportclass=TransportLocal, verbose=False, dir="../cache_http")  # HTTP server is storing locally
-        cls.serve_forever(verbose=False)    # Uses defaultipandport
+        cls.serve_forever(verbose=True)    # Uses defaultipandport
         #TODO-HTTP its printing log, put somewhere instead
 
     @exposed
