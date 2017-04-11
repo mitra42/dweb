@@ -7,31 +7,17 @@
     <!--<script src="/file/sb/SHA3256B64URL.BDCbn_l9rrlCdVkB9o6qozSP84HBCGors5dBLxdyro8="></script><!-- jquery-3.1.1.js-->
     <script src="/file/mb/SHA3256B64URL.vVaaIWT976GT8_oVr_eKQxIgWqUdCH9Nf0PCZhQ2iTw="></script><!-- dweb.js -->
     <script>
-        // This is my current testing script first of block
-    </script>
-    <script>
-        // This is a script that previously worked
+        // This is an experimental object browser
+        // Some examples to try - id's might move
         mbhash = "SHA3256B64URL.JHqfnJNzZzaY76qZSbSO21N3PK8gXBmtjAK48ONpA9k=";  // Hash reported out at tinymce.html
         mb2hash = "SHA3256B64URL.pDaVoHks4FVLN1KcSk5i5c_xOQVh2bZpfnWSrOCwemQ="; // Hash reported for docs/_build/html
         sbhash="SHA3256B64URL.kBir9WGvnDV72SRbK6CTAIMPtYS1nv_1T45wZQt3ZFE=" // This is teh hash field from any line of list/..mbhash..
-        function working() {
-            console.log("StructuredBlock=======");
-            let sb = new StructuredBlock(sbhash);
-            sb.load(true, {"path": ["langs","readme.md"], "dom_id": "myList.0"} );
-            console.log("MutableBlock=======");
-            <!-- also works with /file/mb/.....=/langs/readme.md -->
-            let mb = new MutableBlock(mbhash, null, false);  //TODO-KEY check all similar calls to make sure MutableBlock still takes parm 0 = hash
-            mb.load(true,  {"path": ["langs","readme.md"], "dom_id": "myList.1", "fetchbody": true, "fetchlist": true}  );
-            <!-- Now test path using dwebfile -->
-            dwebfile("sb", sbhash, "langs/readme.md", {  "dom_id": "myList.2"});
-            <!-- Now test path using dwebfile -->
-            dwebfile("mb", mbhash, "langs/readme.md", {  "dom_id": "myList.3"});
-        }
+
         function browser() {
-            let sb = new StructuredBlock(sbhash);
-            //sb.load(true, {"path": ["langs"], "dwebobj": "ObjBrowser"} ); //,"readme.md"
-            let mb = new MutableBlock(mb2hash);
-            mb.load(true, true, true, false, {"path": ['_static'], "dwebobj": "ObjBrowser"} ); //,"readme.md"
+            //let obj = new StructuredBlock(sbhash);
+            let obj = new MutableBlock(mb2hash);
+            let path = []; // [ 'langs', 'readme.md' ]  // Direct to a file
+            obj.load(true, {"path": path, "dwebobj": "ObjBrowser", "fetchbody": true, "fetchlist": true} );
         }
     </script>
     <style>
@@ -45,17 +31,11 @@
     </style>
 </head>
 <body>
-<h4>Each line of this list should be replaced by a line starting "This is where language"</h4>
-<ul>
-    <li id="myList.0">Failed to load sb via StructuredBlock</li>
-    <li id="myList.1">Failed to load mb via MutableBlock</li>
-    <li id="myList.2">Failed to load sb via dwebfile</li>
-    <li id="myList.3">Failed to load mb via dwebfile</li>
-</ul>
-<ul id="ObjBrowser">
-
-</ul>
+<h4>Prototype Decentralised Web Object Browser</h4>
+<p>This is intended for geek-consumption !</p>
+<ul id="ObjBrowser"></ul><!-- This is where objects inserted-->
 <script>
-    working(); // Can comment this line out when debugging
-    //browser();
+    browser();
 </script>
+</body>
+</html>

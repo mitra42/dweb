@@ -115,15 +115,16 @@ class Dir(File):
             "links": []
         }) # Create a File for an empty directory
         for p in pp.iterdir():
-            if p.is_file():
-                # Upload a file
-                child = File.load(filepath=p, upload=upload, verbose=verbose, **options)  # TODO need contenttype to pass, should use well known table
-                f.links.append(child)       # Alt "data"
-            elif p.is_dir():
-                child = Dir.load(filepath=p, upload=upload, verbose=verbose, **options)    # Recurse
-                f.links.append(child)       # Alt "data"
-            else:
-                print "TODO not a file or a directory:", p
+            if p.name not in (".DS_Store",):    # Silently ignore filler OS files
+                if p.is_file():
+                    # Upload a file
+                    child = File.load(filepath=p, upload=upload, verbose=verbose, **options)  # TODO need contenttype to pass, should use well known table
+                    f.links.append(child)       # Alt "data"
+                elif p.is_dir():
+                    child = Dir.load(filepath=p, upload=upload, verbose=verbose, **options)    # Recurse
+                    f.links.append(child)       # Alt "data"
+                else:
+                    print "TODO not a file or a directory:", p
         if upload:
             f.store(verbose=verbose, **options)
         return f

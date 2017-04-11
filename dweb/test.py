@@ -248,6 +248,7 @@ class Testing(unittest.TestCase):
         self._storeas("DWebArchitecture.png", "DwebArchitecture_png_rsa","image/png")
         self._storeas("../tinymce", "tinymce_rsa", None)
         self._storeas("../docs/_build/html", "docs_build_html_rsa", None)
+        self._storeas("objbrowser.html", "objbrowser_html_rsa", "text/html")
 
     def test_uploadandrelativepaths(self):
         # Test that a directory can be uploaded and then accessed by a relative path

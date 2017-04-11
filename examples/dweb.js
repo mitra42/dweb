@@ -35,7 +35,7 @@ class TransportHttp {
             success: function(msg) {
                 if (verbose) { console.log("TransportHTTP:", command, ": returning data len=", msg.length); }
                 // Dont appear to need to parse JSON data, its decoded already
-                self.onloaded(msg, verbose, options);
+                self.onloaded(hash, msg, verbose, options);
             },
             error: function(xhr, status, error) {
                 console.log("TransportHTTP:", command, "error", status, "error=",error);
@@ -63,9 +63,9 @@ class TransportHttp {
                 if (verbose) { console.log("TransportHTTP:", command, ": returning data len=", data.length); }
                 // Dont appear to need to parse JSON data, its decoded already
                 if (listreturned) {
-                    self.onlisted(data, verbose, options);
+                    self.onlisted(hash, data, verbose, options);
                 } else {
-                    self.onloaded(data, verbose, options);
+                    self.onloaded(hash, data, verbose, options);
                 }
             },
             error: function(xhr, status, error) {
@@ -162,6 +162,84 @@ class SmartDict extends Transportable {
             this._setproperties(value); // Note value should not contain a "_data" field, so wont recurse even if catch "_data" at __setattr__()
         }
     }
+    dwebobj(ul, hashpath) {    //TODO - note this is under dev works on SB and MB, needs to work on KeyChain, AccessControlList etc
+        // ul is either the id of the element, or the element itself.
+        //TODO-follow link arrow
+        //console.log("dwebobj",ul)
+        if (typeof ul === 'string') {
+            ul = document.getElementById(ul);
+        }
+        let li = document.createElement("li");
+        li.source = this;
+        li.className = "propobj";
+        ul.appendChild(li);
+        //li.innerHTML = "<B>StructuredBlock:</B>" + hashpath;
+        let t1 = document.createTextNode(this.constructor.name+": "+hashpath);
+        let sp1 = document.createElement('span');
+        sp1.className = "classname" // Confusing!, sets the className of the span to "classname" as it holds a className
+        sp1.appendChild(t1);
+        li.appendChild(sp1);
+
+        //Loop over dict fields
+        let ul2 = document.createElement("ul");
+        ul2.className="props";
+        li.appendChild(ul2);
+        for (let prop in this) {
+            if (this[prop]) {
+                let text = this[prop].toString();
+                if (text != "" && prop != "_hash") {    // Skip empty values; _hash (as shown above);
+                    let li2 = document.createElement("li");
+                    li2.className='prop';
+                    ul2.appendChild(li2);
+                    //li2.innerHTML = "Field1"+prop;
+                    let fieldname = document.createTextNode(prop)
+                    let spanname = document.createElement('span');
+                    spanname.appendChild(fieldname);
+                    spanname.className='propname';
+                    //TODO - handle Links by nested list
+                    li2.appendChild(spanname);
+                    //if ((prop == "links") || (prop == "_list")) {  //StructuredBlock
+                    if ( ["links", "_list", "_signatures", "_current"].includes(prop) ) { //<span>...</span><ul proplinks>**</ul>
+                        spanval = document.createElement('span');
+                        spanval.appendChild(document.createTextNode("..."))
+                        li2.appendChild(spanval);
+                        let ul3 = document.createElement("ul");
+                        ul3.className = "proplinks";
+                        ul3.style.display = 'none';
+                        spanname.setAttribute('onclick',"togglevisnext(this);");
+                        //spanname.setAttribute('onclick',"console.log(this.nextSibling)");
+
+                        li2.appendChild(ul3);
+                        //TODO make this a loop
+                        if (Array.isArray(this[prop])) {
+                            for (let l1 in this[prop]) {
+                                //console.log("XXX@216",prop,this[prop][l1]);
+                                this[prop][l1].dwebobj(ul3, hashpath+"/"+this[prop][l1].name);
+                            }
+                        } else {
+                            this[prop].dwebobj(ul3, hashpath);
+                        }
+                    } else {    // Any other field
+                        if (prop == "hash") {
+                            var spanval = document.createElement('a');
+                            spanval.setAttribute('href','/file/b/'+this[prop]+"?contenttype="+this["Content-type"]);
+                        } else {
+                            // Group of fields where display then add behavior or something
+                            var spanval = document.createElement('span');
+                            if (prop == "_needsfetch") {
+                                li2.setAttribute('onclick','dofetch(this.parentNode.parentNode);');
+                            }
+                        }
+                        spanval.appendChild(document.createTextNode(this[prop]));
+                        spanval.className='propval';
+                        li2.appendChild(spanval);
+                    }
+                    //this.__setattr__(prop, dict[prop]);
+                }
+             }
+        }
+
+    }
 }
 
 // ######### Parallel development to Block.py ########
@@ -172,7 +250,7 @@ class Block extends Transportable {
         this.table = 'b';
     }
 
-    onloaded(data, verbose, options) {
+    onloaded(hash, data, verbose, options) {
         // Called after block succeeds, can pass options through
         // copies at Block, MutableBlock
         if (verbose) { console.log("Block:onloaded:Storing _data to", options["dom_id"]); }
@@ -211,12 +289,13 @@ class StructuredBlock extends SmartDict {
         }
     }
 
-    onloaded(data, verbose, options) {  // Equivalent of _setdata in Python
+    onloaded(hash, data, verbose, options) {  // Equivalent of _setdata in Python
         console.log("StructuredBlock:onloaded data len=", data.length, options)
         this._setdata(JSON.parse(data))   // Actually calls super, and calls _setproperties()
         //this._data = data;
 
         let sb = this;
+        let hashpath = _hashpath(hash, options.path);
         while (options.path && options.path.length && this.links.length ) { // Have a path and can do it on sb
             let next = options["path"].shift(); // Takes first element of path, leaves path as rest
             console.log("StructuredBlock:onloaded next path=",next);
@@ -226,10 +305,14 @@ class StructuredBlock extends SmartDict {
         if (options.path && options.path.length) {  // We still have path to explore, but no links on loaded sb
                 sb.load(verbose, options);  // passes shorter path and any dom arg load and to its onloaded
         } else {  // Walked to end of path, can handle
-                console.log("StructuredBlock.onloaded storing len=",sb.data.length);
+                console.log("StructuredBlock.onloaded storing len=",sb.data && sb.data.length);
                 storeto(sb.data, verbose, options);  // See if options say to store in a DIV for example
+                if (options.dwebobj) {
+                    sb.dwebobj(options.dwebobj, hashpath);
+                }
         }
     }
+
     dirty() {
         super.dirty();
         this._signatures = new Array(); //TODO-REFACTOR Not sure whether should be null or Signatures([])
@@ -304,20 +387,21 @@ class CommonList extends SmartDict {
     preflight() { alert("Undefined function CommonList.preflight"); }   // For storing data
     fetch() { alert("Undefined function CommonList.fetch"); }   // Split into load and onloaded
 
-    load(verbose, fetchbody, fetchlist, fetchblocks, options) {   // Python can also fetch based on just having key
-        if (verbose) { console.log("CommonList.load:",this._hash,fetchbody, fetchlist, fetchblocks,options)}
-        if (fetchbody) {
-            options.fetchlist = fetchlist;
-            options.fetchblocks = fetchblocks;
-            transport.rawfetch(this, this._hash, verbose, options);  // TODO this is only correct if its NOT master
-        } else if (fetchlist) { // Cant fetch list to fetched body, as need hash of list
-            options.fetchblocks = fetchblocks;
-            transport.rawlist(this, this._hash, verbose, options);  // TODO this is only correct if its NOT master
-            //TODO-REFACTOR would be better to call onlistloaded
+    load(verbose,  options) {   // Python can also fetch based on just having key
+        if (this._needsfetch) { // Only load if need to
+            if (verbose) { console.log("CommonList.load:",this._hash,options)}
+            this._needsfetch = false
+            if (options.fetchbody) {
+                options.fetchbody = false;  // Dont refetch
+                transport.rawfetch(this, this._hash, verbose, options);  // TODO this is only correct if its NOT master
+            } else if (options.fetchlist) { // Cant fetch list to fetched body, as need hash of list
+                options.fetchlist = false;  // Dont refetch
+                transport.rawlist(this, this._hash, verbose, options);  // TODO this is only correct if its NOT master
+            }
         }
     }
 
-    onloaded(data, verbose, options) { // Body loaded
+    onloaded(hash, data, verbose, options) { // Body loaded
         console.log("CommonList:onloaded data len=", data.length, options)
         this._setdata(JSON.parse(data))   // Actually calls super._setdata > _setproperties() > __setattr__
         //this._data = data;
@@ -329,8 +413,8 @@ class CommonList extends SmartDict {
             return true;
         }
     }
-    onlisted(lines, verbose, options) { // Body loaded
-        console.log("CommonList:onlisted data len=", lines.length, options)
+    onlisted(hash, lines, verbose, options) { // Body loaded
+        console.log("CommonList:onlisted", hash, lines.length, options)
         //lines = JSON.parse(lines))   Should already by a list
         let results = {};   // Dictionary of { SHA... : StructuredBlock(hash=SHA... _signatures:[Signature*] ] ) }
         for (let i in lines) {
@@ -374,18 +458,21 @@ class MutableBlock extends CommonList {
         this._current = null;
     }
 
-    onlisted(lines, verbose, options) {
-        let handled = super.onlisted(lines, verbose, options);
+    onlisted(hash, lines, verbose, options) {
+        let handled = super.onlisted(hash, lines, verbose, options);
         if (handled) {  // Should always be handled until fetchblocks implemented
             this._current = this._list[this._list.length-1];
             if (options.path && options.path.length) {  //TODO-PATH unclear if want a path or a list - start with a list
                 this._current.load(verbose, options);
             } else { // dom_id etc are done on the leaf, not the intermediaries
-                if (options["dom_id"]) {
-                    if (verbose) { console.log("MutableBlock:onloaded:Storing data to", options["dom_id"]); }
-                    let ul = document.getElementById(options["dom_id"]);
+                if (options.dom_id) {
+                    if (verbose) { console.log("MutableBlock:onloaded:Storing data to", options.dom_id); }
+                    let ul = document.getElementById(options.dom_id);
                     this.updatelist(ul, verbose);
                 } // TODO make it handle img, or other non-HTML as reqd based on this._dict["Content-type"]
+                if (options.dwebobj) {
+                    this.dwebobj(options.dwebobj, _hashpath(hash, options.path));
+                }
             }
         }
     }
@@ -410,7 +497,33 @@ class MutableBlock extends CommonList {
     new() { alert("Undefined function MutableBlock.signandstore"); }   // Utility function for creating mb
 
 }
+// ==== UI related functions, not dWeb specific =========
+function togglevisnext(elem) {   // Hide the next sibling object and show the one after, or vica-versa,
+    el1 = elem.nextSibling;
+    el2 = el1.nextSibling;
+    if (el1.style.display == "none") {
+        el1.style.display = "";
+        el2.style.display = "none";
+    } else {
+        el1.style.display = "none";
+        el2.style.display = "";
+    }
+}
 
+function _hashpath(hash, path) { // Combine hash and path as hash/path1/path2
+        if (path && path.length) {
+            return [hash, path.join("/")].join('/');
+        } else {
+            return hashpath = hash;
+        }
+}
+function dofetch(el) {
+    source = el.source;
+    console.log("XXX",source);
+    parent = el.parentNode;
+    parent.removeChild(el); //Remove elem from parent
+    source.load(true, {"dwebobj": parent});
+}
 
 // ==== LIBRARY FUNCTIONS =======================
 function storeto(data, verbose, options) {
@@ -435,7 +548,9 @@ function dwebfile(table, hash, path, options) {
     }
     if (table == "mb") {
         var mb = new MutableBlock(hash, null, false); //TODO-KEY check all similar calls to make sure MutableBlock still takes parm 0 = hash
-        mb.load(true, true, true, false, options); //verbose, fetchbody, fetchlist, !fetchblocks
+        options.fetchlist = true;
+        options.fetchbody = true;
+        mb.load(true, options); //verbose, fetchbody, fetchlist, !fetchblocks
     } else if (table == "sb") {
         var sb = new StructuredBlock(hash);
         sb.load(true, options);
@@ -451,8 +566,13 @@ function dwebupdate(hash, type, data, options) {
 
 function dweblist(div, hash) {
     var mb = new MutableBlock(hash, null, false);  //TODO-KEY check all similar calls to make sure MutableBlock still takes parm 0 = hash
-    mb.load(true, true, true, false, {"dom_id": div}); //verbose, fetchbody, fetchlist, !fetchblocks
+    options = {}
+    options.fetchlist = true;
+    options.fetchbody = true;
+    options.dom_id = div;
+    mb.load(true, options); //verbose, fetchbody, fetchlist, !fetchblocks
 }
+// ======== EXPERIMENTAL ZONA ==================
 
-<!-- alert("dweb.js loaded"); -->
-<!-- https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes -->
+//TODO BROWSER----
+//-data collapsable
