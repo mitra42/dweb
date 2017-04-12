@@ -22,7 +22,7 @@
                 hash = "SHA3256B64URL.gy5hH5zw_rUlb9RG1DeXDXGtbTvXJ5sERJC5tFtYIII="; // The privatehash of the "snippet.html editable - should be a parameter
                 // alert(content);
                 type = "text%2Fhtml";
-                dwebupdate(hash, type, content, {"dom_id": "myDiv"});  // Post to Dweb and store URL at myDiv
+                dwebupdate(hash, type, content, {"elem": "myDiv"});  // Post to Dweb and store URL at myDiv
             }
         });
 
@@ -30,11 +30,11 @@
         // This is my current testing script first of block
         console.log("Block=======");
         let b = new Block("SHA3256B64URL.50GNWgUQ9GgrVfMvpedEg77ByMRYkUgPRU9P1gWaNF8=", null); // Block with "clever dog..."
-        b.load(true, {"dom_id": "myList.0"});      // Load block in background
+        b.load(true, {"elem": "myList.0"});      // Load block in background
         // Now of SB
         console.log("StructuredBlock=======");
         let sb = new StructuredBlock("SHA3256B64URL.-t0rXKuIYpnxrvsVeAffH57bGtoSjjYBQ2gZgUJB5i4="); // This comes from looking in list/..hash of MB below..
-        sb.load(true, {"dom_id": "myList.1"} ); // hash of SB containing data containing "I'm a paragraph" // Load SB in background
+        sb.load(true, {"elem": "myList.1"} ); // hash of SB containing data containing "I'm a paragraph" // Load SB in background
         // Now MB
         console.log("MutableBlock=======");
         dweblist("List2", "SHA3256B64URL.4MyChBfwQgiMKKy8hzJRU7QkTIa8L9sjQzMys4XLT5U=", true);  // Hash of snippet.html

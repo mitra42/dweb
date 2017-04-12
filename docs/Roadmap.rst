@@ -52,6 +52,7 @@ This list is at a much finer lever of granularity than Roadmap above.
     * Embed on index and test pages
 * REFACTOR
     * onloaded ... options = methods to call on results, each takes an options e.g. {list: {fetchlisted: true, addlistto: el}} says do a list, then pass its onlisted the fetchlisted, addlisto
+    * call methods by name from options
 * FUNCTIONALITY - add caching, so dont reload, BUT disable for testing
 * FUNCTIONALITY - storing some content in lists and allowing searches of that content (listfind ? a=b c=d
 * DOCS: Pass through docs, check all current  (done API-Integration)

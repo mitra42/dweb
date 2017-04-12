@@ -17,21 +17,21 @@
         function working() {
             console.log("StructuredBlock=======");
             let sb = new StructuredBlock(sbhash);
-            sb.load(true, {"path": ["langs","readme.md"], "dom_id": "myList.0"} );
+            sb.load(true, {"path": ["langs","readme.md"], "elem": "myList.0"} );
             console.log("MutableBlock=======");
             <!-- also works with /file/mb/.....=/langs/readme.md -->
             let mb = new MutableBlock(mbhash, null, false);  //TODO-KEY check all similar calls to make sure MutableBlock still takes parm 0 = hash
-            mb.load(true,  {"path": ["langs","readme.md"], "dom_id": "myList.1", "fetchbody": true, "fetchlist": true}  );
+            mb.load(true,  {"path": ["langs","readme.md"], "elem": "myList.1", "fetchbody": true, "fetchlist": true}  );
             <!-- Now test path using dwebfile -->
-            dwebfile("sb", sbhash, "langs/readme.md", {  "dom_id": "myList.2"});
+            dwebfile("sb", sbhash, "langs/readme.md", {  "elem": "myList.2"});
             <!-- Now test path using dwebfile -->
-            dwebfile("mb", mbhash, "langs/readme.md", {  "dom_id": "myList.3"});
+            dwebfile("mb", mbhash, "langs/readme.md", {  "elem": "myList.3"});
         }
         function browser() {
             let sb = new StructuredBlock(sbhash);
-            //sb.load(true, {"path": ["langs"], "dwebobj": "ObjBrowser"} ); //,"readme.md"
+            //sb.load(true, {"path": ["langs"], "objbrowser": "ObjBrowser"} ); //,"readme.md"
             let mb = new MutableBlock(mb2hash);
-            mb.load(true, true, true, false, {"path": ['_static'], "dwebobj": "ObjBrowser"} ); //,"readme.md"
+            mb.load(true, true, true, false, {"path": ['_static'], "objbrowser": "ObjBrowser"} ); //,"readme.md"
         }
     </script>
     <style>

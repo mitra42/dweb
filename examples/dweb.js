@@ -132,6 +132,40 @@ class Transportable {
 
     file() { alert("Undefined function Transportable.file"); }
     url() { alert("Undefined function Transportable.url"); }
+
+    // ==== UI method =====
+
+    elem(data, hash, path, verbose, el) {
+        // Called from storeto based on options
+        if (typeof el === 'string') {
+            el = document.getElementById(el);
+        }
+        if (typeof data === 'string') {
+            if (verbose) { console.log("onloaded:Storing data to element",el,encodeURI(data.substring(0,20))); }
+            el.innerHTML = data;
+        } else if (Array.isArray(data)) {
+            if (verbose) { console.log("onloaded:Storing list of len",data.length,"to element",el);}
+            this.updatelist(el, verbose);   //TODO-STORETO using updatelist not replacing
+        } else {
+            console.log("XXX142",typeof data, data);
+
+        }
+    }
+
+    storeto(data, hash, path, verbose, options) {
+        // Can be called to check if options have instructions what to do with data
+        // Its perfectly legitimate to call this, and nothing gets done with the data
+        if (verbose) { console.log("storeto: options=", options); }
+        for (let k in options) {
+            console.log("XXX156",k,typeof this[k],options[k]);
+            if (["fetchbody", "fetchlist", "path"].includes(k)) {   //TODO-STORETO implement these as functions instead of hardcoded in onloaded or onlisted
+                console.log("XXX-TODO - option",k,"not implemented on",this.constructor.name);
+            } else {
+                // Calls elem, objbrowser and soon fetchlist fetchbody fetchblocks - all with standard interface
+                this[k](data, hash, path, verbose, options[k]);
+            }
+        }
+    }
 }
 
 class SmartDict extends Transportable {
@@ -162,7 +196,14 @@ class SmartDict extends Transportable {
             this._setproperties(value); // Note value should not contain a "_data" field, so wont recurse even if catch "_data" at __setattr__()
         }
     }
-    dwebobj(ul, hashpath) {    //TODO - note this is under dev works on SB and MB, needs to work on KeyChain, AccessControlList etc
+
+    objbrowser(data, hash, path, verbose, ul) {
+        if (path) {
+            var hashpath = [hash, path].join("/");
+        } else {
+            var hashpath = hash;
+        }
+    //OBSdwebobj(ul, hashpath) {    //TODO - note this is under dev works on SB and MB, needs to work on KeyChain, AccessControlList etc
         // ul is either the id of the element, or the element itself.
         //TODO-follow link arrow
         //console.log("dwebobj",ul)
@@ -214,10 +255,10 @@ class SmartDict extends Transportable {
                         if (Array.isArray(this[prop])) {
                             for (let l1 in this[prop]) {
                                 //console.log("XXX@216",prop,this[prop][l1]);
-                                this[prop][l1].dwebobj(ul3, hashpath+"/"+this[prop][l1].name);
+                                this[prop][l1].objbrowser(null, hash, path + "/"+this[prop][l1].name, verbose, ul3);
                             }
                         } else {
-                            this[prop].dwebobj(ul3, hashpath);
+                            this[prop].objbrowser(null, hash, path, verbose, ul3);
                         }
                     } else {    // Any other field
                         if (prop == "hash") {
@@ -253,9 +294,9 @@ class Block extends Transportable {
     onloaded(hash, data, verbose, options) {
         // Called after block succeeds, can pass options through
         // copies at Block, MutableBlock
-        if (verbose) { console.log("Block:onloaded:Storing _data to", options["dom_id"]); }
+        if (verbose) { console.log("Block:onloaded",options); }
         this._data = data;
-        storeto(data, verbose, options) // TODO storeto handle img, or other non-HTML as reqd
+        this.storeto(data, hash, null, verbose, options) // TODO storeto handle img, or other non-HTML as reqd
     }
 
     size() { alert("Undefined function Block.size"); }
@@ -294,7 +335,7 @@ class StructuredBlock extends SmartDict {
         //this._data = data;
 
         let sb = this;
-        let hashpath = _hashpath(hash, options.path);
+        let pathstr = options.path && options.path.join('/');
         while (options.path && options.path.length && this.links.length ) { // Have a path and can do it on sb
             let next = options["path"].shift(); // Takes first element of path, leaves path as rest
             console.log("StructuredBlock:onloaded next path=",next);
@@ -305,10 +346,7 @@ class StructuredBlock extends SmartDict {
                 sb.load(verbose, options);  // passes shorter path and any dom arg load and to its onloaded
         } else {  // Walked to end of path, can handle
                 console.log("StructuredBlock.onloaded storing len=",sb.data && sb.data.length);
-                storeto(sb.data, verbose, options);  // See if options say to store in a DIV for example
-                if (options.dwebobj) {
-                    sb.dwebobj(options.dwebobj, hashpath);
-                }
+                this.storeto(sb.data, hash, pathstr, verbose, options);  // See if options say to store in a DIV for example
         }
     }
 
@@ -403,6 +441,7 @@ class CommonList extends SmartDict {
         }
     }
 
+
     onloaded(hash, data, verbose, options) { // Body loaded
         console.log("CommonList:onloaded data len=", data.length, options)
         this._setdata(JSON.parse(data))   // Actually calls super._setdata > _setproperties() > __setattr__
@@ -434,7 +473,7 @@ class CommonList extends SmartDict {
     onposted(hash, data, verbose, options) {
         // This isn't used much yet, so for now just stores data, may be better as a struc of some kind
         console.log("CommonList:onposted data len=", data.length, options);
-        storeto(data, verbose, options) // TODO storeto handle img, or other non-HTML as reqd
+        this.storeto(data, hash, null, verbose, options) // TODO storeto handle img, or other non-HTML as reqd
     }
 
     blocks(fetchblocks, verbose) {
@@ -477,15 +516,8 @@ class MutableBlock extends CommonList {
             this._current = new StructuredBlock(sig.hash, null);
             if (options.path && options.path.length) {  //TODO-PATH unclear if want a path or a list - start with a list
                 this._current.load(verbose, options);
-            } else { // dom_id etc are done on the leaf, not the intermediaries
-                if (options.dom_id) {
-                    if (verbose) { console.log("MutableBlock:onloaded:Storing data to", options.dom_id); }
-                    let ul = document.getElementById(options.dom_id);
-                    this.updatelist(ul, verbose);
-                } // TODO make it handle img, or other non-HTML as reqd based on this._dict["Content-type"]
-                if (options.dwebobj) {
-                    this.dwebobj(options.dwebobj, _hashpath(hash, options.path));
-                }
+            } else { // elem, objbrowser etc are done on the leaf, not the intermediaries
+                this.storeto(lines, hash, null, verbose, options);
             }
         }
     }
@@ -512,8 +544,8 @@ class MutableBlock extends CommonList {
     content() { alert("Undefined function MutableBlock.store"); }   // Retrieving data
     file() { alert("Undefined function MutableBlock.store"); }   // Retrieving data
     signandstore() { alert("Undefined function MutableBlock.signandstore"); }   // Retrieving data
-    path() { alert("Undefined function MutableBlock.signandstore"); }   // Built into onloaded
-    new() { alert("Undefined function MutableBlock.signandstore"); }   // Utility function for creating mb
+    path() { alert("Undefined function MutableBlock.path"); }   // Built into onloaded
+    new() { alert("Undefined function MutableBlock.new"); }   // Utility function for creating mb
 
 }
 // ==== UI related functions, not dWeb specific =========
@@ -529,33 +561,12 @@ function togglevisnext(elem) {   // Hide the next sibling object and show the on
     }
 }
 
-function _hashpath(hash, path) { // Combine hash and path as hash/path1/path2
-        if (path && path.length) {
-            return [hash, path.join("/")].join('/');
-        } else {
-            return hashpath = hash;
-        }
-}
 function dofetch(el) {
     source = el.source;
     console.log("XXX",source);
     parent = el.parentNode;
     parent.removeChild(el); //Remove elem from parent
-    source.load(true, {"dwebobj": parent});
-}
-
-// ==== LIBRARY FUNCTIONS =======================
-function storeto(data, verbose, options) {
-    // Can be called to check if options have instructions what to do with data
-    // Its perfectly legitimate to call this, and nothing gets done with the data
-    if (options.dom_id) {
-        if (verbose) { console.log("onloaded:Storing data to", options.dom_id); }
-        document.getElementById(options.dom_id).innerHTML = data;
-    } // TODO make it handle img, or other non-HTML as reqd based on this["Content-type"]
-    if (options.elem) {
-        if (verbose) { console.log("onloaded:Storing data to element"); }
-        options.elem.innerHTML = data;
-    } // TODO make it handle img, or other non-HTML as reqd based on this["Content-type"]
+    source.load(true, {"objbrowser": parent});
 }
 
 // ==== NON OBJECT ORIENTED FUNCTIONS ==============
@@ -588,7 +599,7 @@ function dweblist(div, hash) {
     options = {}
     options.fetchlist = true;
     options.fetchbody = true;
-    options.dom_id = div;
+    options.elem = div;
     mb.load(true, options); //verbose, fetchbody, fetchlist, !fetchblocks
 }
 // ======== EXPERIMENTAL ZONA ==================
