@@ -266,8 +266,8 @@ class Block extends Transportable {
 // ######### Parallel development to StructuredBlock.py ########
 
 class StructuredBlock extends SmartDict {
-    constructor(hash) { //TODO-REFACTOR make all calls call hash,null
-        super(hash, null); // _hash is _hash of SB, not of data
+    constructor(hash, data) {
+        super(hash, data); // _hash is _hash of SB, not of data
         this._signatures = new Array()
         this._date = null;  // Updated in _earliestdate when loaded
         this.table = "sb";  // Note this is cls.table on python but need to separate from dictionary
@@ -279,8 +279,7 @@ class StructuredBlock extends SmartDict {
         if (name == "links") {  // Assume its a SB TODO make dependent on which table
             let links = value;
             for (let len = links.length, i=0; i<len; i++) {
-                let sb = new StructuredBlock();
-                sb._setproperties(links[i]);    // Can recurse down the path
+                let sb = new StructuredBlock(null, links[i]);
                 links[i] = sb;
             }
             this[name] = links;
@@ -315,7 +314,7 @@ class StructuredBlock extends SmartDict {
 
     dirty() {
         super.dirty();
-        this._signatures = new Array(); //TODO-REFACTOR Not sure whether should be null or Signatures([])
+        this._signatures = Signatures([]);
     }
 
     link(name) {    // Note python version allows call by number as well as name
@@ -443,8 +442,7 @@ class CommonList extends SmartDict {
         for (let i in this._list) {
             let s = this._list[i];
             if (! results[s.hash]) {
-                console.log("XXX440",s);
-                results[s.hash] = new StructuredBlock(s.hash);  //TODO Handle cases where its not a SB
+                results[s.hash] = new StructuredBlock(s.hash, null);  //TODO Handle cases where its not a SB
             }
             results[s.hash]._signatures.push(s);
         }
@@ -476,7 +474,7 @@ class MutableBlock extends CommonList {
         let handled = super.onlisted(hash, lines, verbose, options);
         if (handled) {  // Should always be handled until fetchblocks implemented
             let sig = this._list[this._list.length-1];
-            this._current = new StructuredBlock(sig.hash);
+            this._current = new StructuredBlock(sig.hash, null);
             if (options.path && options.path.length) {  //TODO-PATH unclear if want a path or a list - start with a list
                 this._current.load(verbose, options);
             } else { // dom_id etc are done on the leaf, not the intermediaries
@@ -498,12 +496,10 @@ class MutableBlock extends CommonList {
         }
         let blocks = this.blocks(false, verbose);
         console.log("XXX493",blocks);
-        for (let ii in blocks) {     // Signed Blocks   //TODO-REFACTOR work off SB's in sigs
-            let i = blocks[ii]; //TODO-REFACTOR
+        for (let ii in blocks) {     // Signed Blocks
+            let i = blocks[ii];
             let li = document.createElement("li");
             ul.appendChild(li);
-            b = new StructuredBlock
-            console.log("XXX499",i);
             i.load(verbose, { "elem": li });
         }
     }
@@ -575,7 +571,7 @@ function dwebfile(table, hash, path, options) {
         options.fetchbody = true;
         mb.load(true, options); //verbose, fetchbody, fetchlist, !fetchblocks
     } else if (table == "sb") {
-        var sb = new StructuredBlock(hash);
+        var sb = new StructuredBlock(hash, null);
         sb.load(true, options);
     } else {
         alert("dwebfile called with invalid table="+table);

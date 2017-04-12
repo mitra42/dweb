@@ -50,9 +50,6 @@ This list is at a much finer lever of granularity than Roadmap above.
     * Do in Javascript
     * Do via gateway (and try in browser)
     * Embed on index and test pages
-* REFACTOR: generic lists and reverse on any object,
-    * i.e. maybe CommonList and SmartDict;
-    * make MBM just signatures, not ordered into Struct Blocks, can still take -1 element for current
 * REFACTOR
     * onloaded ... options = methods to call on results, each takes an options e.g. {list: {fetchlisted: true, addlistto: el}} says do a list, then pass its onlisted the fetchlisted, addlisto
 * FUNCTIONALITY - add caching, so dont reload, BUT disable for testing
