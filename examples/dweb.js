@@ -35,7 +35,7 @@ class TransportHttp {
             success: function(msg) {
                 if (verbose) { console.log("TransportHTTP:", command, ": returning data len=", msg.length); }
                 // Dont appear to need to parse JSON data, its decoded already
-                self.onloaded(hash, msg, verbose, options);
+                self.onposted(hash, msg, verbose, options);
             },
             error: function(xhr, status, error) {
                 console.log("TransportHTTP:", command, "error", status, "error=",error);
@@ -367,6 +367,9 @@ class Signature extends SmartDict {
     constructor(hash, dic) {
         super(hash, dic);
         //console.log("Signature created",this.hash);
+        //TODO turn s.date into java date
+        //if isinstance(s.date, basestring):
+        //    s.date = dateutil.parser.parse(s.date)
     }
     //TODO need to be able to verify signatures
     sign() { alert("Undefined function Signature.sign"); }
@@ -416,17 +419,33 @@ class CommonList extends SmartDict {
     onlisted(hash, lines, verbose, options) { // Body loaded
         console.log("CommonList:onlisted", hash, lines.length, options)
         //lines = JSON.parse(lines))   Should already by a list
-        let results = {};   // Dictionary of { SHA... : StructuredBlock(hash=SHA... _signatures:[Signature*] ] ) }
+        this._list = []
         for (let i in lines) {
-            let s = new Signature(null, lines[i]);        // Signature ::= {date, hash, privatekey etc }
-            if (! results[s.hash]) {
-                results[s.hash] = new StructuredBlock(s.hash);
-            }
-            //TODO turn s.date into java date
-            //if isinstance(s.date, basestring):
-            //    s.date = dateutil.parser.parse(s.date)
             //TODO verify signature
             //if CryptoLib.verify(s):
+            let s = new Signature(null, lines[i]);        // Signature ::= {date, hash, privatekey etc }
+            this._list.push(s)
+        }
+        if (options.fetchblocks) {
+            options.fetchblocks = false; // Done it here, dont do it again
+            alert("CommonList.onlisted options=fetchblocks not implemented")
+        }
+        return true; // This layer handled, can do superclass stuff rather than wait for deeper loads
+    }
+    onposted(hash, data, verbose, options) {
+        // This isn't used much yet, so for now just stores data, may be better as a struc of some kind
+        console.log("CommonList:onposted data len=", data.length, options);
+        storeto(data, verbose, options) // TODO storeto handle img, or other non-HTML as reqd
+    }
+
+    blocks(fetchblocks, verbose) {
+        let results = {};   // Dictionary of { SHA... : StructuredBlock(hash=SHA... _signatures:[Signature*] ] ) }
+        for (let i in this._list) {
+            let s = this._list[i];
+            if (! results[s.hash]) {
+                console.log("XXX440",s);
+                results[s.hash] = new StructuredBlock(s.hash);  //TODO Handle cases where its not a SB
+            }
             results[s.hash]._signatures.push(s);
         }
         let sbs = new Array();      // [ StructuredBlock* ]
@@ -435,19 +454,14 @@ class CommonList extends SmartDict {
         }
         //TODO sort list
         sbs.sort(StructuredBlock.compare); // Could inline: sbs.sort(function(a, b) { ... }
-        this._list = sbs;   //TODO-REFACTOR store sigs and work on them
-        if (options.fetchblocks) {
-            options.fetchblocks = false; // Done it here, dont do it again
-            alert("CommonList.onlisted options=fetchblocks not implemented")
-            //TODO-REFACTOR loop on all blocks
-        }
-        return true; // This layer handled, can do superclass stuff rather than wait for deeper loads
+        return sbs;
     }
     store() { alert("Undefined function CommonList.store"); }   // For storing data
     publicurl() { alert("Undefined function CommonList.publicurl"); }   // For access via web
     privateurl() { alert("Undefined function CommonList.privateurl"); }   // For access via web
     signandstore() { alert("Undefined function CommonList.signandstore"); }   // For storing data
     add() { alert("Undefined function CommonList.add"); }   // For storing data
+
 }
 class MutableBlock extends CommonList {
     // { _hash, _key, _current: StructuredBlock, _list: [ StructuredBlock*]
@@ -461,7 +475,8 @@ class MutableBlock extends CommonList {
     onlisted(hash, lines, verbose, options) {
         let handled = super.onlisted(hash, lines, verbose, options);
         if (handled) {  // Should always be handled until fetchblocks implemented
-            this._current = this._list[this._list.length-1]; //TODO-REFACTOR get sb from first sig
+            let sig = this._list[this._list.length-1];
+            this._current = new StructuredBlock(sig.hash);
             if (options.path && options.path.length) {  //TODO-PATH unclear if want a path or a list - start with a list
                 this._current.load(verbose, options);
             } else { // dom_id etc are done on the leaf, not the intermediaries
@@ -481,13 +496,21 @@ class MutableBlock extends CommonList {
         while (ul.hasChildNodes()) {
             ul.removeChild(ul.lastChild);
         }
-        for (let ii in this._list) {     // Signed Blocks   //TODO-REFACTOR work off SB's in sigs
-            let i = this._list[ii]; //TODO-REFACTOR
+        let blocks = this.blocks(false, verbose);
+        console.log("XXX493",blocks);
+        for (let ii in blocks) {     // Signed Blocks   //TODO-REFACTOR work off SB's in sigs
+            let i = blocks[ii]; //TODO-REFACTOR
             let li = document.createElement("li");
             ul.appendChild(li);
+            b = new StructuredBlock
+            console.log("XXX499",i);
             i.load(verbose, { "elem": li });
         }
     }
+    update(type, data, verbose, options) {  // Send new data for this item to dWeb
+        transport.update(this, this._hash, type, data, verbose, options);
+    }
+
     contentacl() { alert("Undefined function MutableBlock.contentacl setter and getter"); }   // Encryption of content
     fetch() { alert("Undefined function MutableBlock.fetch"); }   // Split into load/onload/onlisted
     content() { alert("Undefined function MutableBlock.store"); }   // Retrieving data
@@ -547,7 +570,7 @@ function dwebfile(table, hash, path, options) {
         options.path = path.split('/');
     }
     if (table == "mb") {
-        var mb = new MutableBlock(hash, null, false); //TODO-KEY check all similar calls to make sure MutableBlock still takes parm 0 = hash
+        var mb = new MutableBlock(hash, null, false);
         options.fetchlist = true;
         options.fetchbody = true;
         mb.load(true, options); //verbose, fetchbody, fetchlist, !fetchblocks
@@ -560,12 +583,12 @@ function dwebfile(table, hash, path, options) {
 }
 
 function dwebupdate(hash, type, data, options) {
-    mbm = new MutableBlock(hash, null, true);  //TODO-KEY check all similar calls to make sure MutableBlock still takes parm 0 = hash
-    mbm.update(type, data, true, options);
+    mbm = new MutableBlock(hash, null, true);
+    mbm.update(type, data, true, options);  //TODO failing as result is HTML but treated as Javascript - can intercept post
 }
 
 function dweblist(div, hash) {
-    var mb = new MutableBlock(hash, null, false);  //TODO-KEY check all similar calls to make sure MutableBlock still takes parm 0 = hash
+    var mb = new MutableBlock(hash, null, false);
     options = {}
     options.fetchlist = true;
     options.fetchbody = true;

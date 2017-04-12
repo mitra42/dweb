@@ -101,8 +101,6 @@ class CommonList(SmartDict):
             listhash = self._publichash or ((not self._master) and self._hash) or self.keypair._hash
             assert listhash,"Must be a hash to look on a list"
             self._list = Signatures.fetch(hash=listhash, fetchblocks=fetchblocks, verbose=verbose, **options)
-            #TODO-REFACTOR, where or if to do sorteddeduplicated()
-            #OBS: self._list = SignedBlocks.fetch(hash=listhash, fetchblocks=fetchblocks, verbose=verbose, **options).sorteddeduplicated()
         return self # for chaining
 
     def _storepublic(self, verbose=False, **options):
