@@ -158,10 +158,12 @@ class Transportable {
         if (verbose) { console.log("storeto: options=", options); }
         for (let k in options) {
             console.log("XXX156",k,typeof this[k],options[k]);
-            if (["fetchbody", "fetchlist", "path"].includes(k)) {   //TODO-STORETO implement these as functions instead of hardcoded in onloaded or onlisted
+            if (["path"].includes(k)) {   //TODO-STORETO implement these as functions instead of hardcoded in onloaded or onlisted
                 console.log("XXX-TODO - option",k,"not implemented on",this.constructor.name);
+                //alert("UNIMPLEMENTED "+this.constructor.name+"."+k);
+                //1/0;
             } else {
-                // Calls elem, objbrowser and soon fetchlist fetchbody fetchblocks - all with standard interface
+                // Calls elem, objbrowser and soon fetchblocks - all with standard interface
                 this[k](data, hash, path, verbose, options[k]);
             }
         }
@@ -191,6 +193,9 @@ class SmartDict extends Transportable {
 
     _setdata(value) {   // Note SmartDict expects value to be a dictionary, which should be the case since the HTTP requester interprets as JSON
         if (value) {    // Skip if no data
+            if (typeof value === 'string') {    // Assume it must be JSON
+                value = JSON.parse(value);
+            }
             // value should be a dict by now, not still json as it is in Python
             //TODO-AUTHENTICTION - decrypt here
             this._setproperties(value); // Note value should not contain a "_data" field, so wont recurse even if catch "_data" at __setattr__()
@@ -198,11 +203,7 @@ class SmartDict extends Transportable {
     }
 
     objbrowser(data, hash, path, verbose, ul) {
-        if (path) {
-            var hashpath = [hash, path].join("/");
-        } else {
-            var hashpath = hash;
-        }
+        let hashpath = path ? hash, path].join("/") : hash;
     //OBSdwebobj(ul, hashpath) {    //TODO - note this is under dev works on SB and MB, needs to work on KeyChain, AccessControlList etc
         // ul is either the id of the element, or the element itself.
         //TODO-follow link arrow
@@ -254,11 +255,14 @@ class SmartDict extends Transportable {
                         //TODO make this a loop
                         if (Array.isArray(this[prop])) {
                             for (let l1 in this[prop]) {
-                                //console.log("XXX@216",prop,this[prop][l1]);
-                                this[prop][l1].objbrowser(null, hash, path + "/"+this[prop][l1].name, verbose, ul3);
+                                this[prop][l1].objbrowser(null, hash, (path ? path + "/":"")+this[prop][l1].name , verbose, ul3);
                             }
                         } else {
-                            this[prop].objbrowser(null, hash, path, verbose, ul3);
+                            if (this[prop]._hash) {
+                                this[prop].objbrowser(null, this[prop]._hash, null, verbose, ul3)
+                            } else {
+                                this[prop].objbrowser(null, hash, path, verbose, ul3);
+                            }
                         }
                     } else {    // Any other field
                         if (prop == "hash") {
@@ -336,6 +340,7 @@ class StructuredBlock extends SmartDict {
 
         let sb = this;
         let pathstr = options.path && options.path.join('/');
+        if (verbose && options.path) { console.log("sb.onloaded walking path",pathstr);}
         while (options.path && options.path.length && this.links.length ) { // Have a path and can do it on sb
             let next = options["path"].shift(); // Takes first element of path, leaves path as rest
             console.log("StructuredBlock:onloaded next path=",next);
@@ -431,29 +436,23 @@ class CommonList extends SmartDict {
         if (this._needsfetch) { // Only load if need to
             if (verbose) { console.log("CommonList.load:",this._hash,options)}
             this._needsfetch = false
-            if (options.fetchbody) {
-                options.fetchbody = false;  // Dont refetch
-                transport.rawfetch(this, this._hash, verbose, options);  // TODO this is only correct if its NOT master
-            } else if (options.fetchlist) { // Cant fetch list to fetched body, as need hash of list
-                options.fetchlist = false;  // Dont refetch
-                transport.rawlist(this, this._hash, verbose, options);  // TODO this is only correct if its NOT master
-            }
+            // Need to fetch body and only then fetchlist since for a list the body might include the publickey whose hash is needed for the list
+            transport.rawfetch(this, this._hash, verbose, options);  // TODO this is only correct if its NOT master
+        } else {
+            this.onloaded(hash, null, verbose, options);    // Pass to onloaded as if loaded, and see what action reqd
         }
     }
 
+    fetchlist(data, hash, path, verbose, options) {  // Interface chosen so callable from storeto if in options
+                transport.rawlist(this, this._hash, verbose, options);  // TODO this is only correct if its NOT master
+    }
 
     onloaded(hash, data, verbose, options) { // Body loaded
         console.log("CommonList:onloaded data len=", data.length, options)
         this._setdata(JSON.parse(data))   // Actually calls super._setdata > _setproperties() > __setattr__
-        //this._data = data;
-        if (options.fetchlist) {
-            options.fetchlist = false; // Done it here, dont do it again
-            transport.rawlist(this, this._hash, verbose, options);  // TODO this is only correct if its NOT master
-            return false; // Not complete doing rawlist
-        } else {
-            return true;
-        }
+        this.storeto(data, hash, null, verbose, options);
     }
+
     onlisted(hash, lines, verbose, options) { // Body loaded
         console.log("CommonList:onlisted", hash, lines.length, options)
         //lines = JSON.parse(lines))   Should already by a list
@@ -578,9 +577,7 @@ function dwebfile(table, hash, path, options) {
     }
     if (table == "mb") {
         var mb = new MutableBlock(hash, null, false);
-        options.fetchlist = true;
-        options.fetchbody = true;
-        mb.load(true, options); //verbose, fetchbody, fetchlist, !fetchblocks
+        mb.load(true, { "fetchlist": options}); // for dwebfile, we want to apply the optiosn to the file - which is in the content after fetchlist
     } else if (table == "sb") {
         var sb = new StructuredBlock(hash, null);
         sb.load(true, options);
@@ -597,10 +594,8 @@ function dwebupdate(hash, type, data, options) {
 function dweblist(div, hash) {
     var mb = new MutableBlock(hash, null, false);
     options = {}
-    options.fetchlist = true;
-    options.fetchbody = true;
-    options.elem = div;
-    mb.load(true, options); //verbose, fetchbody, fetchlist, !fetchblocks
+    options.fetchlist = {"elem": div };
+    mb.load(true, options);
 }
 // ======== EXPERIMENTAL ZONA ==================
 

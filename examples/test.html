@@ -21,7 +21,7 @@
             console.log("MutableBlock=======");
             <!-- also works with /file/mb/.....=/langs/readme.md -->
             let mb = new MutableBlock(mbhash, null, false);  //TODO-KEY check all similar calls to make sure MutableBlock still takes parm 0 = hash
-            mb.load(true,  {"path": ["langs","readme.md"], "elem": "myList.1", "fetchbody": true, "fetchlist": true}  );
+            mb.load(true,  { "fetchlist": {"path": ["langs","readme.md"], "elem": "myList.1"}} );
             <!-- Now test path using dwebfile -->
             dwebfile("sb", sbhash, "langs/readme.md", {  "elem": "myList.2"});
             <!-- Now test path using dwebfile -->

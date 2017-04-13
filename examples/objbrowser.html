@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>DWEB Test page</title>
+    <title>DWEB Object Browser</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script><!-- Jquery via Google -->
     <!--<script src="/file/sb/SHA3256B64URL.BDCbn_l9rrlCdVkB9o6qozSP84HBCGors5dBLxdyro8="></script><!-- jquery-3.1.1.js-->
     <script src="/file/mb/SHA3256B64URL.vVaaIWT976GT8_oVr_eKQxIgWqUdCH9Nf0PCZhQ2iTw="></script><!-- dweb.js -->
@@ -17,7 +17,7 @@
             //let obj = new StructuredBlock(sbhash);
             let obj = new MutableBlock(mb2hash);
             let path = []; // [ 'langs', 'readme.md' ]  // Direct to a file
-            obj.load(true, {"path": path, "objbrowser": "ObjBrowser", "fetchbody": true, "fetchlist": true} );
+            obj.load(true, {"path": path, "fetchlist": {"objbrowser": "ObjBrowser"}} );
         }
     </script>
     <style>
