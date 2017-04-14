@@ -45,9 +45,7 @@ TODO LIST
 =========
 This list is at a much finer lever of granularity than Roadmap above.
 
-* FUNCTIONALITY: Add authentication layer
-    * See Authentication.rst
-    * Do in Javascript
+* FUNCTIONALITY: Add authentication layer in Javascript
     * Do via gateway (and try in browser)
     * Embed on index and test pages
 * FUNCTIONALITY - add caching, so dont reload, BUT disable for testing
@@ -71,7 +69,6 @@ This list is at a much finer lever of granularity than Roadmap above.
 * JAVASCRIPT: Turn incoming dates in JSON into JS date (though can compare strings)
 * SECURITY: Verify signatures in JS
 * APP: Browser plugin that recognizes URLs
-* REFACTOR StructuredBlock has to handle different kinds of sub-pointers which means "hash" may need table and hash in .hash
 * FUNCTIONALITY: JS/Browser Uploader for a directory.
 * APP: Drop-to-upload an icon, that runs maybe the python library that you can drop a file or directory on
 * APP: Blog like function, building on editor.

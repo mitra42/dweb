@@ -49,7 +49,7 @@ class TransportLocal(Transport):
     def rawfetch(self, hash, verbose=False, **options):
         """
         Fetch a block from the local file system
-        Exception: IOError if file doesnt exist
+        Exception: TransportFileNotFound if file doesnt exist
 
         :param hash:
         :param options:

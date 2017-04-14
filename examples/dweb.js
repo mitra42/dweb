@@ -203,7 +203,7 @@ class SmartDict extends Transportable {
     }
 
     objbrowser(data, hash, path, verbose, ul) {
-        let hashpath = path ? hash, path].join("/") : hash;
+        let hashpath = path ? [hash, path].join("/") : hash;
     //OBSdwebobj(ul, hashpath) {    //TODO - note this is under dev works on SB and MB, needs to work on KeyChain, AccessControlList etc
         // ul is either the id of the element, or the element itself.
         //TODO-follow link arrow

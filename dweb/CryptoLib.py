@@ -76,15 +76,31 @@ class CryptoLib(object):
         :return: URL and Filename safe string   hashname.b64encoding
         """
         if hashscheme == "SHA2256B64URL":
-            return "SHA1B64URL." + base64.urlsafe_b64encode(encode(data, SHA1))
+            return hashscheme+ "." + base64.urlsafe_b64encode(encode(data, SHA1))
         elif hashscheme == "SHA2256B64URL":
-            return "SHA2256B64URL." + base64.urlsafe_b64encode(encode(data, SHA2_256))
+            return hashscheme+ "." + base64.urlsafe_b64encode(encode(data, SHA2_256))
         elif hashscheme == "SHA2512B64URL":
-            return "SHA2512B64URL." + base64.urlsafe_b64encode(encode(data, SHA2_512))
+            return hashscheme+ "." + base64.urlsafe_b64encode(encode(data, SHA2_512))
         elif hashscheme == "SHA3512B64URL":
-            return "SHA3512B64URL." + base64.urlsafe_b64encode(encode(data, SHA3))
+            return hashscheme+ "." + base64.urlsafe_b64encode(encode(data, SHA3))
         else:
             raise ToBeImplementedException(name="CryptoLib.Curlhash for hashscheme=" + hashscheme)
+
+    @staticmethod
+    def hash2binary(hash, hashscheme="SHA2256B64URL", bits=None, **options):
+        """
+        Invert the stringification of the binary hash. Note returns a binary string. NOT an int
+
+        :param self:
+        :param hashscheme:
+        :param options:
+        :return:
+        """
+        hash = hash[len(hashscheme)+1:] # Trim hash name
+        bin = base64.urlsafe_b64decode(hash)
+        if bits:
+            bin = bin[:len(hashscheme)]
+        return bin
 
     @staticmethod
     def _signable(date, data):
