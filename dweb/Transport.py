@@ -5,7 +5,7 @@ from misc import ToBeImplementedException, MyBaseException
 
 class TransportBlockNotFound(MyBaseException):
     httperror = 404
-    msg = "{table} {hash} not found"
+    msg = "{hash} not found"
 
 class TransportURLNotFound(MyBaseException):
     httperror = 404

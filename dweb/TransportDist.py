@@ -1,6 +1,6 @@
 # encoding: utf-8
 
-from Transport import Transport, TransportFileNotFound
+from Transport import Transport, TransportFileNotFound, TransportBlockNotFound
 from TransportLocal import TransportLocal
 from TransportDist_Peer import Node
 
@@ -19,7 +19,8 @@ class TransportDist(Transport):
 
         :param options:
         """
-        self.node = Node()
+        self.node = Node(tl=tl) # Node needs to know about TransportLocal
+        assert tl is not None, "Setup must be wrong"
         self.tl = tl    # Connect to TransportLocal
 
     @classmethod
@@ -48,13 +49,22 @@ class TransportDist(Transport):
         :return:
         """
         try:
-            if self.tl.rawfetch(hash, verbose=verbose, **options)
+            data = self.tl.rawfetch(hash, verbose=verbose, **options)
+            if data:
+                return data
         except TransportFileNotFound as e:
-            #TODO-TX Fetch from remote
-            XXX
-            #Save locally
+            pass
+        # Either exception or drop-thru from rawfetch
+        peerresp = self.node.rawfetch(hash, verbose=verbose, **options) # Err: TransportFileNotFound
+        if verbose: print "Rawfetch returned:", peerresp
+        if not peerresp.success:
+            raise TransportBlockNotFound(hash=hash)
+        data = peerresp.data
+        assert data is not None, "If returns data, then should be non-None"
+        #Save locally (if !None)
+        if data:
             self.tl.rawstore(data, verbose=verbose)
-            return data
+        return data
 
     def _rawlistreverse(self, subdir=None, hash=None, verbose=False, **options):
         """
@@ -64,7 +74,7 @@ class TransportDist(Transport):
         :param hash: Hash in table to be retrieved
         :return: list of dictionaries for each item retrieved
         """
-        #TODO look local, ask remote
+        #TODO-TX look local, ask remote
         pass
 
     def rawlist(self, hash, verbose=False, **options):
@@ -75,7 +85,7 @@ class TransportDist(Transport):
         :param hash: Hash in table to be retrieved
         :return: list of dictionaries for each item retrieved
         """
-        #TODO - via _rawlistreverse
+        #TODO-TX - via _rawlistreverse
         pass
 
     def rawreverse(self, hash, verbose=False, **options):
@@ -87,7 +97,7 @@ class TransportDist(Transport):
         :param hash: Hash in table to be retrieved
         :return: list of dictionaries for each item retrieved
         """
-        #TODO - via _rawlistreverse
+        #TODO-TX - via _rawlistreverse
         pass
 
     def rawstore(self, data=None, verbose=False, **options):
@@ -98,23 +108,22 @@ class TransportDist(Transport):
         :param data: opaque data to store
         :return: hash of data
         """
-        #TODO - store local and pass to remote(s) based on algorithm
+        #TODO-TX - store local and pass to remote(s) based on algorithm
         pass
 
-    if __name__ == '__main__':
-        def rawadd(self, hash=None, date=None, signature=None, signedby=None, verbose=False, **options):
-            """
-            Store a signature in a pair of DHTs
-            Exception: IOError if file doesnt exist
+    def rawadd(self, hash=None, date=None, signature=None, signedby=None, verbose=False, **options):
+        """
+        Store a signature in a pair of DHTs
+        Exception: IOError if file doesnt exist
 
-            :param hash:        hash to store under
-            :param date:
-            :param signature:
-            :param signedby:
-            :param verbose:
-            :param options:
-            :return:
-            """
-            #TODO - store local and pass to remote(s) based on algorithm
-            pass
+        :param hash:        hash to store under
+        :param date:
+        :param signature:
+        :param signedby:
+        :param verbose:
+        :param options:
+        :return:
+        """
+        #TODO-TX - store local and pass to remote(s) based on algorithm
+        pass
 

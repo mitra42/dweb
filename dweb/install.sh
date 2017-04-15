@@ -15,7 +15,7 @@ PIPINSTALLS="py-dateutil pycrypto sha3 requests pathlib http multihash mnemonic"
 #OTHER MODULES USE OFTEN : pytz CherryPy lxml xlwt phonenumbers requests-mock passlib
 # Maybe use pysha3
 PIPEGREP=`echo $PIPINSTALLS | sed -e 's/ /|/g'`
-DIRS="../cache ../cache_http"
+DIRS="../cache ../cache_http ../cache_peer"
 #GROUP="wheel"  # Define if want all checkAndCreate to use group
 
 if ${fPIPUPGRADE}

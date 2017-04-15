@@ -14,7 +14,7 @@ class TransportLocal(Transport):
     def __init__(self, dir=None, **options):
         """
         Create a transport object (use "setup" instead)
-        |Exceptions: TransportBlockNotFound if dir invalid, IOError other OS error (e.g. cant make directory)
+        |Exceptions: TransportFileNotFound if dir invalid, IOError other OS error (e.g. cant make directory)
 
         :param dir:
         :param options:
@@ -34,7 +34,7 @@ class TransportLocal(Transport):
     def setup(cls, dir=None, **options):
         """
         Setup local transport to use dir
-        Exceptions: TransportBlockNotFound if dir invalid
+        Exceptions: TransportFileNotFound if dir invalid
 
         :param dir:     Directory to use for storage
         :param options: Unused currently
@@ -108,7 +108,7 @@ class TransportLocal(Transport):
     def rawstore(self, data=None, verbose=False, **options):
         """
         Store the data locally
-        Exception: TransportBlockNotFound if file doesnt exist
+        Exception: TransportFileNotFound if file doesnt exist
 
         :param data: opaque data to store
         :return: hash of data

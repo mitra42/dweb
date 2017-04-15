@@ -28,8 +28,8 @@ class Testing(unittest.TestCase):
         self.quickbrownfox =  "The quick brown fox ran over the lazy duck"
         self.dog = "But the clever dog chased the fox"
         self.mydic = { "a": "AAA", "1":100, "B_date": datetime.now()}  # Dic can't contain integer field names
-        #self.ipandport = ('localhost',4243)  # Serve it via HTTP on all addresses
-        self.ipandport = ('192.168.1.156',4243)  # Serve it via HTTP on all addresses
+        self.ipandport = ('localhost',4243)  # Serve it via HTTP on all addresses
+        #self.ipandport = ('192.168.1.156',4243)  # Serve it via HTTP on all addresses
         self.exampledir = "../examples/"    # Where example files placed
         self.mnemonic = "lecture name virus model jealous whisper stone broom harvest april notable lunch" # Random valid mnemonic
         if testTransport == TransportLocal:
@@ -324,7 +324,18 @@ class Testing(unittest.TestCase):
 
 
     def Xtest_current(self):
-        self.test_keychain()
+        # def test_peer(self):
+        # Experimental testing of peer
+        self.verbose=True
+        from TransportDist import TransportDist #TODO-TX move up top to imports when sold
+        # Use cache as the local machine's - remote will use cache_peer
+        Dweb.settransport(transportclass=TransportDist, dir="../cache", verbose=self.verbose)
+        cdhash="SHA3256B64URL.50GNWgUQ9GgrVfMvpedEg77ByMRYkUgPRU9P1gWaNF8="    # Hash of the Clever Dog string saved in test_upload
+        data = Dweb.transport.rawfetch(hash=cdhash,verbose=self.verbose)
+        assert data == self.dog, "Local cache of clever dog"+data
+        invalidhash="SHA3256B64URL.aaaabbbbccccVfMvpedEg77ByMRYkUgPRU9P1gWaNF8="
+        try:
+            data = Dweb.transport.rawfetch(hash=invalidhash,verbose=self.verbose)
+        except TransportBlockNotFound as e:
+            if self.verbose: print e
 
-        # Keygen -> Pub/Priv, (no access) ->
-        # words -> hash ->
