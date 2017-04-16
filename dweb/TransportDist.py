@@ -1,13 +1,14 @@
 # encoding: utf-8
 
-from Transport import Transport, TransportFileNotFound, TransportBlockNotFound
+from Transport import TransportFileNotFound, TransportBlockNotFound
+from TransportHTTP import TransportHTTPBase
 from TransportLocal import TransportLocal
 from TransportDist_Peer import Node
 
 """
 Highly experimental distributed layer for dWeb, just a proof of concept and place for experimentation.
 """
-class TransportDist(Transport):
+class TransportDist(TransportHTTPBase): # Uses TransportHTTPBase for some common functions esp _sendGetPost
     """
     Subclass of Transport.
     Implements the raw primitives as reads and writes of file system.
@@ -39,6 +40,7 @@ class TransportDist(Transport):
         #TODO-TX should probably create TransportLocal and pass to init
         return cls(tl=tl, **options)
 
+    #see other !ADD-TRANSPORT-COMMAND - add a function copying the format below
     def rawfetch(self, hash, verbose=False, **options):
         """
         Fetch a block from the local file system and if that fails fetch from distributed and cache
@@ -63,7 +65,8 @@ class TransportDist(Transport):
         assert data is not None, "If returns data, then should be non-None"
         #Save locally (if !None)
         if data:
-            self.tl.rawstore(data, verbose=verbose)
+            hash = self.tl.rawstore(data, verbose=verbose)
+            if verbose: print "TransportDist.rawfetch: Saved as hash=",hash
         return data
 
     def _rawlistreverse(self, subdir=None, hash=None, verbose=False, **options):

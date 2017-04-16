@@ -38,6 +38,15 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         cls.serve_forever(verbose=True)    # Uses defaultipandport
         #TODO-HTTP its printing log, put somewhere instead
 
+    #see other !ADD-TRANSPORT-COMMAND - add a function copying the format below
+
+    @exposed
+    def info(self, **kwargs):
+        return { 'Content-type': 'text/json',
+                 'data': { "type:": "xhttp"}
+               }
+    info.arglist=[]
+
     @exposed
     def rawfetch(self, hash=None, contenttype="application/octet-stream", **kwargs):
         """

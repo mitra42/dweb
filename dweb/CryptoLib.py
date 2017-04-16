@@ -503,7 +503,7 @@ def json_default(obj):
         return obj.isoformat()
     try:
         return obj.dumps()
-    except:
-        raise TypeError("Type %s not serializable" % obj.__class__.__name__)
+    except Exception as e:
+        raise TypeError("Type %s not serializable (%s %s)" % (obj.__class__.__name__, e.__class__.__name__, e))
 
 

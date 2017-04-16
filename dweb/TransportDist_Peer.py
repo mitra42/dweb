@@ -1,50 +1,41 @@
-######### BELOW HERE COMES DIRECTLY FROM DHT experiemnt except that all methods renamed "OLD" till reviewed and shown needed
+# encoding: utf-8
 
-"""
-This is a test of spanning trees - eventually to find its way into web42 or the Arduinio
-
-Intention is that this creates a spanning tree of http connected nodes, and can ask up the tree to get to any node,
-can also get the closest node to a notional node in a disconnected network, (including where the node is not connected)
-"""
-#TODO - make sure have at least two paths to a node
-#TODO - maybe know about third or further degree connections
-#TODO - send info when connect as well as retrieve (receiver then uses for own optimisation, attempt at reverse connection etc)
-#TODO - try keeping a few random long-distance connections
-#TODO - make this threaded - each Node is a thread
-
-#from random import randint
-#import numpy
 import binascii # for crc32
 from random import randint
 from Transport import TransportFileNotFound
 from TransportHTTP import TransportHTTP
 from TransportLocal import TransportLocal
 from MyHTTPServer import MyHTTPRequestHandler, exposed
-from ServerHTTP import DwebHTTPRequestHandler
+from CryptoLib import CryptoLib
+from Dweb import Dweb
 
 
-class ServerPeer(DwebHTTPRequestHandler):
-
-    def __init__(self, node=None, tl=None):
-            node = Node(tl=tl)
-
-    @classmethod
-    def setup(cls, nodeid=None, tl=None):
-        tl = tl or TransportLocal(dir="../cache_peer")  #TODO-TX-MULTIPLE use port in dir
-        node = Node(nodeid=nodeid, tl=tl)
-        return cls(node=node, tl=tl)
+class ServerPeer(MyHTTPRequestHandler):
+    # Do not define __init__ its handled in BaseHTTPRequestHandler superclass
+    defaultipandport = ('localhost',4245)
 
     @classmethod
-    def serve_forever(cls, node=None, **options):
-        DwebHTTPRequestHandler.serve_forever(**options)
-        cls.node = node # Save the node to pass queries to
+    def run(cls, nodeid=None, tl=None, ipandport=None, verbose=False, **options):
+        cls.tl = tl or TransportLocal(dir="../cache_peer")  #TODO-TX-MULTIPLE use port in dir
+        cls.node = Node(nodeid=nodeid, tl=cls.tl)
+        cls.serve_forever(ipandport=ipandport or cls.defaultipandport, verbose=verbose, **options)
 
     @exposed
-    def reqfetch(self, data=None, **options):
-        res =  self.node.rawfetch(req=data, verbose=False, **options)   # TODO-TX check if data is json or string
+    def reqfetch(self, data=None, verbose=False, **options):
+        req = PeerRequest.loads(data)
+        res =  self.node.rawfetch(req=req, verbose=verbose, **options)   # TODO-TX check if data is json or string
         return { "Content-type": "application/json", "data": res }
     reqfetch.arglist=["data"]
 
+    @exposed
+    def info(self, **kwargs):
+        return { 'Content-type': 'text/json',
+                 'data': {
+                    'type': 'DistPeerHTTP',
+                    'peers': list(self.node.peers),
+                    'nodeid': self.node.nodeid,
+        }        }
+    info.arglist=[]
 
 
 class Node(object):
@@ -152,24 +143,6 @@ class Node(object):
         """
         return [peer.dict() for peer in self.peers.connected()]
 
-    def OLDseedpeer(self, nodeid=None, ipaddr=None):
-        if isinstance(nodeid, Node): nodeid = nodeid.nodeid
-        if nodeid == self.nodeid:
-            return None
-        peer = self.peers.find(nodeid)
-        if not peer:
-            peer = Peer(node=self, nodeid=nodeid, ipaddr=ipaddr)
-        self.peers.append(peer)
-        return peer
-
-    def OLDdebugprint(self, level=2):
-        if level == 2:  # Print node, and each of its peers on its own line
-            print "Node(%d)" % self.nodeid
-            for peer in self.peers:
-                print "     " + peer.debugline(level=level)
-        elif level == 1:
-            print self.nodeid, ":", [peer.nodeid for peer in self.peers.connected()]
-
     def rawfetch(self, hash=None, req=None, verbose=False, **options):
         """
         Fetch content based on a req.
@@ -179,6 +152,7 @@ class Node(object):
         :param hash:    hash for new request
         :return:
         """
+        if verbose: print "Node.rawfetch",hash,req,self.tl
         if not req:
             req = PeerRequest(hash=hash, verbose=verbose)
         elif not hash:
@@ -187,6 +161,7 @@ class Node(object):
         # See if have a local copy
         try:
             if self.tl:
+                print "XXX@172"
                 data = self.tl.rawfetch(hash, verbose=verbose, **options)
                 return PeerResponse(success=True, req=req, data=data)
         except TransportFileNotFound as e:
@@ -196,16 +171,16 @@ class Node(object):
         # Try all connected nodes, in order of how close to target
         peer_intermediate = self.peers.nextnode(req.targetnodeid, exclude=req.tried)
         while peer_intermediate:
-            if verbose: print self, "Sending via closest", intermediate, "for", req.targetnodeid
+            if verbose: print self, "Sending via closest", peer_intermediate, "for", req.targetnodeid
             req.tried.append(peer_intermediate)
             req.hops = savedhops + 1
-            res = peer_intermediate.reqfetch(req)
+            res = peer_intermediate.reqfetch(req=req)
             if res.success:
                 return res
             # It failed, lets loop
-            req.tried.append(res.tried)
-            if verbose: print self, "Retrying from ", self.nodeid, "to destn", req.nodeid, "with excluded", req.tried
-            intermediate = self.peers.nextnode(req.targetnodeid, exclude=req.tried)
+            req.tried.append(res.req.tried)
+            if verbose: print self, "Retrying from ", self.nodeid, "to destn", req.targetnodeid, "with excluded", req.tried
+            peer_intermediate = self.peers.nextnode(req.targetnodeid, exclude=req.tried)
         return PeerResponse(success=False, req=req, err="No response from any of %s peers" % len(self.peers))
 
 
@@ -220,6 +195,9 @@ class PeerSet(set):
     """
     A list of peers
     """
+    def __init__(self,args=None):
+        args = args or []
+        super(PeerSet,self).__init__((a if isinstance(a,Peer) else Peer(**a)) for a in args)
 
     def connected(self):
         return PeerSet([peer for peer in self if peer.connected])
@@ -232,9 +210,8 @@ class PeerSet(set):
     def OLDconnectedandviacloserpeer(self): return PeerSet([peer for peer in self if peer.connected and peer.connectedvia and any([p.closer(peer) for p in peer.connectedvia])])
     def OLDnotconnected(self):        return PeerSet([peer for peer in self if not peer.connected])
 
-    def OLDfind(self, nodeid):
-        if not isinstance(nodeid, int): nodeid = nodeid.nodeid
-        peers = [peer for peer in self if peer.nodeid == nodeid]
+    def find(self, nodeid=None, ipandport=None):
+        peers = [peer for peer in self if (nodeid and (nodeid == peer.nodeid)) or (ipandport and (ipandport == node.ipandport))]
         if peers:
             return peers[0]  # Can only be one
         else:
@@ -244,9 +221,6 @@ class PeerSet(set):
         if not isinstance(peer, (list, set)):
             peer = (peer,)
         self.update(peer)
-
-    def OLDdebugline(self):
-        return str([p.nodeid for p in self])
 
     def closestto(self, nodeid):
         return self and min(self, key=lambda p: p.distanceto(nodeid))
@@ -269,6 +243,8 @@ class PeerSet(set):
         """
         return self.connected().notin(exclude).closestto(targetnodeid)
 
+    def dumps(self):
+        return list(self)
 
 class Peer(object): #TODO-RX review this class
     """
@@ -279,14 +255,20 @@ class Peer(object): #TODO-RX review this class
     connected   True if currently have connection to this Peer that can request on
     ipandport   HTTP address and port to connect to
     transport   How to get to Peer if connected (usually a TransportHTTP instance but could migrate to WebRTC
+    info        Info packet as returned by connected peer
+
+    See other !ADD-PEER-FIELDS
     """
 
 
-    def __init__(self, nodeid=None, ipandport=None): #, node=None, connectedvia=None, nodeid=None, ipaddr=None, **parms): #TODO-TX need this inc ipandport
+    def __init__(self, nodeid=None, ipandport=None, verbose=False): #, node=None, connectedvia=None, nodeid=None, ipaddr=None, **parms): #TODO-TX need this inc ipandport
+        if verbose: print "Peer.__init__",nodeid,ipandport
         self.connected = False  # Start off disconnected
         self.transport = None
         self.ipandport = ipandport
         self.nodeid = nodeid
+        self.info = None
+        #See other !ADD - PEER - FIELDS
         """
         self.cachedpeers = PeerSet()
         self.connectedvia = connectedvia if connectedvia else PeerSet()  # List of peers connected via.
@@ -298,12 +280,16 @@ class Peer(object): #TODO-RX review this class
         """
 
     def __repr__(self):
-        return "Peer(%d)" % self.nodeid
+        #See other !ADD - PEER - FIELDS
+        return "Peer(%s, %s, %s)" % (self.nodeid, self.ipandport,self.connected)
 
     def __eq__(self, other):    # Note this facilittes "in" to work on PeerSet's
-        if not isinstance(other, int):
-            other = other.nodeid
-        return self.nodeid == other
+        nodeid = other if isinstance(other, int) else other.nodeid
+        return (nodeid and (self.nodeid == nodeid)) or (isinstance(other,(Peer,Node)) and (self.ipandport == other.ipandport) )
+
+    def dumps(self):
+        #See other !ADD - PEER - FIELDS
+        return {"nodeid": self.nodeid, "ipandport": self.ipandport}
 
     def OLDreqpeers(self):  # Get a list of their peers from this peer and store in cachedpeers
         return sim.find(self).handlereqpeers()  # Returns a dicarray
@@ -324,18 +310,16 @@ class Peer(object): #TODO-RX review this class
         if connecttheirpeers:
             print "TODO implement disconnect with connecttheirpeers"
 
-    def connect(self):
-        self.transport = TransportHTTP(ipandport=self.ipandport)
-        self.connected = True
-        #self.node.onconnected(self) #TODO-TX see if need this
+    def connect(self, verbose=False):
+        if not self.connected:
+            print "Connecting to peer", self
+            self.transport = TransportHTTP(ipandport=self.ipandport)
+            self.connected = True
+            self.onconnected()
 
-    def OLDdict(self):
-        return {'nodeid': self.nodeid, 'ipaddr': self.ipaddr}
-
-    def OLDdebugline(self):
-        return "Peer %d ip=%d distance=%d connected=%d cachedpeers=%s connectedvia=%s" \
-               % (self.nodeid, self.ipaddr or 0, self.distance, self.connected, self.cachedpeers.debugline(),
-                  self.connectedvia.debugline())
+    def onconnected(self, verbose=False):
+        self.info = self.transport.info()
+        self.nodeid = self.info["nodeid"]
 
     def distanceto(self, peerid):
         """
@@ -387,132 +371,8 @@ class Peer(object): #TODO-RX review this class
         # Now send via the transport
         #TODO-TX - make ServerHTTP answer the reqfetch
         resp = thttp._sendGetPost(True, "reqfetch", headers={"Content-Type": "application/json"}, urlargs=[], data=CryptoLib.dumps(req))
-        return resp # Return PeerResponse
+        return PeerResponse.loads(resp.json()) # Return PeerResponse
 
-
-class OLDNodeList(list):
-    """
-    List of all nodes for simulation
-    """
-
-    def OLDfind(self, nodeid):
-        if isinstance(nodeid, (Peer, Node)): nodeid = nodeid.nodeid
-        nodes = [node for node in self if node.nodeid == nodeid]
-        if nodes:
-            return nodes[0]  # Can only be one
-        else:
-            return None
-
-    def OLDdebugprint(self, level=2):
-        for n in self:
-            n.debugprint(level=level)
-
-class OLDSim(OLDNodeList):
-    def OLD__init__(self):
-        super(Sim, self).__init__()
-
-    def OLDreset(self):
-        """ Reset for new simulation"""
-        self.__init__()  # Empty it out
-
-    def OLDcreatenodes(self, numnodes):
-        for n in range(numnodes):
-            self.append(Node())
-
-    def OLDcreateconnections(self, numconnects):
-        numnodes = len(self)
-        for c in range(numconnects):
-            nodefrom = self.randnode()
-            connectto = self.randnode()
-            if nodefrom != connectto:
-                peer = nodefrom.seedpeer(nodeid=connectto)
-                if peer:
-                    nodefrom.onconnected(peer)
-
-    def OLDrandnode(self):
-        numnodes = len(self)
-        return self[randint(0, numnodes - 1)]
-
-    def OLDfindroute(self, source, destn, maxhops=0, verbose=False):
-        # print "source",source,"destn",destn
-        msg = PeerRequest(sourceid=self[source], nodeid=self[destn], hops=0, tried=None, maxhops=maxhops,
-                          verbose=verbose)
-        res = self[source].sendMessage(msg)
-        if verbose: print "Success", res.success
-        # if not res.success: print "XXX@360",res.err
-        return res
-
-    def OLDcountconnections(self, verbose=False, samples=0):
-        ok = 0
-        tests = 0
-        distances = []
-        if samples:
-            for i in range(samples):
-                source = randint(0, len(self) - 1)
-                destn = randint(0, len(self) - 1)
-                if source != destn:
-                    tests += 1
-                    msg = self.findroute(source, destn, maxhops=len(self), verbose=verbose)
-                    if msg.success:
-                        ok += 1
-                        # print "XXXtried=",source,destn,msg.tried
-                        distances.append(len(msg.tried))
-        else:
-            for source in range(0, len(self)):
-                for destn in range(0, len(self)):
-                    if source != destn:
-                        tests += 1
-                        msg = self.findroute(source, destn, maxhops=len(self), verbose=verbose)
-                        if msg.success:
-                            ok += 1
-                            # print "XXXtried=",source,destn, msg.tried, msg.route
-                            distances.append(len(msg.tried))
-        if verbose: print "%d/%d" % (ok, tests)
-        # print "XXX",distances
-        return float(ok) * 100 / tests, median(distances)
-
-    def OLDavgcountconnections(self, nodes, line=False, optiminconnections=None, optimaxconnections=None,
-                            verbose=False, samples=0):
-        self.createnodes(nodes)
-        self.setminmax(optiminconnections or nodes, optimaxconnections or nodes)
-        if not line:
-            print "nodes,connections,percent,median"
-        else:
-            print "%d," % nodes,
-        had100 = False  # Set to True when have first 100
-        for i in range(nodes):
-            self.createconnections(nodes)  # Create 1 more (average) connection per node
-            self.loop(nodes * 10)  # Randomly do a bunch of optimisation etc
-            percent, mediandist = sim.countconnections(verbose=verbose, samples=samples)
-            if line:
-                print "%d:%d," % (percent, mediandist),
-            else:
-                print "%d %d %d%% %f" % (nodes, i, percent, mediandist)
-            if verbose:
-                if percent == 100:  # and not had100:    # XXX put back the "and not had100"
-                    print ">"  # End partial line
-                    sim.debugprint(level=1)
-                    had100 = True
-                elif percent < 100 and had100:
-                    print "<"  # End partial line
-                    sim.debugprint(level=1)
-                    1 / 0
-                    return
-        print "."  # End line
-
-    def OLDloop(self, loops=1):
-        for i in range(loops):
-            self.randnode().loop()
-
-    def OLDsetminmax(self, min, max):
-        for node in self:
-            node.setminmax(min, max)
-
-    def OLDsendMessage(self, peer, msg):
-        """ Simulate a send """
-        destnode = self.find(peer)  # Find the node in the simulator
-        return destnode.sendMessage(
-            msg.copy())  # Will simulate HTTP call, make copy of message so don't edit in supposedly independant simulation
 
 class PeerRequest(object):  #TODO-TX review this class
     """
@@ -532,7 +392,7 @@ class PeerRequest(object):  #TODO-TX review this class
     def __init__(self, route=None, hash=None, hops=0, tried=None, verbose=False):
         self.hops = hops
         self.route = route or []
-        self.tried = tried or PeerSet()  # Initialize if unset
+        self.tried = tried if isinstance(tried, PeerSet) else ( PeerSet(tried) if tried else PeerSet())   # Initialize if unset
         self.verbose = verbose
         self.hash = hash
         #!SEE-OTHER-PEERREQUEST-ADD-FIELDS
@@ -542,6 +402,24 @@ class PeerRequest(object):  #TODO-TX review this class
         self.payload = payload
         self.maxhops = maxhops
         """
+
+    def __str__(self):
+        return "PeerRequest(%s)" % self. hash
+
+    def dumps(self):
+        #!SEE-OTHER-PEERREQUEST-ADD-FIELDS
+        return { "hops": self.hops, "route": self.route, "tried": self.tried, "hash": self.hash}
+
+    @classmethod
+    def loads(cls, dic):
+        """
+        Pair of PeerRequest.dumps - turns a json compatible dic back into a PeerRequest
+        
+        :param dic: 
+        :return: 
+        """
+        #TODO-TX get cleverer about reencoding subfields like route
+        return PeerRequest(**dic)
 
     def copy(self):
         return PeerRequest( hash=self.hash, hops=self.hops, route=self.route, tried=self.tried.copy(),
@@ -561,7 +439,8 @@ class PeerRequest(object):  #TODO-TX review this class
         :param hash:
         :return:
         """
-        return binascii.crc32(self.hash) & 2^Node.bitlength - 1
+        return binascii.crc32(self.hash) & (2**Node.bitlength - 1)
+
 
 
 class PeerResponse(object):
@@ -572,6 +451,7 @@ class PeerResponse(object):
     data    data to return in response (opaque bytes or json array)
     success True if succeeded, False if failed
     req     Request as present at node which answered it.
+    #See other !ADD-PEERRESPONSE-FIELDS
     """
 
 
@@ -579,12 +459,23 @@ class PeerResponse(object):
         self.err = err
         self.data = data
         self.success = success
-        self.req = req
+        self.req = req if isinstance(req, PeerRequest) else PeerRequest.loads(req)
+        #See other !ADD-PEERRESPONSE-FIELDS
 
     def __str__(self):
-        return "PeerResponse("+(len(self.data)+"bytes" if self.success else "Fail:"+self.err) +")"
+        # See other !ADD-PEERRESPONSE-FIELDS
+        return "PeerResponse(%s)" % (str(len(self.data))+"bytes" if self.success else "Fail:"+self.err)
+
+
+    def dumps(self):
+        # See other !ADD-PEERRESPONSE-FIELDS
+        return { "err": self.err, "data": self.data, "success": self.success, "req": self.req}
+
+    @classmethod
+    def loads(cls,dic): # Pair of dumps
+        return cls(**dic)
 
 if __name__ == "__main__":
-    ServerPeer.setup().serve_forever(ipandport=('localhost',4250), verbose=True)  # TODO-TX-MULTIPLE pass ipandport else uses defaultipandport
+    ServerPeer.run(ipandport=('localhost',4245), verbose=True)  # TODO-TX-MULTIPLE pass ipandport else uses defaultipandport
     # This (should) never return
 

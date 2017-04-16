@@ -41,6 +41,11 @@ class TransportLocal(Transport):
         """
         return cls(dir=dir, **options)
 
+    #see other !ADD-TRANSPORT-COMMAND - add a function copying the format below
+
+    def info(self, **options):
+        return { "type": "local", "dir": self.dir }
+
     def _filename(self, subdir, hash=None, key=None, verbose=False, **options):
         # key now obsoleted
         file = hash or CryptoLib.Curlhash(key, verbose=verbose, **options)
@@ -61,6 +66,7 @@ class TransportLocal(Transport):
             if verbose: print "Opening" + filename
             with open(filename, 'rb') as file:
                 content = file.read()
+            if verbose: print "success"
             return content
         except IOError as e:
             raise TransportFileNotFound(file=filename)

@@ -328,14 +328,34 @@ class Testing(unittest.TestCase):
         # Experimental testing of peer
         self.verbose=True
         from TransportDist import TransportDist #TODO-TX move up top to imports when sold
+        from TransportDist_Peer import Peer, ServerPeer
         # Use cache as the local machine's - remote will use cache_peer
         Dweb.settransport(transportclass=TransportDist, dir="../cache", verbose=self.verbose)
+        qbfhash="SHA3256B64URL.heOtR2QnWEvPuVdxo-_2nPqxCSOUUjTq8GShJv8VUFI="    # Hash of quick brown fox
         cdhash="SHA3256B64URL.50GNWgUQ9GgrVfMvpedEg77ByMRYkUgPRU9P1gWaNF8="    # Hash of the Clever Dog string saved in test_upload
-        data = Dweb.transport.rawfetch(hash=cdhash,verbose=self.verbose)
-        assert data == self.dog, "Local cache of clever dog"+data
+        data = Dweb.transport.rawfetch(hash=qbfhash,verbose=self.verbose)
+        assert data == self.quickbrownfox, "Local cache of quick brown fox"+data
         invalidhash="SHA3256B64URL.aaaabbbbccccVfMvpedEg77ByMRYkUgPRU9P1gWaNF8="
         try:
             data = Dweb.transport.rawfetch(hash=invalidhash,verbose=self.verbose)
         except TransportBlockNotFound as e:
             if self.verbose: print e
 
+        # This chunk may end up in a method on TransportDist_Peer
+        node = Dweb.transport.node
+        ipandport = ServerPeer.defaultipandport
+        newpeer = Peer()
+        foundpeer = node.peers.find(ipandport=ipandport)
+        if not foundpeer:
+            peer = Peer(ipandport=ipandport, verbose=self.verbose)    # Dont know nodeid yet
+            node.peers.append(peer)
+        peer.connect(verbose=self.verbose)
+        assert peer.info["type"] == "DistPeerHTTP","Unexpected peer.info"+repr(peer.info)
+        # Now we've got a peer so try again, should get bounced off peer server
+        try:
+            data = Dweb.transport.rawfetch(hash=invalidhash, verbose=self.verbose)
+        except TransportBlockNotFound as e:
+            if self.verbose: print e
+        print "NEXTSTEP-----"
+        data = Dweb.transport.rawfetch(hash=cdhash, verbose=self.verbose)
+        print data

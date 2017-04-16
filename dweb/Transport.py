@@ -61,6 +61,9 @@ class Transport(object):
         from ServerHTTP import LetterToClass
         return LetterToClass.get(abbrev, None)
 
+    def info(self, **options):
+        raise ToBeImplementedException(name=cls.__name__+".info")
+
     def rawfetch(self, hash=None, verbose=False, **options):
         """
         Fetch data from a hash and return as a (binary) string

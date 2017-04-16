@@ -5,9 +5,11 @@ from cgi import parse_header, parse_multipart
 import urllib
 import BaseHTTPServer       # See https://docs.python.org/2/library/basehttpserver.html for docs on how servers work
                             # also /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/BaseHTTPServer.py for good error code list
+from CryptoLib import CryptoLib
 
 """
-This file is intended to be Application independent , i.e. not dependent on Dweb.
+This file is intended to be Application independent , i.e. not dependent on Dweb - exceptions:
+CrytoLib.dumps  - generalized dumps that can call dumps methods on objects
 """
 
 if python_version.startswith('3'):
@@ -76,7 +78,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         :return:
         """
         try:
-            verbose=False   # Cant pass through vars as they are postvariables
+            verbose=True   # Cant pass through vars as they are postvariables
             o = urlparse(self.path)
             argvars =  dict(parse_qsl(o.query))     # Look for arguments in URL
             verbose = argvars.get("verbose", verbose)
@@ -105,7 +107,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
                         if arg not in argvars:
                             raise HTTPargrequiredException(req=req, arg=arg)  # Will be caught in MyHTTPRequestHandler._dispatch
                 if verbose: print "%s.%s %s" % (self.__class__.__name__, req, argvars)
-                res = func(urlargs=urlargs, **argvars)          # MAIN PART - run method and collect result
+                res = func(urlargs=urlargs, verbose=verbose, **argvars)          # MAIN PART - run method and collect result
             else:
                 if verbose: print "%s.dispatch unimplemented: %s" % (self.__class__.__name__, req)
                 raise HTTPdispatcherException(req=req)  # Will be caught in MyHTTPRequestHandler._dispatch
@@ -118,7 +120,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
                 if isinstance(data, (dict, list, tuple)):    # Turn it into JSON
                     data = dumps(data)
                 elif hasattr(data, "dumps"):
-                    data = dumps(data)
+                    data = CryptoLib.dumps(data)
                 if not isinstance(data, basestring):
                     print data
                     # Raise an exception - will not honor the status already sent, but this shouldnt happen as coding

@@ -9,32 +9,10 @@ import urllib
 
 #TODO-HTTP add support for HTTPS
 
-class TransportHTTP(Transport):
+class TransportHTTPBase(Transport):
     """
-    Subclass of Transport.
-    Implements the raw primitives as HTTP calls to ServerHTTP which interprets them.
+    Common parts for TransportHTTP and TransportDist
     """
-
-    def __init__(self, ipandport=None, verbose=False, **options):
-        """
-        Use blah
-
-        :param blah:
-        """
-        self.ipandport = ipandport
-        self.verbose = verbose
-        self.baseurl = "http://%s:%s/" % (ipandport[0], ipandport[1])   # Note trailing /
-
-    @classmethod
-    def setup(cls, ipandport=None, **options):
-        """
-        Called to deliver a transport instance of a particular class.
-        Copied to dweb.js
-
-        :param options: Options to subclasses init method
-        :return: None
-        """
-        return cls(ipandport=ipandport, **options)
 
     def _sendGetPost(self, post, command, urlargs=None, verbose=False, **options):
         """
@@ -66,6 +44,42 @@ class TransportHTTP(Transport):
                 raise e # For now just raise it
         #print r.status_code, r.text # r.json()
         return r    # r is a response
+
+    def info(self, verbose=False, **options):
+        if verbose: print "%s.info" % self.__class__.__name__
+        res = self._sendGetPost(False, "info", urlargs=[], verbose=verbose, params=options)
+        return res.json()
+
+class TransportHTTP(TransportHTTPBase):
+    """
+    Subclass of Transport.
+    Implements the raw primitives as HTTP calls to ServerHTTP which interprets them.
+    """
+
+    def __init__(self, ipandport=None, verbose=False, **options):
+        """
+        Use blah
+
+        :param blah:
+        """
+        self.ipandport = ipandport
+        self.verbose = verbose
+        self.baseurl = "http://%s:%s/" % (ipandport[0], ipandport[1])   # Note trailing /
+
+    @classmethod
+    def setup(cls, ipandport=None, **options):
+        """
+        Called to deliver a transport instance of a particular class.
+        Copied to dweb.js
+
+        :param options: Options to subclasses init method
+        :return: None
+        """
+        return cls(ipandport=ipandport, **options)
+
+
+    #see other !ADD-TRANSPORT-COMMAND - add a function copying the format below
+    # TransportHTTPBase handles: info()
 
     def rawfetch(self, hash=None, verbose=False, **options):
         if verbose: print "TransportHTTP.rawfetch(%s)" % hash

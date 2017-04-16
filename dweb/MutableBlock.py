@@ -73,7 +73,6 @@ class CommonList(SmartDict):
         master = dd["_master"]  # Use master from dd if modified
         if dd.get("keypair"):   # Based on whether the CommonList is master, rather than if the key is (key could be master, and CL not)
             if master and not dd.get("_acl") and not self._allowunsafestore:
-                print "XXX@76",self
                 raise SecurityWarning(message="Probably shouldnt be storing private key on this "+self.__class__.__name__)  # Can set KeyPair._allowunsafestore to allow this when testing
             dd["keypair"] = dd["keypair"].privateexport if master else dd["keypair"].publicexport
         publichash = dd.get("_publichash")
