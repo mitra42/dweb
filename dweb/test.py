@@ -327,10 +327,9 @@ class Testing(unittest.TestCase):
         # def test_peer(self):
         # Experimental testing of peer
         self.verbose=True
-        from TransportDist import TransportDist #TODO-TX move up top to imports when sold
-        from TransportDist_Peer import Peer, ServerPeer
+        from TransportDist_Peer import TransportDistPeer, Peer, ServerPeer #TODO-TX move up top to imports when sold
         # Use cache as the local machine's - remote will use cache_peer
-        Dweb.settransport(transportclass=TransportDist, dir="../cache", verbose=self.verbose)
+        Dweb.settransport(transportclass=TransportDistPeer, dir="../cache", verbose=self.verbose)
         qbfhash="SHA3256B64URL.heOtR2QnWEvPuVdxo-_2nPqxCSOUUjTq8GShJv8VUFI="    # Hash of quick brown fox
         cdhash="SHA3256B64URL.50GNWgUQ9GgrVfMvpedEg77ByMRYkUgPRU9P1gWaNF8="    # Hash of the Clever Dog string saved in test_upload
         data = Dweb.transport.rawfetch(hash=qbfhash,verbose=self.verbose)
@@ -342,7 +341,7 @@ class Testing(unittest.TestCase):
             if self.verbose: print e
 
         # This chunk may end up in a method on TransportDist_Peer
-        node = Dweb.transport.node
+        node = Dweb.transport
         ipandport = ServerPeer.defaultipandport
         newpeer = Peer()
         foundpeer = node.peers.find(ipandport=ipandport)

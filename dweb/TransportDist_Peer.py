@@ -4,72 +4,288 @@ import binascii # for crc32
 from random import randint
 from Transport import TransportFileNotFound
 from TransportHTTP import TransportHTTP
-from TransportLocal import TransportLocal
-from MyHTTPServer import MyHTTPRequestHandler, exposed
+from MyHTTPServer import exposed
 from CryptoLib import CryptoLib
 from Dweb import Dweb
+from Transport import TransportFileNotFound, TransportBlockNotFound
+from TransportHTTP import TransportHTTPBase
+from TransportLocal import TransportLocal
+from ServerHTTP import DwebHTTPRequestHandler
+from misc import MyBaseException, ToBeImplementedException
 
+class PeerCommandException(MyBaseException):
+        httperror = 501  # Unimplemented
+        command = "Unrecognized peer command: {command}"
 
-class ServerPeer(MyHTTPRequestHandler):
+class ServerPeer(DwebHTTPRequestHandler):
     # Do not define __init__ its handled in BaseHTTPRequestHandler superclass
-    defaultipandport = ('localhost',4245)
 
     @classmethod
-    def run(cls, nodeid=None, tl=None, ipandport=None, verbose=False, **options):
-        cls.tl = tl or TransportLocal(dir="../cache_peer")  #TODO-TX-MULTIPLE use port in dir
-        cls.node = Node(nodeid=nodeid, tl=cls.tl)
+    def run(cls, ipandport=None, dir=None, verbose=False, **options):
+        """
+        The Peer server is standard HTTP server but instead of TransportLocal, it uses TransportDistPeer
+        Defined on same port by default as it is a superset of DwebHTTPRequestHandler
+
+        :param ipandport: 
+        :param dir: 
+        :param verbose: 
+        :param options: 
+        :return: 
+        """
+        Dweb.settransport(transportclass=TransportDistPeer, verbose=False, dir=dir or "../cache_peer")  # HTTP server is storing locally
         cls.serve_forever(ipandport=ipandport or cls.defaultipandport, verbose=verbose, **options)
 
     # See other !ADD-TRANSPORT-COMMAND
     @exposed
-    def reqfetch(self, data=None, verbose=False, **options):
+    def peer(self, data=None, verbose=False, **options):    # data is string, not yet converted to json
+        """
+        Add a Server command that takes a JSON packet (typically PeerRequest) on input, passes it to a dispatcher on the Transport layer, 
+        and returns the JSON result (typically PeerResponse).
+        """
         req = PeerRequest.loads(data)
-        res =  self.node.rawfetch(req=req, verbose=verbose, **options)   # TODO-TX check if data is json or string
+        res =  Dweb.transport.dispatch(req=req, verbose=verbose, **options)
         return { "Content-type": "application/json", "data": res }
-    reqfetch.arglist=["data"]
-
-    @exposed
-    def reqstore(self, data=None, verbose=False, **options):
-        req = PeerRequest.loads(data)
-        res =  self.node.rawstore(req=req, verbose=verbose, **options)   # TODO-TX check if data is json or string
-        return { "Content-type": "application/json", "data": res }
-    reqstore.arglist=["data"]
+    peer.arglist=["data"]
 
     @exposed
     def info(self, **kwargs):
+        #Subclass DwebHTTPRequestHandler.info to return info about ServerPeer
+        node = Dweb.transport
         return { 'Content-type': 'text/json',
                  'data': {
                     'type': 'DistPeerHTTP',
-                    'peers': list(self.node.peers),
-                    'nodeid': self.node.nodeid,
+                    'peers': list(node.peers),
+                    'nodeid': node.nodeid,
         }        }
     info.arglist=[]
 
 
-class Node(object):
+"""
+Highly experimental distributed layer for dWeb, just a proof of concept and place for experimentation.
+"""
+class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some common functions esp _sendGetPost
+
     """
+    Subclass of Transport.
+    Implements the raw primitives as reads and writes of file system.
     Represents our node in the peer network.
     Note that a "Peer" is the representation of another node.
 
     nodeid  Randomly selected nodeid. #TODO use something like IPFS rules for generating node ids
     tl      Transport object to check for local copy - usually TransportLocal
     """
-    bitlength=30    # Allowsfor 2^n nodes, so 30 is ~ 1 billion.
+    bitlength = 30  # Allowsfor 2^n nodes, so 30 is ~ 1 billion.
 
-    def __init__(self, nodeid=None, tl=None):
-        self.nodeid = nodeid if nodeid else randint(1, 2 ** self.bitlength - 1) # Random id
-        self.peers = PeerSet()          # Will hold list of peers we know about
-        self.optimaxconnections = 10    #TODO-TX follow is this used
-        self.optiminconnections = 1     #TODO-TX follow is this used
-        self.tl = tl
+    def __init__(self, tl=None, nodeid=None, **options):
+        """
+        Create a distirbuted transport object (use "setup" instead)
+
+        :param options:
+        """
+        assert tl is not None, "Setup must be wrong asit needs a TransportLocal"
+        self.tl = tl    # Connect to TransportLocal
+        self.nodeid = nodeid if nodeid else randint(1, 2 ** self.bitlength - 1)  # Random id
+        self.peers = PeerSet()  # Will hold list of peers we know about
+        self.optimaxconnections = 10  # TODO-TX follow is this used
+        self.optiminconnections = 1  # TODO-TX follow is this used
+
+    @classmethod
+    def setup(cls, dir=None, **options):
+        """
+        Setup local transport to use dir
+        Exceptions: TransportBlockNotFound if dir invalid
+
+        :param dir:     Directory to use for storage
+        :param options: Unused currently
+        """
+        if dir:
+            tl = TransportLocal.setup(dir=dir, **options)   #TransportBlockNotFound if dir invalid
+        else:
+            tl = None
+        return cls(tl=tl, **options)
 
     def __repr__(self):
-        return "Node(%d)" % self.nodeid
+        return "TransportDistPeer(%d)" % self.nodeid
 
     def __eq__(self, other):
         if not isinstance(other, int):
             other = other.nodeid
         return self.nodeid == other
+
+    #========== Standard list of Transport layer functions that have to be provided ================
+    #see other !ADD-TRANSPORT-COMMAND - add a function copying the format below
+
+    def dispatch(self, req=None, verbose=False, **options):
+        """
+        Handle incoming request based on req.command
+
+        :param req: 
+        :param verbose: 
+        :param options: 
+        :return: 
+        """
+        func = getattr(self, req.command, None)
+        if func and func.exposed:
+            if verbose: print "%s.%s %s" % (self.__class__.__name__, req.command, req)
+            peerresp = func(req=req, verbose=verbose, **options)
+            return peerresp
+        else:
+            raise PeerCommandException(command=req.command)
+
+    def rawfetch(self, hash, verbose=False, **options):
+        """
+        Fetch a block from the local file system and if that fails fetch from distributed and cache
+        Exception: TransportFileNotFound if file doesnt exist
+
+        :param hash:
+        :param options:
+        :return:
+        """
+        # Note node will check locally first so dont need to save in tl first.
+        req = PeerRequest(command="reqfetch", hash=hash, verbose=verbose)
+        peerresp = self.reqfetch(req=req, verbose=verbose, **options) # Err: TransportFileNotFound
+        if verbose: print "reqfetch returned:", peerresp
+        if not peerresp.success:
+            raise TransportBlockNotFound(hash=hash)
+        data = peerresp.data
+        assert data is not None, "If returns data, then should be non-None"
+        return data
+
+    @exposed
+    def reqfetch(self, req=None, verbose=False, **options):
+        """
+        Fetch content based on a req.
+        Algorithm walks a tree, trying to find the "closest" node to the hash, which is most likely to have the content.
+
+        :param req:     PeerRequest object for partially completed request
+        :return:
+        """
+        if verbose: print "TransportDistPeer.reqfetch",req
+        savedhops = req.hops    # Changed during the loop
+        # See if have a local copy
+        if self.tl:  # Its possible to have a TransportDistPeer without a local cache
+            try:
+                data = self.tl.rawfetch(req.hash, verbose=verbose, **options)
+                return PeerResponse(success=True, req=req, data=data)
+            except TransportFileNotFound as e:
+                pass    # Acceptable error, as is drop-thru if no tl
+
+        req.route.append(self.nodeid)  # Append self to route before sending on, or responding
+        # Try all connected nodes, in order of how close to target
+        peer_intermediate = self.peers.nextnode(req.targetnodeid, exclude=req.tried)
+        while peer_intermediate:
+            if verbose: print self, "Sending via closest", peer_intermediate, "for", req.targetnodeid
+            req.tried.append(peer_intermediate)
+            req.hops = savedhops + 1
+            res = peer_intermediate.reqforward(req=req)
+            if res.success:
+                if res.data:
+                    hash = self.tl.rawstore(res.data, verbose=verbose)
+                    if verbose: print "TransportDist.rawfetch: Saved as hash=", hash
+                return res
+            # It failed, lets loop and try other peers
+            req.tried.append(res.req.tried)
+            if verbose: print self, "Retrying from ", self.nodeid, "to destn", req.targetnodeid, "with excluded", req.tried
+            peer_intermediate = self.peers.nextnode(req.targetnodeid, exclude=req.tried)
+        return PeerResponse(success=False, req=req, err="No response from any of %s peers" % len(self.peers))
+
+
+
+
+    def _rawlistreverse(self, subdir=None, hash=None, verbose=False, **options):
+        """
+        Retrieve record(s) matching a hash (usually the hash of a key), in this case from a local directory
+        Exception: IOError if file doesnt exist
+
+        :param hash: Hash in table to be retrieved
+        :return: list of dictionaries for each item retrieved
+        """
+        #TODO-TX look local, ask remote
+        raise ToBeImplementedException(name="_rawlistreverse")  #TODO-TX
+
+        pass
+
+    def rawlist(self, hash, verbose=False, **options):
+        """
+        Retrieve record(s) matching a hash (usually the hash of a key), in this case from a local directory
+        Exception: IOError if file doesnt exist
+
+        :param hash: Hash in table to be retrieved
+        :return: list of dictionaries for each item retrieved
+        """
+        #TODO-TX - via _rawlistreverse
+        raise ToBeImplementedException(name="rawlist via _rawlistreverse")  #TODO-TX
+
+    def rawreverse(self, hash, verbose=False, **options):
+
+        """
+        Retrieve record(s) matching a hash (usually the hash of a key), in this case from a local directory
+        Exception: IOError if file doesnt exist
+
+        :param hash: Hash in table to be retrieved
+        :return: list of dictionaries for each item retrieved
+        """
+        raise ToBeImplementedException(name="rawreverse via _rawlistreverse")  #TODO-TX
+
+    def rawstore(self, data=None, verbose=False, **options):
+        """
+        Store the data locally
+        Exception: TransportBlockNotFound if file doesnt exist
+
+        :param data: opaque data to store
+        :return: hash of data
+        """
+        req = PeerRequest(command="reqstore", data=data, verbose=verbose)
+        peerresp = self.reqstore(req=req, verbose=verbose, **options)
+        if verbose: print "node.rawstore returned:", peerresp
+        if not peerresp.success:
+            print "XXX@118 err=",peerresp.err
+            raise TransportBlockNotFound(hash=hash) #TODO-TX choose better error
+        return peerresp.hash
+
+    @exposed
+    def reqstore(self, req=None, verbose=False, **options):
+        """
+        Store into dWeb, 
+
+        :param verbose: 
+        :param options: 
+        :return: 
+        """
+        if verbose: print "TransportDistPeer.reqstrore len=", len(req.data), req
+        if self.tl:
+            hash = self.tl.rawstore(req.data, verbose=verbose, **options)  # Save local copy
+            if req.hash:
+                assert hash == req.hash
+            else:
+                req.hash = hash  # Need it to find targetnodeid
+        savedhops = req.hops
+        req.route.append(self.nodeid)  # Append self to route before sending on, or responding
+        peer_intermediate = self.peers.nextnode(req.targetnodeid, exclude=req.tried)
+        if peer_intermediate:
+            req.tried.append(peer_intermediate)
+            req.hops = savedhops + 1
+            res = peer_intermediate.reqforward(req=req)
+            return res
+        else:
+            res = PeerResponse(hash=hash, success=True, req=req)
+            return res
+
+    def rawadd(self, hash=None, date=None, signature=None, signedby=None, verbose=False, **options):
+        """
+        Store a signature in a pair of DHTs
+        Exception: IOError if file doesnt exist
+
+        :param hash:        hash to store under
+        :param date:
+        :param signature:
+        :param signedby:
+        :param verbose:
+        :param options:
+        :return:
+        """
+        raise ToBeImplementedException(name="rawreverse via rawadd")  #TODO-TX
+        #TODO-TX - store local and pass to remote(s) based on algorithm
 
     def OLDsetminmax(self, min, max):   #TODO-TX see if used anywhere
         # Set min and max connections, (None means don't set)
@@ -150,78 +366,6 @@ class Node(object):
         Called when contacted (typically over network) for list of peers
         """
         return [peer.dict() for peer in self.peers.connected()]
-
-    def rawfetch(self, hash=None, req=None, verbose=False, **options):
-        """
-        Fetch content based on a req.
-        Algorithm walks a tree, trying to find the "closest" node to the hash, which is most likely to have the content.
-
-        :param req:     PeerRequest object for partially completed request
-        :param hash:    hash for new request
-        :return:
-        """
-        if verbose: print "Node.rawfetch",hash,req
-        if not req:
-            req = PeerRequest(command="reqfetch", hash=hash, verbose=verbose)
-        elif not hash:
-            hash = req.hash
-        savedhops = req.hops    # Changed during the loop
-        # See if have a local copy
-        try:
-            if self.tl:
-                data = self.tl.rawfetch(hash, verbose=verbose, **options)
-                return PeerResponse(success=True, req=req, data=data)
-        except TransportFileNotFound as e:
-            pass    # Acceptable error, as is drop-thru if no tl
-
-        req.route.append(self.nodeid)  # Append self to route before sending on, or responding
-        # Try all connected nodes, in order of how close to target
-        peer_intermediate = self.peers.nextnode(req.targetnodeid, exclude=req.tried)
-        while peer_intermediate:
-            if verbose: print self, "Sending via closest", peer_intermediate, "for", req.targetnodeid
-            req.tried.append(peer_intermediate)
-            req.hops = savedhops + 1
-            res = peer_intermediate.reqforward(req=req)
-            if res.success:
-                if res.data:
-                    hash = self.tl.rawstore(res.data, verbose=verbose)
-                    if verbose: print "TransportDist.rawfetch: Saved as hash=", hash
-                return res
-            # It failed, lets loop and try other peers
-            req.tried.append(res.req.tried)
-            if verbose: print self, "Retrying from ", self.nodeid, "to destn", req.targetnodeid, "with excluded", req.tried
-            peer_intermediate = self.peers.nextnode(req.targetnodeid, exclude=req.tried)
-        return PeerResponse(success=False, req=req, err="No response from any of %s peers" % len(self.peers))
-
-    def rawstore(self, data=None, req=None, verbose=False, **options):
-        """
-        Store into dWeb, 
-        
-        :param verbose: 
-        :param options: 
-        :return: 
-        """
-        if not req:
-            req = PeerRequest(command="reqstore", data=data, verbose=verbose)
-        if verbose: print "Node.rawstore len=",len(req.data), req
-        if self.tl:
-            hash = self.tl.rawstore(req.data, verbose=verbose, **options)   # Save local copy
-            if req.hash:
-                assert hash == req.hash
-            else:
-                req.hash = hash # Need it to find targetnodeid
-        savedhops = req.hops
-        req.route.append(self.nodeid)  # Append self to route before sending on, or responding
-        peer_intermediate = self.peers.nextnode(req.targetnodeid, exclude=req.tried)
-        if peer_intermediate:
-            req.tried.append(peer_intermediate)
-            req.hops = savedhops + 1
-            res = peer_intermediate.reqforward(req=req)
-            return res
-        else:
-            res = PeerResponse(hash=hash, success=True, req=req)
-            print "XXX@223", res
-            return res
 
     def OLDloop(self):
         """
@@ -314,8 +458,7 @@ class Peer(object): #TODO-RX review this class
         self.nodeid = nodeid
         self.distance = node.distance(self)
         self.node = node  # Parent node (in non Sim there would only ever be one)
-        assert node.nodeid not in [p.nodeid for p in
-                                   self.connectedvia], "Shouldnt ever set connectedvia to incude Node"
+        assert node.nodeid not in [p.nodeid for p in self.connectedvia], "Shouldnt ever set connectedvia to incude TransportDistPeer"
         """
 
     def __repr__(self):
@@ -324,7 +467,7 @@ class Peer(object): #TODO-RX review this class
 
     def __eq__(self, other):    # Note this facilittes "in" to work on PeerSet's
         nodeid = other if isinstance(other, int) else other.nodeid
-        return (nodeid and (self.nodeid == nodeid)) or (isinstance(other,(Peer,Node)) and (self.ipandport == other.ipandport) )
+        return (nodeid and (self.nodeid == nodeid)) or (isinstance(other,(Peer,TransportDistPeer)) and (self.ipandport == other.ipandport) )
 
     def dumps(self):
         #See other !ADD - PEER - FIELDS
@@ -341,13 +484,13 @@ class Peer(object): #TODO-RX review this class
         """
         # if debug: print "Disconnecting",self
         # Would disconnect HTTP here
-        if verbose: print "Node %d disconnecting from %d because %s" % (self.node.nodeid, self.nodeid, reason)
+        if verbose: print "TransportDistPeer %d disconnecting from %d because %s" % (self.node.nodeid, self.nodeid, reason)
         self.connected = False
         # Remove any connections onwards since can no longer connect to those cachedpeers via this one we are disconnecting
         for cachedpeer in self.cachedpeers:
             cachedpeer.connectedvia.discard(self)
         if connecttheirpeers:
-            print "TODO implement disconnect with connecttheirpeers"
+            raise ToBeImplementedException(name="disconnect with connecttheirpeers")
 
     def connect(self, verbose=False):
         if not self.connected:
@@ -365,14 +508,14 @@ class Peer(object): #TODO-RX review this class
         Return a distance to the peerid, based on a bitwise or of the ids
 
         :param peerid:
-        :return: int 0..Node.bitlength-1
+        :return: int 0..TransportDistPeer.bitlength-1
         """
-        if isinstance(peerid, (Peer, Node)): peerid = peerid.nodeid
+        if isinstance(peerid, (Peer, TransportDistPeer)): peerid = peerid.nodeid
         offset = peerid ^ self.nodeid
         return bin(offset).count("1")
 
     def OLDsendMessage(self, msg):
-        # In real code this would send via HTTP, instead it simulates locally by finding the Node in "sim"
+        # In real code this would send via HTTP, instead it simulates locally by finding the TransportDistPeer in "sim"
         if msg.hops >= msg.maxhops:
             if msg.verbose: print "Max hops exceeded"
             print "XXX@295 max hops exceeded"
@@ -403,12 +546,19 @@ class Peer(object): #TODO-RX review this class
         return self.node.closer(self, other)
 
     def reqforward(self, req=None, verbose=False, **options):
-        # Do a post of the JSON
+        """
+        Forward a request to a peer, and get a PeerResponse in return
+
+        :param req:     PeerRequest
+        :param verbose: 
+        :param options: 
+        :return:        PeerResponse (including final PeerRequest)
+        """
         if not self.connected:
             self.connect()
         thttp = self.transport
         # Now send via the transport
-        resp = thttp._sendGetPost(True, req.command, headers={"Content-Type": "application/json"}, urlargs=[], data=CryptoLib.dumps(req))
+        resp = thttp._sendGetPost(True, "peer", headers={"Content-Type": "application/json"}, urlargs=[], data=CryptoLib.dumps(req))
         return PeerResponse.loads(resp.json()) # Return PeerResponse
 
 class PeerRequest(object):  #TODO-TX review this class
@@ -438,7 +588,7 @@ class PeerRequest(object):  #TODO-TX review this class
         #!SEE-OTHER-PEERREQUEST-ADD-FIELDS
         """
         See how/if these ued
-        self.sourceid = sourceid.nodeid if isinstance(sourceid, (Node, Peer)) else sourceid
+        self.sourceid = sourceid.nodeid if isinstance(sourceid, (TransportDistPeer, Peer)) else sourceid
         self.payload = payload
         self.maxhops = maxhops
         """
@@ -480,7 +630,7 @@ class PeerRequest(object):  #TODO-TX review this class
         :param hash:
         :return:
         """
-        return binascii.crc32(self.hash) & (2**Node.bitlength - 1)
+        return binascii.crc32(self.hash) & (2**TransportDistPeer.bitlength - 1)
 
 
 
@@ -517,6 +667,6 @@ class PeerResponse(object):
         return cls(**dic)
 
 if __name__ == "__main__":
-    ServerPeer.run(ipandport=('localhost',4245), verbose=True)  # TODO-TX-MULTIPLE pass ipandport else uses defaultipandport
+    ServerPeer.run(verbose=True)  # TODO-TX-MULTIPLE pass ipandport else uses defaultipandport
     # This (should) never return
 

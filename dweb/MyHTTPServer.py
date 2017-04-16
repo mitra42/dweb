@@ -84,7 +84,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
             verbose = argvars.get("verbose", verbose)
             if verbose: print "Handler._dispatch", o.path[1:], vars, argvars
             argvars.update(vars)                    # URL args are updated by any from postparms
-            req = o.path[1:]
+            req = o.path[1:]                        # The first part of the URL, the command to run
             #TODO - split req if has / and use parms from exposed.
             if '/' in req:
                 urlargs = [ urllib.unquote(u) for u in req.split('/') ]
