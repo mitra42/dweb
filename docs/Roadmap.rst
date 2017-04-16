@@ -48,6 +48,13 @@ This list is at a much finer lever of granularity than Roadmap above.
 * FUNCTIONALITY: Add authentication layer in Javascript
     * Do via gateway (and try in browser)
     * Embed on index and test pages
+* PEER - refactor to generalise
+    * Node becomes subclass of transport, merges with TransportPeer
+    * Node.peer has dispatch bsaed on req.command
+    * Node.rawfetch/rawlist etc builds req and calls Node.peer
+    * Server has Node as its TL
+    * Server implements peer to pass to Node.peer - others get passed to peer based on it being TL
+    * Node renamed to PeerMesh
 * FUNCTIONALITY - add caching, so dont reload, BUT disable for testing
 * FUNCTIONALITY - storing some content in lists and allowing searches of that content (listfind ? a=b c=d
 * DOCS: Pass through docs, check all current  (done API-Integration)

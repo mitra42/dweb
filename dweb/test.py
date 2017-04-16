@@ -356,6 +356,8 @@ class Testing(unittest.TestCase):
             data = Dweb.transport.rawfetch(hash=invalidhash, verbose=self.verbose)
         except TransportBlockNotFound as e:
             if self.verbose: print e
-        print "NEXTSTEP-----"
         data = Dweb.transport.rawfetch(hash=cdhash, verbose=self.verbose)
-        print data
+        assert data == self.dog
+        print "NEXTSTEP-----"
+        print "XXX@362", Dweb.transport.rawstore(data=self.quickbrownfox, verbose=self.verbose)
+        print "DONE---"

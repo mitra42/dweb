@@ -50,13 +50,7 @@ class TransportDist(TransportHTTPBase): # Uses TransportHTTPBase for some common
         :param options:
         :return:
         """
-        try:
-            data = self.tl.rawfetch(hash, verbose=verbose, **options)
-            if data:
-                return data
-        except TransportFileNotFound as e:
-            pass
-        # Either exception or drop-thru from rawfetch
+        # Note node will check locally first so dont need to save in tl first.
         peerresp = self.node.rawfetch(hash, verbose=verbose, **options) # Err: TransportFileNotFound
         if verbose: print "Rawfetch returned:", peerresp
         if not peerresp.success:
@@ -64,9 +58,6 @@ class TransportDist(TransportHTTPBase): # Uses TransportHTTPBase for some common
         data = peerresp.data
         assert data is not None, "If returns data, then should be non-None"
         #Save locally (if !None)
-        if data:
-            hash = self.tl.rawstore(data, verbose=verbose)
-            if verbose: print "TransportDist.rawfetch: Saved as hash=",hash
         return data
 
     def _rawlistreverse(self, subdir=None, hash=None, verbose=False, **options):
@@ -111,8 +102,13 @@ class TransportDist(TransportHTTPBase): # Uses TransportHTTPBase for some common
         :param data: opaque data to store
         :return: hash of data
         """
-        #TODO-TX - store local and pass to remote(s) based on algorithm
-        pass
+        peerresp = self.node.rawstore(data, verbose=verbose, **options)
+        if verbose: print "node.rawstore returned:", peerresp
+        if not peerresp.success:
+            print "XXX@118 err=",peerresp.err
+            raise TransportBlockNotFound(hash=hash) #TODO-TX choose better error
+        remotehash = peerresp.hash
+        return remotehash
 
     def rawadd(self, hash=None, date=None, signature=None, signedby=None, verbose=False, **options):
         """

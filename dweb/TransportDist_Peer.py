@@ -20,12 +20,20 @@ class ServerPeer(MyHTTPRequestHandler):
         cls.node = Node(nodeid=nodeid, tl=cls.tl)
         cls.serve_forever(ipandport=ipandport or cls.defaultipandport, verbose=verbose, **options)
 
+    # See other !ADD-TRANSPORT-COMMAND
     @exposed
     def reqfetch(self, data=None, verbose=False, **options):
         req = PeerRequest.loads(data)
         res =  self.node.rawfetch(req=req, verbose=verbose, **options)   # TODO-TX check if data is json or string
         return { "Content-type": "application/json", "data": res }
     reqfetch.arglist=["data"]
+
+    @exposed
+    def reqstore(self, data=None, verbose=False, **options):
+        req = PeerRequest.loads(data)
+        res =  self.node.rawstore(req=req, verbose=verbose, **options)   # TODO-TX check if data is json or string
+        return { "Content-type": "application/json", "data": res }
+    reqstore.arglist=["data"]
 
     @exposed
     def info(self, **kwargs):
@@ -152,16 +160,15 @@ class Node(object):
         :param hash:    hash for new request
         :return:
         """
-        if verbose: print "Node.rawfetch",hash,req,self.tl
+        if verbose: print "Node.rawfetch",hash,req
         if not req:
-            req = PeerRequest(hash=hash, verbose=verbose)
+            req = PeerRequest(command="reqfetch", hash=hash, verbose=verbose)
         elif not hash:
             hash = req.hash
         savedhops = req.hops    # Changed during the loop
         # See if have a local copy
         try:
             if self.tl:
-                print "XXX@172"
                 data = self.tl.rawfetch(hash, verbose=verbose, **options)
                 return PeerResponse(success=True, req=req, data=data)
         except TransportFileNotFound as e:
@@ -174,15 +181,47 @@ class Node(object):
             if verbose: print self, "Sending via closest", peer_intermediate, "for", req.targetnodeid
             req.tried.append(peer_intermediate)
             req.hops = savedhops + 1
-            res = peer_intermediate.reqfetch(req=req)
+            res = peer_intermediate.reqforward(req=req)
             if res.success:
+                if res.data:
+                    hash = self.tl.rawstore(res.data, verbose=verbose)
+                    if verbose: print "TransportDist.rawfetch: Saved as hash=", hash
                 return res
-            # It failed, lets loop
+            # It failed, lets loop and try other peers
             req.tried.append(res.req.tried)
             if verbose: print self, "Retrying from ", self.nodeid, "to destn", req.targetnodeid, "with excluded", req.tried
             peer_intermediate = self.peers.nextnode(req.targetnodeid, exclude=req.tried)
         return PeerResponse(success=False, req=req, err="No response from any of %s peers" % len(self.peers))
 
+    def rawstore(self, data=None, req=None, verbose=False, **options):
+        """
+        Store into dWeb, 
+        
+        :param verbose: 
+        :param options: 
+        :return: 
+        """
+        if not req:
+            req = PeerRequest(command="reqstore", data=data, verbose=verbose)
+        if verbose: print "Node.rawstore len=",len(req.data), req
+        if self.tl:
+            hash = self.tl.rawstore(req.data, verbose=verbose, **options)   # Save local copy
+            if req.hash:
+                assert hash == req.hash
+            else:
+                req.hash = hash # Need it to find targetnodeid
+        savedhops = req.hops
+        req.route.append(self.nodeid)  # Append self to route before sending on, or responding
+        peer_intermediate = self.peers.nextnode(req.targetnodeid, exclude=req.tried)
+        if peer_intermediate:
+            req.tried.append(peer_intermediate)
+            req.hops = savedhops + 1
+            res = peer_intermediate.reqforward(req=req)
+            return res
+        else:
+            res = PeerResponse(hash=hash, success=True, req=req)
+            print "XXX@223", res
+            return res
 
     def OLDloop(self):
         """
@@ -363,22 +402,21 @@ class Peer(object): #TODO-RX review this class
         """
         return self.node.closer(self, other)
 
-    def reqfetch(self, req=None, verbose=False, **options):
+    def reqforward(self, req=None, verbose=False, **options):
         # Do a post of the JSON
         if not self.connected:
             self.connect()
         thttp = self.transport
         # Now send via the transport
-        #TODO-TX - make ServerHTTP answer the reqfetch
-        resp = thttp._sendGetPost(True, "reqfetch", headers={"Content-Type": "application/json"}, urlargs=[], data=CryptoLib.dumps(req))
+        resp = thttp._sendGetPost(True, req.command, headers={"Content-Type": "application/json"}, urlargs=[], data=CryptoLib.dumps(req))
         return PeerResponse.loads(resp.json()) # Return PeerResponse
-
 
 class PeerRequest(object):  #TODO-TX review this class
     """
     Overloaded dictionary sent to Peers
 
     verbose     True if should gather debugging info - note this is on a per-message rather than per-node or per-routine basis
+    command     function being requested e.g. "rawfetch", "rawstore"
     hash        Hash of item being requested
     hops        Number of hops request has been through prior to this.
     route       PeerSet, list of NodeIds it has passed through to reach targer.
@@ -389,8 +427,10 @@ class PeerRequest(object):  #TODO-TX review this class
     #!SEE-OTHER-PEERREQUEST-ADD-FIELDS
     """
 
-    def __init__(self, route=None, hash=None, hops=0, tried=None, verbose=False):
+    def __init__(self, command=None, data=None, route=None, hash=None, hops=0, tried=None, verbose=False):
+        self.command = command
         self.hops = hops
+        self.data = data
         self.route = route or []
         self.tried = tried if isinstance(tried, PeerSet) else ( PeerSet(tried) if tried else PeerSet())   # Initialize if unset
         self.verbose = verbose
@@ -407,8 +447,9 @@ class PeerRequest(object):  #TODO-TX review this class
         return "PeerRequest(%s)" % self. hash
 
     def dumps(self):
-        #!SEE-OTHER-PEERREQUEST-ADD-FIELDS
-        return { "hops": self.hops, "route": self.route, "tried": self.tried, "hash": self.hash}
+        #see other !PEERREQUEST-ADD-FIELDS
+        #TODO-TX not sure if data will need encoding
+        return { "command": self.command, "hops": self.hops, "route": self.route, "tried": self.tried, "hash": self.hash, "data": self.data }
 
     @classmethod
     def loads(cls, dic):
@@ -422,8 +463,8 @@ class PeerRequest(object):  #TODO-TX review this class
         return PeerRequest(**dic)
 
     def copy(self):
-        return PeerRequest( hash=self.hash, hops=self.hops, route=self.route, tried=self.tried.copy(),
-                            verbose=self.verbose)
+        return PeerRequest( command=self.command, hash=self.hash, hops=self.hops, route=self.route, tried=self.tried.copy(),
+                            data=self.data, verbose=self.verbose)
         #!SEE-OTHER-PEERREQUEST-ADD-FIELDS
 
 
@@ -455,21 +496,21 @@ class PeerResponse(object):
     """
 
 
-    def __init__(self, err=None, data=None, req=None, success=False):
+    def __init__(self, err=None, data=None, hash=None, req=None, success=False):
         self.err = err
         self.data = data
+        self.hash = hash
         self.success = success
         self.req = req if isinstance(req, PeerRequest) else PeerRequest.loads(req)
         #See other !ADD-PEERRESPONSE-FIELDS
 
     def __str__(self):
         # See other !ADD-PEERRESPONSE-FIELDS
-        return "PeerResponse(%s)" % (str(len(self.data))+"bytes" if self.success else "Fail:"+self.err)
-
+        return "PeerResponse(%s, %s, %s, %s)" % (self.success, self.err, self.hash, None if not self.data else len(self.data))
 
     def dumps(self):
         # See other !ADD-PEERRESPONSE-FIELDS
-        return { "err": self.err, "data": self.data, "success": self.success, "req": self.req}
+        return { "err": self.err, "hash": self.hash, "data": self.data, "success": self.success, "req": self.req}
 
     @classmethod
     def loads(cls,dic): # Pair of dumps
