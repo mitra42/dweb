@@ -161,7 +161,6 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
         :return:
         """
         if verbose: print "TransportDistPeer.reqfetch",req
-        savedhops = req.hops    # Changed during the loop
         # See if have a local copy
         if self.tl:  # Its possible to have a TransportDistPeer without a local cache
             try:
@@ -169,41 +168,11 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
                 return PeerResponse(success=True, req=req, data=data)
             except TransportFileNotFound as e:
                 pass    # Acceptable error, as is drop-thru if no tl
-
-        req.route.append(self.nodeid)  # Append self to route before sending on, or responding
-        # Try all connected nodes, in order of how close to target
-        peer_intermediate = self.peers.nextnode(req.targetnodeid, exclude=req.tried)
-        while peer_intermediate:
-            if verbose: print self, "Sending via closest", peer_intermediate, "for", req.targetnodeid
-            req.tried.append(peer_intermediate)
-            req.hops = savedhops + 1
-            res = peer_intermediate.reqforward(req=req)
-            if res.success:
-                if res.data:
-                    hash = self.tl.rawstore(res.data, verbose=verbose)
-                    if verbose: print "TransportDist.rawfetch: Saved as hash=", hash
-                return res
-            # It failed, lets loop and try other peers
-            req.tried.append(res.req.tried)
-            if verbose: print self, "Retrying from ", self.nodeid, "to destn", req.targetnodeid, "with excluded", req.tried
-            peer_intermediate = self.peers.nextnode(req.targetnodeid, exclude=req.tried)
-        return PeerResponse(success=False, req=req, err="No response from any of %s peers" % len(self.peers))
-
-
-
-
-    def _rawlistreverse(self, subdir=None, hash=None, verbose=False, **options):
-        """
-        Retrieve record(s) matching a hash (usually the hash of a key), in this case from a local directory
-        Exception: IOError if file doesnt exist
-
-        :param hash: Hash in table to be retrieved
-        :return: list of dictionaries for each item retrieved
-        """
-        #TODO-TX look local, ask remote
-        raise ToBeImplementedException(name="_rawlistreverse")  #TODO-TX
-
-        pass
+        res = self.forwardAlgorithmically(req=req, verbose=verbose, **options)
+        if res.success and res.data:
+            hash = self.tl.rawstore(res.data, verbose=verbose)
+            if verbose: print "TransportDist.rawfetch: Saved as hash=", hash
+        return res
 
     def rawlist(self, hash, verbose=False, **options):
         """
@@ -214,7 +183,14 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
         :return: list of dictionaries for each item retrieved
         """
         #TODO-TX - via _rawlistreverse
-        raise ToBeImplementedException(name="rawlist via _rawlistreverse")  #TODO-TX
+        req = PeerRequest(command="reqlist", hash=hash, verbose=verbose)
+        peerresp = self.reqlist(req=req, verbose=verbose, **options) # Err: TransportFileNotFound
+        if verbose: print "reqlist returned:", peerresp
+        if not peerresp.success:
+            raise TransportBlockNotFound(hash=hash)
+        data = peerresp.data
+        assert data is not None, "If returns data, then should be non-None"
+        return data
 
     def rawreverse(self, hash, verbose=False, **options):
 
@@ -225,7 +201,62 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
         :param hash: Hash in table to be retrieved
         :return: list of dictionaries for each item retrieved
         """
-        raise ToBeImplementedException(name="rawreverse via _rawlistreverse")  #TODO-TX
+        #TODO-TX - via _rawlistreverse
+        req = PeerRequest(command="reqreverse", hash=hash, verbose=verbose)
+        peerresp = self.reqreverse(req=req, verbose=verbose, **options) # Err: TransportFileNotFound
+        if verbose: print "reqreverse returned:", peerresp
+        if not peerresp.success:
+            raise TransportBlockNotFound(hash=hash)
+        data = peerresp.data
+        assert data is not None, "If returns data, then should be non-None"
+        return data
+
+    @exposed
+    def reqlist(self, req=None, verbose=False, **options):
+        return self._reqlistreverse(subdir="list", req=req, verbose=verbose, **options)
+
+    @exposed
+    def reqreverse(self, req=None, verbose=False, **options):
+        return self._reqlistreverse(subdir="reverse", req=req, verbose=verbose, **options)
+
+    def _reqlistreverse(self, subdir=None, hash=None, verbose=False, **options):
+        """
+        Retrieve record(s) matching a hash (usually the hash of a key), in this case from a local directory
+        Exception: IOError if file doesnt exist
+
+        :param req:     PeerRequest object for partially completed request
+        :return: list of dictionaries for each item retrieved
+        """
+        if verbose: print "TransportDistPeer._reqlistreverse",req
+        # See if have a local copy #TODO-TX need to be cleverer about combining results - and local cache will be out of date
+        if self.tl:  # Its possible to have a TransportDistPeer without a local cache
+            try:
+                data = self.tl._rawlistreverse(subdir=subdir, hash=req.hash, verbose=verbose, **options)
+                return PeerResponse(success=True, req=req, data=data)
+            except TransportFileNotFound as e:
+                pass    # Acceptable error, as is drop-thru if no tl
+        res = self.forwardAlgorithmically(req=req, verbose=verbose, **options)
+        return res
+
+    def forwardAlgorithmically(self, req=None, verbose=False, **options):
+        savedhops = req.hops    # Changed during the loop
+        req.route.append(self.nodeid)  # Append self to route before sending on, or responding
+        # Try all connected nodes, in order of how close to target
+        peer_intermediate = self.peers.nextnode(req.targetnodeid, exclude=req.tried)
+        while peer_intermediate:
+            if verbose: print self, "Sending via closest", peer_intermediate, "for", req.targetnodeid
+            req.tried.append(peer_intermediate)
+            req.hops = savedhops + 1
+            res = peer_intermediate.reqforward(req=req)
+            if res.success:
+                return res
+            # It failed, lets loop and try other peers
+            req.tried.append(res.req.tried)
+            if verbose: print self, "Retrying from ", self.nodeid, "to destn", req.targetnodeid, "with excluded", req.tried
+            peer_intermediate = self.peers.nextnode(req.targetnodeid, exclude=req.tried)
+        return PeerResponse(success=False, req=req, err="No response from any of %s peers" % len(self.peers))
+
+
 
     def rawstore(self, data=None, verbose=False, **options):
         """
@@ -444,7 +475,7 @@ class Peer(object): #TODO-RX review this class
     """
 
 
-    def __init__(self, nodeid=None, ipandport=None, verbose=False): #, node=None, connectedvia=None, nodeid=None, ipaddr=None, **parms): #TODO-TX need this inc ipandport
+    def __init__(self, nodeid=None, ipandport=None, verbose=False):
         if verbose: print "Peer.__init__",nodeid,ipandport
         self.connected = False  # Start off disconnected
         self.transport = None
@@ -561,7 +592,7 @@ class Peer(object): #TODO-RX review this class
         resp = thttp._sendGetPost(True, "peer", headers={"Content-Type": "application/json"}, urlargs=[], data=CryptoLib.dumps(req))
         return PeerResponse.loads(resp.json()) # Return PeerResponse
 
-class PeerRequest(object):  #TODO-TX review this class
+class PeerRequest(object):
     """
     Overloaded dictionary sent to Peers
 
