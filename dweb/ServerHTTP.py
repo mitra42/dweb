@@ -93,7 +93,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
     rawstore.arglist=["data"]
 
     @exposed
-    def rawadd(self, data=None, **ignored):
+    def rawadd(self, data=None, verbose=False, **kwargs):
         """
         Pass raw data on to transport layer,
 
@@ -101,6 +101,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         """
         if isinstance(data, basestring): # Assume its JSON
             data = CryptoLib.loads(data)    # HTTP just delivers bytes
+        data["verbose"]=verbose
         return  { "Content-type": "appliction/octet-stream",
                   "data":  Dweb.transport.rawadd(**data)
                   }

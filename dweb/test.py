@@ -12,6 +12,7 @@ from CryptoLib import CryptoLib, KeyPair
 from Transport import TransportBlockNotFound, TransportURLNotFound, TransportFileNotFound
 from TransportLocal import TransportLocal
 from TransportHTTP import TransportHTTP
+from TransportDist_Peer import TransportDistPeer, Peer, ServerPeer
 from CommonBlock import Transportable
 from Block import Block
 from StructuredBlock import StructuredBlock
@@ -23,7 +24,7 @@ from Dweb import Dweb
 class Testing(unittest.TestCase):
     def setUp(self):
         super(Testing, self).setUp()
-        testTransport = TransportHTTP  # Can switch between TransportLocal and TransportHTTP to test both
+        testTransport = [TransportLocal, TransportHTTP, TransportDistPeer][2]  # Can switch between TransportLocal and TransportHTTP to test both
         self.verbose=False
         self.quickbrownfox =  "The quick brown fox ran over the lazy duck"
         self.dog = "But the clever dog chased the fox"
@@ -37,6 +38,9 @@ class Testing(unittest.TestCase):
         elif testTransport == TransportHTTP:
             # Run python -m ServerHTTP; before this
             Dweb.settransport(transportclass=TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
+        elif testTransport == TransportDistPeer:
+            Dweb.settransport(transportclass=TransportDistPeer, dir="../cache", verbose=self.verbose)
+            Dweb.transport.peers.append(Peer(ipandport=ServerPeer.defaultipandport, verbose=self.verbose))
         else:
             assert False, "Unimplemented test for Transport "+testTransport.__class__.__name__
 
@@ -160,23 +164,26 @@ class Testing(unittest.TestCase):
 
     def test_http(self):
         # Run python -m ServerHTTP; before this
-        Dweb.settransport(transportclass=TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
+        #Dweb.settransport(transportclass=TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         multihash = Block(data=self.quickbrownfox).store(verbose=self.verbose)._hash
         block = Block(hash=multihash, verbose=self.verbose).fetch(verbose=self.verbose)
         assert block._data == self.quickbrownfox, "Should return data stored"
 
     def test_file(self):
         #self.verbose=True
-        Dweb.settransport(transportclass=TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
+        #Dweb.settransport(transportclass=TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         content = File.load(filepath=self.exampledir + "index.html", verbose=self.verbose).content(verbose=self.verbose)
         sb = StructuredBlock(**{"Content-type":"text/html"})  # ** because cant use args with hyphens\
         sb.data = content
         sb.store()
-        sburl = sb.url(command="file", url_output="getpost")
-        assert sburl == [False, "file", ["sb", sb._hash]]
-        resp = Dweb.transport._sendGetPost(sburl[0], sburl[1], sburl[2], verbose=False)
-        assert resp.text == content, "Should return data stored"
-        assert resp.headers["Content-type"] == "text/html", "Should get type"
+        if isinstance(Dweb.transport, TransportLocal):
+            print "Can't run all of test_file on TransportLocal"
+        else:
+            sburl = sb.url(command="file", url_output="getpost")
+            assert sburl == [False, "file", ["sb", sb._hash]]
+            resp = Dweb.transport._sendGetPost(sburl[0], sburl[1], sburl[2], verbose=False)
+            assert resp.text == content, "Should return data stored"
+            assert resp.headers["Content-type"] == "text/html", "Should get type"
         # Now test a MutableBlock that uses this content
         mbm = MutableBlock(master=True, keypair=self.keyfromfile("index_html_rsa", private=True), contenthash=sb._hash)
         mbm._allowunsafestore = True
@@ -187,11 +194,17 @@ class Testing(unittest.TestCase):
         mb = MutableBlock(hash=mbm._publichash)
         mb.fetch()      # Just fetches the signatures
         assert mb.content() == mbm.content(), "Should round-trip HTML content"
-        getpostargs=mb.url(command="file", url_output="getpost")
-        mbcontent2 = Dweb.transport._sendGetPost(*getpostargs).text
-        assert mbcontent2 == mbm.content(), "Should fetch MB content via its URL"
+        if isinstance(Dweb.transport, TransportLocal):
+            pass # print "Can't run all of test_file on TransportLocal"
+        else:
+            getpostargs=mb.url(command="file", url_output="getpost")
+            mbcontent2 = Dweb.transport._sendGetPost(*getpostargs).text
+            assert mbcontent2 == mbm.content(), "Should fetch MB content via its URL"
 
     def test_typeoverride(self):    # See if can override the type on a block
+        if isinstance(Dweb.transport, TransportLocal):
+            print "Can't test_typeoverride on",Dweb.transport.__class__.__name__
+            return
         Dweb.settransport(transportclass=TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         # Store the wrench icon
         content = File.load(filepath=self.exampledir + "WrenchIcon.png").content()
@@ -236,7 +249,10 @@ class Testing(unittest.TestCase):
     def test_uploads(self):
         # A set of tools to upload things so available for testing.
         # All the functionality in storeas should have been tested elsewhere.
-        Dweb.settransport(transportclass=TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
+        if isinstance(Dweb.transport, TransportLocal):
+            print "Can't test_uploads on",Dweb.transport.__class__.__name__
+            return
+        #Dweb.settransport(transportclass=TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         b=Block(data=self.dog); b.store(); print self.dog,b.url()
         self._storeas("dweb.js", "dweb_js_rsa", "application/javascript")
         self._storeas("jquery-3.1.1.js", None, "application/javascript")
@@ -252,7 +268,10 @@ class Testing(unittest.TestCase):
 
     def test_uploadandrelativepaths(self):
         # Test that a directory can be uploaded and then accessed by a relative path
-        Dweb.settransport(transportclass=TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
+        if isinstance(Dweb.transport, TransportLocal):
+            print "Can't test_uploadandrelativepaths on",Dweb.transport.__class__.__name__
+            return
+        #Dweb.settransport(transportclass=TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         f1sz = File.load("../tinymce/langs/readme.md").size
         # Upload a multi-level directory
         f = Dir.load(filepath="../tinymce", upload=True, verbose=self.verbose,)
@@ -323,13 +342,15 @@ class Testing(unittest.TestCase):
         #TODO - test_keychain with HTML
 
 
-    def Xtest_current(self):
+    def test_peer(self):
         # def test_peer(self):
         # Experimental testing of peer
-        self.verbose=True
-        from TransportDist_Peer import TransportDistPeer, Peer, ServerPeer #TODO-TX move up top to imports when sold
+        #self.verbose=True
         # Use cache as the local machine's - remote will use cache_peer
-        Dweb.settransport(transportclass=TransportDistPeer, dir="../cache", verbose=self.verbose)
+        #Dweb.settransport(transportclass=TransportDistPeer, dir="../cache", verbose=self.verbose)
+        if not isinstance(Dweb.transport, TransportDistPeer):
+            print "Can't run test_peer on ",Dweb.transport.__class__.__name__
+            return
         qbfhash="SHA3256B64URL.heOtR2QnWEvPuVdxo-_2nPqxCSOUUjTq8GShJv8VUFI="    # Hash of quick brown fox
         cdhash="SHA3256B64URL.50GNWgUQ9GgrVfMvpedEg77ByMRYkUgPRU9P1gWaNF8="    # Hash of the Clever Dog string saved in test_upload
         data = Dweb.transport.rawfetch(hash=qbfhash,verbose=self.verbose)
@@ -337,13 +358,13 @@ class Testing(unittest.TestCase):
         invalidhash="SHA3256B64URL.aaaabbbbccccVfMvpedEg77ByMRYkUgPRU9P1gWaNF8="
         try:
             data = Dweb.transport.rawfetch(hash=invalidhash,verbose=self.verbose)
-        except TransportBlockNotFound as e:
+        except (TransportBlockNotFound, TransportFileNotFound) as e:
             if self.verbose: print e
-
+        else:
+            assert False, "Should trigger exception"
         # This chunk may end up in a method on TransportDist_Peer
         node = Dweb.transport
         ipandport = ServerPeer.defaultipandport
-        newpeer = Peer()
         foundpeer = node.peers.find(ipandport=ipandport)
         if not foundpeer:
             peer = Peer(ipandport=ipandport, verbose=self.verbose)    # Dont know nodeid yet
@@ -355,8 +376,12 @@ class Testing(unittest.TestCase):
             data = Dweb.transport.rawfetch(hash=invalidhash, verbose=self.verbose)
         except TransportBlockNotFound as e:
             if self.verbose: print e
+        else:
+            assert False, "Should trigger exception"
         data = Dweb.transport.rawfetch(hash=cdhash, verbose=self.verbose)
         assert data == self.dog
-        print "NEXTSTEP-----"
-        print "XXX@362", Dweb.transport.rawstore(data=self.quickbrownfox, verbose=self.verbose)
-        print "DONE---"
+        print "XXX@365", Dweb.transport.rawstore(data=self.quickbrownfox, verbose=self.verbose)
+
+    def Xtest_current(self):
+        self.verbose=True
+        self.test_MutableBlocks()

@@ -97,7 +97,7 @@ class TransportHTTP(TransportHTTPBase):
         return res.json()   # Data version of list - an array
 
     def rawstore(self, data=None, verbose=False, **options):
-        res = self._sendGetPost(True, "rawstore", headers={"Content-Type": "application/octet-stream"}, urlargs=[], data=data )
+        res = self._sendGetPost(True, "rawstore", headers={"Content-Type": "application/octet-stream"}, urlargs=[], data=data, verbose=verbose)
         return str(res.text) # Should be the hash - need to return a str, not unicode which isn't supported by decode
 
     def rawadd(self, hash=None, date=None, signature=None, signedby=None, verbose=False, **options):

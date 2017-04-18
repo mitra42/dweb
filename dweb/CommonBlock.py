@@ -42,7 +42,7 @@ class Transportable(object):
         :return: hash of data
         """
         if verbose: print "Storing", self.__class__.__name__, "len=", len(data or self._data)
-        self._hash = Dweb.transport.rawstore(data=data or self._data)  # Note uses fact that _data will be subclassed
+        self._hash = Dweb.transport.rawstore(data=data or self._data, verbose=verbose)  # Note uses fact that _data will be subclassed
         if verbose: print self.__class__.__name__, ".stored: hash=", self._hash
         return self
 

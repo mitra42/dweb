@@ -191,7 +191,7 @@ class Transport(object):
             hash = obj._hash
         if (key and not signedby):
             signedby = key.privatehash
-        return self.rawadd(hash=hash, date=date, signature=signature, signedby=signedby, verbose=False, **options)
+        return self.rawadd(hash=hash, date=date, signature=signature, signedby=signedby, verbose=verbose, **options)
 
     def _add_value(self, hash=None, date=None, signature=None, signedby=None, verbose=False, **options ):
         from CryptoLib import CryptoLib

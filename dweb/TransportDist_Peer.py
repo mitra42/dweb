@@ -176,7 +176,7 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
 
     def rawlist(self, hash, verbose=False, **options):
         """
-        Retrieve record(s) matching a hash (usually the hash of a key), in this case from a local directory
+        Retrieve record(s) matching a hash (usually the hash of a key),
         Exception: IOError if file doesnt exist
 
         :param hash: Hash in table to be retrieved
@@ -219,7 +219,7 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
     def reqreverse(self, req=None, verbose=False, **options):
         return self._reqlistreverse(subdir="reverse", req=req, verbose=verbose, **options)
 
-    def _reqlistreverse(self, subdir=None, hash=None, verbose=False, **options):
+    def _reqlistreverse(self, subdir=None, req=None, verbose=False, **options):
         """
         Retrieve record(s) matching a hash (usually the hash of a key), in this case from a local directory
         Exception: IOError if file doesnt exist
@@ -237,6 +237,129 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
                 pass    # Acceptable error, as is drop-thru if no tl
         res = self.forwardAlgorithmically(req=req, verbose=verbose, **options)
         return res
+
+    def rawstore(self, data=None, verbose=False, **options):
+        """
+        Store the data on dweb, keep a local copy
+        Exception: TransportBlockNotFound if file doesnt exist
+
+        :param data: opaque data to store
+        :return: hash of data
+        """
+        req = PeerRequest(command="reqstore", data=data, verbose=verbose)
+        peerresp = self.reqstore(req=req, verbose=verbose, **options)
+        if verbose: print "TransportDistPeer.reqstore returned:", peerresp
+        if not peerresp.success:
+            print "XXX=> TransportDistPeer.rawstore err=",peerresp.err
+            raise TransportBlockNotFound(hash=hash) #TODO-TX choose better error
+        return peerresp.hash
+
+    @exposed
+    def reqstore(self, req=None, verbose=False, **options):
+        """
+        Store into dWeb, 
+
+        :param verbose: 
+        :param options: 
+        :return: 
+        """
+        if verbose: print "TransportDistPeer.reqstore len=", len(req.data), req
+        if self.tl:
+            hash = self.tl.rawstore(req.data, verbose=verbose, **options)  # Save local copy
+            if req.hash:
+                assert hash == req.hash
+            else:
+                req.hash = hash  # Need it to find targetnodeid
+        res = self.forwardClosest(req)
+        if not res: # Couldnt store closer, return our hash
+            res = PeerResponse(hash=hash, success=True, req=req)
+        assert res.hash == hash, "Returned hash must match"
+        return res
+
+    def rawadd(self, hash=None, date=None, signature=None, signedby=None, verbose=False, subdir=None, **options):
+        """
+        Append to list on dweb (TODO-TX not kept locally now as cant yet combined with canonical)
+        Exception: TransportBlockNotFound if file doesnt exist
+
+        :param data: opaque data to store
+        :return: hash of data
+        """
+        if verbose: print "TransportDistPeer.rawadd: %s,%s" % (hash,subdir)
+        subdir = subdir or ("list","reverse")
+        if "list" in subdir:
+            reqL = PeerRequest(command="reqaddlist", hash=signedby, verbose=verbose,
+                               data={ "hash": hash, "date": date, "signature": signature, "signedby": signedby })
+            peerrespL = self.reqaddlist(req=reqL, verbose=verbose, **options)
+            if verbose: print "node.reqadd returned:", peerrespL
+        if "reverse" in subdir:
+            reqR = PeerRequest(command="reqaddreverse", hash=hash,  verbose=verbose,
+                               data={ "hash": hash, "date": date, "signature": signature, "signedby": signedby })
+            peerrespR = self.reqaddreverse(req=reqR, verbose=verbose, **options)
+            if verbose: print "node.reqadd returned:", peerrespR
+        if not peerrespL.success or not peerrespR.success:
+            print "XXX=> TransportDistPeer.rawadd  err=",peerrespL,peerrespR   # Debug, figure out what error it was
+            raise TransportBlockNotFound(hash=hash) #TODO-TX choose better error
+        return peerrespL    # No significant result in peerrespR #TODO-TX maybe merge peers etc from peerrespR
+
+    def reqaddlist(self, req=None, verbose=False, **options):
+        """
+        Store a signature in a pair of DHTs 
+        Exception: IOError if file doesnt exist
+
+        :param PeerRequest req: Signature to store contains: hash, date, signature, signedby
+        :return:
+        """
+        #TODO-TX need to split into adding list and reverse as will be different "closest"
+        if verbose: print "TransportDistPeer.reqadd len=", len(req.data), req
+        if self.tl:
+            #TODO-TX need to make sure tl.rawadd only adds to right list
+            # Keep a local copy, note ignored in rawlist/rawreverse
+            self.tl.rawadd(subdir="list", verbose=verbose, **req.data)  # Save local copy
+        res = self.forwardClosest(req)
+        if not res: # Couldnt store closer, our store was sufficient
+            res = PeerResponse(success=True, req=req)
+        return res
+
+    def reqaddreverse(self, req=None, verbose=False, **options):
+        """
+        Store a signature in a pair of DHTs 
+        Exception: IOError if file doesnt exist
+
+        :param PeerRequest req: Signature to store contains: hash, date, signature, signedby
+        :return:
+        """
+        #TODO-TX need to split into adding list and reverse as will be different "closest"
+        if verbose: print "TransportDistPeer.reqadd len=", len(req.data), req
+        if self.tl:
+            # Keep a local copy, note ignored in rawlist/rawreverse
+            self.tl.rawadd(subdir="reverse", verbose=verbose, **req.data)  # Save local copy
+        res = self.forwardClosest(req)
+        if not res: # Couldnt store closer, our store was sufficient
+            res = PeerResponse(success=True, req=req)
+        return res
+
+    #========== END OF COMMANDS ===========
+
+    def forwardClosest(self, req=None):
+        """
+        Forward to the peer closest to the targetnode, this may need improving to store in multiple places. 
+        This might need considerable tweaking for Lists, as can pick up info from list on "a" and pass to "b" 
+        :param req: 
+        :return: 
+        """
+        if req.verbose: print "TransportDistPeer.forwardClosest:",req
+        savedhops = req.hops
+        req.route.append(self.nodeid)  # Append self to route before sending on, or responding
+        assert req.hash, "Cant forward without hash"
+        peer_intermediate = self.peers.nextnode(req.targetnodeid, exclude=req.tried, verbose=req.verbose)
+        if peer_intermediate:
+            req.tried.append(peer_intermediate)
+            req.hops = savedhops + 1
+            res = peer_intermediate.reqforward(req=req)
+            return res
+        else:
+            return None
+
 
     def forwardAlgorithmically(self, req=None, verbose=False, **options):
         savedhops = req.hops    # Changed during the loop
@@ -256,67 +379,6 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
             peer_intermediate = self.peers.nextnode(req.targetnodeid, exclude=req.tried)
         return PeerResponse(success=False, req=req, err="No response from any of %s peers" % len(self.peers))
 
-
-
-    def rawstore(self, data=None, verbose=False, **options):
-        """
-        Store the data locally
-        Exception: TransportBlockNotFound if file doesnt exist
-
-        :param data: opaque data to store
-        :return: hash of data
-        """
-        req = PeerRequest(command="reqstore", data=data, verbose=verbose)
-        peerresp = self.reqstore(req=req, verbose=verbose, **options)
-        if verbose: print "node.rawstore returned:", peerresp
-        if not peerresp.success:
-            print "XXX@118 err=",peerresp.err
-            raise TransportBlockNotFound(hash=hash) #TODO-TX choose better error
-        return peerresp.hash
-
-    @exposed
-    def reqstore(self, req=None, verbose=False, **options):
-        """
-        Store into dWeb, 
-
-        :param verbose: 
-        :param options: 
-        :return: 
-        """
-        if verbose: print "TransportDistPeer.reqstrore len=", len(req.data), req
-        if self.tl:
-            hash = self.tl.rawstore(req.data, verbose=verbose, **options)  # Save local copy
-            if req.hash:
-                assert hash == req.hash
-            else:
-                req.hash = hash  # Need it to find targetnodeid
-        savedhops = req.hops
-        req.route.append(self.nodeid)  # Append self to route before sending on, or responding
-        peer_intermediate = self.peers.nextnode(req.targetnodeid, exclude=req.tried)
-        if peer_intermediate:
-            req.tried.append(peer_intermediate)
-            req.hops = savedhops + 1
-            res = peer_intermediate.reqforward(req=req)
-            return res
-        else:
-            res = PeerResponse(hash=hash, success=True, req=req)
-            return res
-
-    def rawadd(self, hash=None, date=None, signature=None, signedby=None, verbose=False, **options):
-        """
-        Store a signature in a pair of DHTs
-        Exception: IOError if file doesnt exist
-
-        :param hash:        hash to store under
-        :param date:
-        :param signature:
-        :param signedby:
-        :param verbose:
-        :param options:
-        :return:
-        """
-        raise ToBeImplementedException(name="rawreverse via rawadd")  #TODO-TX
-        #TODO-TX - store local and pass to remote(s) based on algorithm
 
     def OLDsetminmax(self, min, max):   #TODO-TX see if used anywhere
         # Set min and max connections, (None means don't set)
@@ -625,7 +687,7 @@ class PeerRequest(object):
         """
 
     def __str__(self):
-        return "PeerRequest(%s)" % self. hash
+        return "PeerRequest(%s,%s,%s bytes)" % (self.command, self.hash, None if not self.data else len(self.data))
 
     def dumps(self):
         #see other !PEERREQUEST-ADD-FIELDS

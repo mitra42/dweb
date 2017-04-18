@@ -130,7 +130,7 @@ class TransportLocal(Transport):
         return hash
 
 
-    def rawadd(self, hash=None, date=None, signature=None, signedby=None, verbose=False, **options):
+    def rawadd(self, hash=None, date=None, signature=None, signedby=None, verbose=False, subdir=None, **options):
         """
         Store a signature in a pair of DHTs
         Exception: IOError if file doesnt exist
@@ -143,17 +143,20 @@ class TransportLocal(Transport):
         :param options:
         :return:
         """
-        if verbose: print "TransportLocal.rawadd",  hash, date, signature, signedby, options
-        filenameL = self._filename("list", hash=signedby, verbose=verbose, **options)   # List of things signedby
-        filenameR = self._filename("reverse", hash=hash, verbose=verbose, **options)    # Lists that this object is on
-        value = self._add_value( hash=hash, date=date, signature=signature, signedby=signedby, verbose=verbose, **options)+ "\n"
-        try:
-            with open(filenameL, 'ab') as f:
-                f.write(value)
-        except IOError as e:
-            raise TransportFileNotFound(file=filenameL)
-        try:
-            with open(filenameR, 'ab') as f:
-                f.write(value)
-        except IOError as e:
-            raise TransportFileNotFound(file=filenameR)
+        subdir = subdir or ("list","reverse")
+        if verbose: print "TransportLocal.rawadd",  hash, date, signature, signedby, subdir, options
+        value = self._add_value(hash=hash, date=date, signature=signature, signedby=signedby, verbose=verbose, **options) + "\n"
+        if "list" in subdir:
+            filenameL = self._filename("list", hash=signedby, verbose=verbose, **options)   # List of things signedby
+            try:
+                with open(filenameL, 'ab') as f:
+                    f.write(value)
+            except IOError as e:
+                raise TransportFileNotFound(file=filenameL)
+        if "reverse" in subdir:
+            filenameR = self._filename("reverse", hash=hash, verbose=verbose, **options)    # Lists that this object is on
+            try:
+                with open(filenameR, 'ab') as f:
+                    f.write(value)
+            except IOError as e:
+                raise TransportFileNotFound(file=filenameR)
