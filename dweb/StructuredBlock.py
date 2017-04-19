@@ -40,7 +40,7 @@ class StructuredBlock(SmartDict):
         Store any signatures in the Transport layer
         """
         if not self._hash:
-            super(StructuredBlock, self).store(verbose=False, **options)    # Sets self._hash   #TODO-EFFICIENCY DONT STORE IF NOT CHANGED
+            super(StructuredBlock, self).store(verbose=verbose, **options)    # Sets self._hash   #TODO-EFFICIENCY DONT STORE IF NOT CHANGED
         for s in self._signatures:
             ss = s.copy()
             Dweb.transport.add(hash=self._hash, date = ss.date,

@@ -2,6 +2,7 @@
 
 import binascii # for crc32
 from random import randint
+import base64
 from Transport import TransportFileNotFound
 from TransportHTTP import TransportHTTP
 from MyHTTPServer import exposed
@@ -15,7 +16,7 @@ from misc import MyBaseException, ToBeImplementedException
 
 class PeerCommandException(MyBaseException):
         httperror = 501  # Unimplemented
-        command = "Unrecognized peer command: {command}"
+        msg = "Unrecognized peer command: {command}"
 
 class ServerPeer(DwebHTTPRequestHandler):
     # Do not define __init__ its handled in BaseHTTPRequestHandler superclass
@@ -32,8 +33,9 @@ class ServerPeer(DwebHTTPRequestHandler):
         :param options: 
         :return: 
         """
-        Dweb.settransport(transportclass=TransportDistPeer, verbose=False, dir=dir or "../cache_peer")  # HTTP server is storing locally
-        cls.serve_forever(ipandport=ipandport or cls.defaultipandport, verbose=verbose, **options)
+        ipandport = ipandport or cls.defaultipandport
+        Dweb.settransport(transportclass=TransportDistPeer, ipandport=ipandport, verbose=False, dir=dir or "../cache_peer")  # HTTP server is storing locally
+        cls.serve_forever(ipandport=ipandport, verbose=verbose, **options)
 
     # See other !ADD-TRANSPORT-COMMAND
     @exposed
@@ -82,6 +84,7 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
 
         :param options:
         """
+        super(TransportDistPeer,self).__init__(**options) # Takes ipandport
         assert tl is not None, "Setup must be wrong asit needs a TransportLocal"
         self.tl = tl    # Connect to TransportLocal
         self.nodeid = nodeid if nodeid else randint(1, 2 ** self.bitlength - 1)  # Random id
@@ -105,7 +108,7 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
         return cls(tl=tl, **options)
 
     def __repr__(self):
-        return "TransportDistPeer(%d)" % self.nodeid
+        return "TransportDistPeer(%d, %s)" % (self.nodeid, self.tl.dir)
 
     def __eq__(self, other):
         if not isinstance(other, int):
@@ -125,7 +128,7 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
         :return: 
         """
         func = getattr(self, req.command, None)
-        if func and func.exposed:
+        if func and getattr(func, "exposed", None): # Cant do func.exposed as it will fail if not exposed
             if verbose: print "%s.%s %s" % (self.__class__.__name__, req.command, req)
             peerresp = func(req=req, verbose=verbose, **options)
             return peerresp
@@ -270,7 +273,7 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
                 assert hash == req.hash
             else:
                 req.hash = hash  # Need it to find targetnodeid
-        res = self.forwardClosest(req)
+        res = self.forwardClosest(req, verbose=verbose)
         if not res: # Couldnt store closer, return our hash
             res = PeerResponse(hash=hash, success=True, req=req)
         assert res.hash == hash, "Returned hash must match"
@@ -301,6 +304,7 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
             raise TransportBlockNotFound(hash=hash) #TODO-TX choose better error
         return peerrespL    # No significant result in peerrespR #TODO-TX maybe merge peers etc from peerrespR
 
+    @exposed
     def reqaddlist(self, req=None, verbose=False, **options):
         """
         Store a signature in a pair of DHTs 
@@ -320,6 +324,7 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
             res = PeerResponse(success=True, req=req)
         return res
 
+    @exposed
     def reqaddreverse(self, req=None, verbose=False, **options):
         """
         Store a signature in a pair of DHTs 
@@ -340,7 +345,7 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
 
     #========== END OF COMMANDS ===========
 
-    def forwardClosest(self, req=None):
+    def forwardClosest(self, req=None, verbose=False):
         """
         Forward to the peer closest to the targetnode, this may need improving to store in multiple places. 
         This might need considerable tweaking for Lists, as can pick up info from list on "a" and pass to "b" 
@@ -358,6 +363,7 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
             res = peer_intermediate.reqforward(req=req)
             return res
         else:
+            if verbose: print "forwardClosest: no peers"
             return None
 
 
@@ -487,7 +493,7 @@ class PeerSet(set):
     def OLDnotconnected(self):        return PeerSet([peer for peer in self if not peer.connected])
 
     def find(self, nodeid=None, ipandport=None):
-        peers = [peer for peer in self if (nodeid and (nodeid == peer.nodeid)) or (ipandport and (ipandport == node.ipandport))]
+        peers = [peer for peer in self if (nodeid and (nodeid == peer.nodeid)) or (ipandport and (ipandport == peer.ipandport))]
         if peers:
             return peers[0]  # Can only be one
         else:
@@ -505,7 +511,7 @@ class PeerSet(set):
         max(self, key=lambda p: p.distanceto(nodeid))
 
     def __str__(self):
-        return str([p.nodeid for p in self])
+        return str([(p.nodeid if p.nodeid else p.ipandport) for p in self])
 
     def nextnode(self, targetnodeid=None, exclude=None, verbose=False):
         """
@@ -587,10 +593,11 @@ class Peer(object): #TODO-RX review this class
 
     def connect(self, verbose=False):
         if not self.connected:
-            print "Connecting to peer", self
+            if verbose: print "Connecting to peer", self
             self.transport = TransportHTTP(ipandport=self.ipandport)
             self.connected = True
             self.onconnected()
+        return self # For chaining
 
     def onconnected(self, verbose=False):
         self.info = self.transport.info()
@@ -647,6 +654,8 @@ class Peer(object): #TODO-RX review this class
         :param options: 
         :return:        PeerResponse (including final PeerRequest)
         """
+        if verbose: print "Peer.reqforward to",self.nodeid
+        assert isinstance(req, PeerRequest),"Making assumption its forwarding a PeerRequest"
         if not self.connected:
             self.connect()
         thttp = self.transport
@@ -692,7 +701,9 @@ class PeerRequest(object):
     def dumps(self):
         #see other !PEERREQUEST-ADD-FIELDS
         #TODO-TX not sure if data will need encoding
-        return { "command": self.command, "hops": self.hops, "route": self.route, "tried": self.tried, "hash": self.hash, "data": self.data }
+        serialisable={ "command": self.command, "hops": self.hops, "route": self.route, "tried": self.tried, "hash": self.hash,
+                 "data": CryptoLib.b64enc(self.data)}
+        return serialisable
 
     @classmethod
     def loads(cls, dic):
@@ -703,6 +714,7 @@ class PeerRequest(object):
         :return: 
         """
         #TODO-TX get cleverer about reencoding subfields like route
+        dic["data"] = CryptoLib.b64dec(dic["data"])
         return PeerRequest(**dic)
 
     def copy(self):
@@ -753,13 +765,17 @@ class PeerResponse(object):
 
     def dumps(self):
         # See other !ADD-PEERRESPONSE-FIELDS
-        return { "err": self.err, "hash": self.hash, "data": self.data, "success": self.success, "req": self.req}
+        return { "err": self.err, "hash": self.hash, "success": self.success,
+                 "data": base64.urlsafe_b64encode(self.data) if self.data else None,  "req": self.req}
+
 
     @classmethod
     def loads(cls,dic): # Pair of dumps
+        # See other !ADD-PEERRESPONSE-FIELDS - only need to add here if field cant be conveyed in ascii
+        dic["data"] = dic["data"] and base64.urlsafe_b64decode(dic["data"])
         return cls(**dic)
 
 if __name__ == "__main__":
-    ServerPeer.run(verbose=True)  # TODO-TX-MULTIPLE pass ipandport else uses defaultipandport
+    ServerPeer.run(verbose=True, maxport=4250)  # TODO-TX-MULTIPLE pass ipandport else uses defaultipandport
     # This (should) never return
 

@@ -109,10 +109,10 @@ class CryptoLib(object):
         Called by signature, so that same thing signed as compared
 
         :param date: Date on which it was signed
-        :param data: Storage hash of data signed (as returned by Transport layer)
+        :param data: Storage hash of data signed (as returned by Transport layer) - will convert to str if its unicode
         :return: Signable or comparable string
         """
-        return date.isoformat() + data
+        return date.isoformat() + str(data)
 
     @staticmethod
     def signature(keypair, date, data, verbose=False, **options):
@@ -154,6 +154,48 @@ class CryptoLib(object):
             return keypair._key.verify(sigtocheck, check)
         else:
             raise ToBeImplementedException(name="verify for " + keypair.__class__.__name__)
+
+    @staticmethod
+    def b64dec(data):
+        """
+        Decode arbitrary data encoded using b64enc
+        
+        :param data:    b64 encoding of arbitrary binary
+        :return: str    arbitrary binary
+        """
+        if data is None:
+            return None
+        if not isinstance(data, basestring):
+            return data # Its not a string to un-b64
+        if isinstance(data, unicode):
+            data = str(data)    # b64 doesnt like unicode
+        try:
+            return base64.urlsafe_b64decode(data)
+        except TypeError as e:
+            print "Cant urlsafe_b64decode data",data.__class__.__name__,data
+            raise e
+
+    @staticmethod
+    def b64enc(data):
+        """
+        Encode arbitrary data to b64 
+
+        :param data: 
+        :return: 
+        """
+        if  data is None:
+            return None # Json can handle none
+        elif not isinstance(data, basestring):
+            return data # Dont b64enc hope inner parts are encoded with their own dumps
+        else:   # Dont believe need to convert from unicode to str first
+            try:
+                return base64.urlsafe_b64encode(data)
+            except TypeError as e:
+                print "Cant urlsafe_b64encode data", data.__class__.__name__, e, data
+                raise e
+            except Exception as e:
+                print "b64enc error:", e # Dont get exceptions printed inside dumps, just obscure higher level one
+                raise e
 
     @staticmethod
     def dumps(data):

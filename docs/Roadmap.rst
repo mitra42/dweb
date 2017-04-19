@@ -45,6 +45,7 @@ TODO LIST
 =========
 This list is at a much finer lever of granularity than Roadmap above.
 
+* PEER: Multithreaded
 * FUNCTIONALITY: Add authentication layer in Javascript
     * Do via gateway (and try in browser)
     * Embed on index and test pages

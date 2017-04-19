@@ -6,6 +6,7 @@ import urllib
 import BaseHTTPServer       # See https://docs.python.org/2/library/basehttpserver.html for docs on how servers work
                             # also /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/BaseHTTPServer.py for good error code list
 from CryptoLib import CryptoLib
+from Dweb import Dweb
 
 """
 This file is intended to be Application independent , i.e. not dependent on Dweb - exceptions:
@@ -64,7 +65,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         cls.ipandport = ipandport or cls.defaultipandport
         cls.verbose = verbose
         cls.options = options
-        if verbose: print "Setup server at",cls.ipandport
+        if verbose: print "Setup server at",cls.ipandport,"to",Dweb.transport
         BaseHTTPServer.HTTPServer( cls.ipandport, cls).serve_forever() # Start http server
         print "Server exited" # It never should
 

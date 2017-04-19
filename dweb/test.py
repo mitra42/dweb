@@ -19,6 +19,7 @@ from StructuredBlock import StructuredBlock
 from MutableBlock import CommonList, MutableBlock, AccessControlList, KeyChain
 from File import File, Dir
 from Dweb import Dweb
+from ServerHTTP import DwebHTTPRequestHandler
 
 
 class Testing(unittest.TestCase):
@@ -29,7 +30,7 @@ class Testing(unittest.TestCase):
         self.quickbrownfox =  "The quick brown fox ran over the lazy duck"
         self.dog = "But the clever dog chased the fox"
         self.mydic = { "a": "AAA", "1":100, "B_date": datetime.now()}  # Dic can't contain integer field names
-        self.ipandport = ('localhost',4243)  # Serve it via HTTP on all addresses
+        self.ipandport = DwebHTTPRequestHandler.defaultipandport  # Serve it via HTTP on all addresses
         #self.ipandport = ('192.168.1.156',4243)  # Serve it via HTTP on all addresses
         self.exampledir = "../examples/"    # Where example files placed
         self.mnemonic = "lecture name virus model jealous whisper stone broom harvest april notable lunch" # Random valid mnemonic
@@ -39,8 +40,8 @@ class Testing(unittest.TestCase):
             # Run python -m ServerHTTP; before this
             Dweb.settransport(transportclass=TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         elif testTransport == TransportDistPeer:
-            Dweb.settransport(transportclass=TransportDistPeer, dir="../cache", verbose=self.verbose)
-            Dweb.transport.peers.append(Peer(ipandport=ServerPeer.defaultipandport, verbose=self.verbose))
+            Dweb.settransport(transportclass=TransportDistPeer, dir="../cache", ipandport=self.ipandport, verbose=self.verbose)
+            Dweb.transport.peers.append(Peer(ipandport=ServerPeer.defaultipandport, verbose=self.verbose).connect())
         else:
             assert False, "Unimplemented test for Transport "+testTransport.__class__.__name__
 
@@ -170,18 +171,16 @@ class Testing(unittest.TestCase):
         assert block._data == self.quickbrownfox, "Should return data stored"
 
     def test_file(self):
-        #self.verbose=True
-        #Dweb.settransport(transportclass=TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         content = File.load(filepath=self.exampledir + "index.html", verbose=self.verbose).content(verbose=self.verbose)
         sb = StructuredBlock(**{"Content-type":"text/html"})  # ** because cant use args with hyphens\
         sb.data = content
-        sb.store()
+        sb.store(verbose=self.verbose)
         if isinstance(Dweb.transport, TransportLocal):
             print "Can't run all of test_file on TransportLocal"
         else:
             sburl = sb.url(command="file", url_output="getpost")
             assert sburl == [False, "file", ["sb", sb._hash]]
-            resp = Dweb.transport._sendGetPost(sburl[0], sburl[1], sburl[2], verbose=False)
+            resp = Dweb.transport._sendGetPost(sburl[0], sburl[1], sburl[2], verbose=self.verbose)
             assert resp.text == content, "Should return data stored"
             assert resp.headers["Content-type"] == "text/html", "Should get type"
         # Now test a MutableBlock that uses this content
@@ -365,8 +364,8 @@ class Testing(unittest.TestCase):
         # This chunk may end up in a method on TransportDist_Peer
         node = Dweb.transport
         ipandport = ServerPeer.defaultipandport
-        foundpeer = node.peers.find(ipandport=ipandport)
-        if not foundpeer:
+        peer = node.peers.find(ipandport=ipandport) # Returns single result
+        if not peer:
             peer = Peer(ipandport=ipandport, verbose=self.verbose)    # Dont know nodeid yet
             node.peers.append(peer)
         peer.connect(verbose=self.verbose)
@@ -380,7 +379,7 @@ class Testing(unittest.TestCase):
             assert False, "Should trigger exception"
         data = Dweb.transport.rawfetch(hash=cdhash, verbose=self.verbose)
         assert data == self.dog
-        print "XXX@365", Dweb.transport.rawstore(data=self.quickbrownfox, verbose=self.verbose)
+        assert Dweb.transport.rawstore(data=self.quickbrownfox, verbose=self.verbose) == qbfhash
 
     def Xtest_current(self):
         self.verbose=True

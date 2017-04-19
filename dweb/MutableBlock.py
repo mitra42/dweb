@@ -144,7 +144,7 @@ class CommonList(SmartDict):
         if not self._master:
             raise ForbiddenException(what="Signing a new entry when not a master list")
         # The obj.store stores signatures as well (e.g. see StructuredBlock.store)
-        obj.sign(self).store(verbose=verbose, **options)
+        obj.sign(self, verbose=verbose).store(verbose=verbose, **options)
         return self
 
     def add(self, obj, verbose=False, **options):
