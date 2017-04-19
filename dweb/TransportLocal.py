@@ -22,7 +22,8 @@ class TransportLocal(Transport):
         subdirs = "list", "reverse", "block"
 
         if not os.path.isdir(dir):
-            raise TransportFileNotFound(file=dir)
+            os.mkdir(dir)
+            #raise TransportFileNotFound(file=dir)
         self.dir = dir
         for table in subdirs:
             dirname = "%s/%s" % (self.dir, table)

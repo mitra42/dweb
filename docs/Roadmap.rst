@@ -45,7 +45,14 @@ TODO LIST
 =========
 This list is at a much finer lever of granularity than Roadmap above.
 
-* PEER: Multithreaded
+* PEER: Peer knowledge system
+    * Add harvesting of knowledge about peers
+        * When connected to - need to sendNodeid with req
+        * From info
+        * From response & req
+    * Add smart pruning of peer lists
+        * By distance
+        * By ping time (and simulate in testing)
 * FUNCTIONALITY: Add authentication layer in Javascript
     * Do via gateway (and try in browser)
     * Embed on index and test pages

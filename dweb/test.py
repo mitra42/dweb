@@ -350,8 +350,12 @@ class Testing(unittest.TestCase):
         if not isinstance(Dweb.transport, TransportDistPeer):
             print "Can't run test_peer on ",Dweb.transport.__class__.__name__
             return
-        qbfhash="SHA3256B64URL.heOtR2QnWEvPuVdxo-_2nPqxCSOUUjTq8GShJv8VUFI="    # Hash of quick brown fox
-        cdhash="SHA3256B64URL.50GNWgUQ9GgrVfMvpedEg77ByMRYkUgPRU9P1gWaNF8="    # Hash of the Clever Dog string saved in test_upload
+        qbfhash="SHA3256B64URL.heOtR2QnWEvPuVdxo-_2nPqxCSOUUjTq8GShJv8VUFI="    # Hash of self.quickbrownfox
+        cdhash="SHA3256B64URL.50GNWgUQ9GgrVfMvpedEg77ByMRYkUgPRU9P1gWaNF8="    # Hash of self.dog "Clever Dog" string saved in test_upload
+        newdata = "I am a new piece of data"    # Note *not* stored by any other test here
+        newdatahash="SHA3256B64URL.ZhVKuERkgeQtVaTnfLxU2QRpBptdk11J8vw30G8DhIU="
+        hash = Dweb.transport.rawstore(data=self.quickbrownfox, verbose=self.verbose)
+        assert hash == qbfhash, "Stored correctly (locally - no peers connected yet"
         data = Dweb.transport.rawfetch(hash=qbfhash,verbose=self.verbose)
         assert data == self.quickbrownfox, "Local cache of quick brown fox"+data
         invalidhash="SHA3256B64URL.aaaabbbbccccVfMvpedEg77ByMRYkUgPRU9P1gWaNF8="
@@ -377,10 +381,15 @@ class Testing(unittest.TestCase):
             if self.verbose: print e
         else:
             assert False, "Should trigger exception"
-        data = Dweb.transport.rawfetch(hash=cdhash, verbose=self.verbose)
-        assert data == self.dog
-        assert Dweb.transport.rawstore(data=self.quickbrownfox, verbose=self.verbose) == qbfhash
+        assert Dweb.transport.rawstore(data=self.dog, verbose=self.verbose) == cdhash
+        assert Dweb.transport.rawfetch(hash=cdhash, verbose=self.verbose) == self.dog
+        maxport = ServerPeer.defaultipandport[1]+10
+        for i in range(ServerPeer.defaultipandport[1],maxport):
+            if self.verbose: print "Adding peer",i
+            Dweb.transport.peers.append(Peer(ipandport=(ServerPeer.defaultipandport[0],i), verbose=self.verbose).connect(verbose=self.verbose))
+        assert newdatahash == Dweb.transport.rawstore(data=newdata, verbose=self.verbose)
+        assert newdata == Dweb.transport.rawfetch(hash=newdatahash, verbose=self.verbose, ignorecache=True)
 
     def Xtest_current(self):
         self.verbose=True
-        self.test_MutableBlocks()
+        self.test_peer()

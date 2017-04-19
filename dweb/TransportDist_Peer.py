@@ -3,6 +3,8 @@
 import binascii # for crc32
 from random import randint
 import base64
+import socket   # for socket.error
+from requests.exceptions import ConnectionError
 from Transport import TransportFileNotFound
 from TransportHTTP import TransportHTTP
 from MyHTTPServer import exposed
@@ -22,7 +24,7 @@ class ServerPeer(DwebHTTPRequestHandler):
     # Do not define __init__ its handled in BaseHTTPRequestHandler superclass
 
     @classmethod
-    def run(cls, ipandport=None, dir=None, verbose=False, **options):
+    def run(cls, ipandport=None, dir=None, verbose=False, maxport=None, **options):
         """
         The Peer server is standard HTTP server but instead of TransportLocal, it uses TransportDistPeer
         Defined on same port by default as it is a superset of DwebHTTPRequestHandler
@@ -34,8 +36,18 @@ class ServerPeer(DwebHTTPRequestHandler):
         :return: 
         """
         ipandport = ipandport or cls.defaultipandport
-        Dweb.settransport(transportclass=TransportDistPeer, ipandport=ipandport, verbose=False, dir=dir or "../cache_peer")  # HTTP server is storing locally
-        cls.serve_forever(ipandport=ipandport, verbose=verbose, **options)
+        maxport = maxport or ipandport[1]+1
+        for port in range(ipandport[1],maxport or ipandport[1]+1):
+            try:
+                Dweb.settransport(transportclass=TransportDistPeer, ipandport=(ipandport[0], port), verbose=False,
+                                  dir=dir or "../cache_peer/%s" % port)  # HTTP server is storing locally
+                cls.serve_forever(ipandport=(ipandport[0], port), verbose=verbose, **options)
+                return # Should never happen .. serve_forever runs forever
+            except socket.error as e:
+                print "failed:"+str(e)
+
+
+
 
     # See other !ADD-TRANSPORT-COMMAND
     @exposed
@@ -165,7 +177,7 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
         """
         if verbose: print "TransportDistPeer.reqfetch",req
         # See if have a local copy
-        if self.tl:  # Its possible to have a TransportDistPeer without a local cache
+        if self.tl and not options.get("ignorecache"):  # Its possible to have a TransportDistPeer without a local cache
             try:
                 data = self.tl.rawfetch(req.hash, verbose=verbose, **options)
                 return PeerResponse(success=True, req=req, data=data)
@@ -232,7 +244,7 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
         """
         if verbose: print "TransportDistPeer._reqlistreverse",req
         # See if have a local copy #TODO-TX need to be cleverer about combining results - and local cache will be out of date
-        if self.tl:  # Its possible to have a TransportDistPeer without a local cache
+        if self.tl and not options.get("ignorecache"):  # Its possible to have a TransportDistPeer without a local cache
             try:
                 data = self.tl._rawlistreverse(subdir=subdir, hash=req.hash, verbose=verbose, **options)
                 return PeerResponse(success=True, req=req, data=data)
@@ -267,7 +279,7 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
         :return: 
         """
         if verbose: print "TransportDistPeer.reqstore len=", len(req.data), req
-        if self.tl:
+        if self.tl and not options.get("ignorecache"):
             hash = self.tl.rawstore(req.data, verbose=verbose, **options)  # Save local copy
             if req.hash:
                 assert hash == req.hash
@@ -315,7 +327,7 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
         """
         #TODO-TX need to split into adding list and reverse as will be different "closest"
         if verbose: print "TransportDistPeer.reqadd len=", len(req.data), req
-        if self.tl:
+        if self.tl and not options.get("ignorecache"):
             #TODO-TX need to make sure tl.rawadd only adds to right list
             # Keep a local copy, note ignored in rawlist/rawreverse
             self.tl.rawadd(subdir="list", verbose=verbose, **req.data)  # Save local copy
@@ -335,7 +347,7 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
         """
         #TODO-TX need to split into adding list and reverse as will be different "closest"
         if verbose: print "TransportDistPeer.reqadd len=", len(req.data), req
-        if self.tl:
+        if self.tl and not options.get("ignorecache"):
             # Keep a local copy, note ignored in rawlist/rawreverse
             self.tl.rawadd(subdir="reverse", verbose=verbose, **req.data)  # Save local copy
         res = self.forwardClosest(req)
@@ -360,7 +372,7 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
         if peer_intermediate:
             req.tried.append(peer_intermediate)
             req.hops = savedhops + 1
-            res = peer_intermediate.reqforward(req=req)
+            res = peer_intermediate.reqforward(req=req, verbose=verbose)
             return res
         else:
             if verbose: print "forwardClosest: no peers"
@@ -376,7 +388,7 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
             if verbose: print self, "Sending via closest", peer_intermediate, "for", req.targetnodeid
             req.tried.append(peer_intermediate)
             req.hops = savedhops + 1
-            res = peer_intermediate.reqforward(req=req)
+            res = peer_intermediate.reqforward(req=req, verbose=verbose)
             if res.success:
                 return res
             # It failed, lets loop and try other peers
@@ -595,13 +607,21 @@ class Peer(object): #TODO-RX review this class
         if not self.connected:
             if verbose: print "Connecting to peer", self
             self.transport = TransportHTTP(ipandport=self.ipandport)
-            self.connected = True
-            self.onconnected()
+            try:
+                self.info = self.transport.info()
+                if verbose: print self.info
+            except ConnectionError as e:
+                pass
+                #raise e
+            else:
+                self.nodeid = self.info["nodeid"]
+                if verbose: print "nodeid=", self.nodeid
+                self.connected = True
+                self.onconnected()
         return self # For chaining
 
     def onconnected(self, verbose=False):
-        self.info = self.transport.info()
-        self.nodeid = self.info["nodeid"]
+        pass
 
     def distanceto(self, peerid):
         """
@@ -654,7 +674,7 @@ class Peer(object): #TODO-RX review this class
         :param options: 
         :return:        PeerResponse (including final PeerRequest)
         """
-        if verbose: print "Peer.reqforward to",self.nodeid
+        if verbose: print "Peer.reqforward to",self
         assert isinstance(req, PeerRequest),"Making assumption its forwarding a PeerRequest"
         if not self.connected:
             self.connect()
@@ -766,13 +786,13 @@ class PeerResponse(object):
     def dumps(self):
         # See other !ADD-PEERRESPONSE-FIELDS
         return { "err": self.err, "hash": self.hash, "success": self.success,
-                 "data": base64.urlsafe_b64encode(self.data) if self.data else None,  "req": self.req}
+                 "data": CryptoLib.b64enc(self.data),  "req": self.req}
 
 
     @classmethod
     def loads(cls,dic): # Pair of dumps
         # See other !ADD-PEERRESPONSE-FIELDS - only need to add here if field cant be conveyed in ascii
-        dic["data"] = dic["data"] and base64.urlsafe_b64decode(dic["data"])
+        dic["data"] = CryptoLib.b64dec(dic["data"])
         return cls(**dic)
 
 if __name__ == "__main__":

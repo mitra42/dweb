@@ -56,6 +56,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
     def serve_forever(cls, ipandport=None, verbose=False, **options):
         """
         Start a server,
+        ERR: socket.error if address(port) in use.
 
         :param ipandport: Ip and port to listen on, else use defaultipandport
         :param verbose: If want debugging
@@ -66,7 +67,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         cls.verbose = verbose
         cls.options = options
         if verbose: print "Setup server at",cls.ipandport,"to",Dweb.transport
-        BaseHTTPServer.HTTPServer( cls.ipandport, cls).serve_forever() # Start http server
+        BaseHTTPServer.HTTPServer(cls.ipandport, cls).serve_forever()  # Start http server
         print "Server exited" # It never should
 
     def _dispatch(self, **vars):
