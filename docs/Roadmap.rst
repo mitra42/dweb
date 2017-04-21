@@ -47,17 +47,19 @@ This list is at a much finer lever of granularity than Roadmap above.
 
 * PEER: Peer knowledge system
     * Add harvesting of knowledge about peers
-        * When connected to - need to sendNodeid with req
-        * From info
-        * From response & req
-    * Add smart pruning of peer lists
-        * By distance
-        * By ping time (and simulate in testing)
+        * When connected to for info
+        * Test on html etc
+* PEER Add smart pruning of peer lists
+    * By distance
+    * By ping time (and simulate in testing)
+* PEER Send cached info when connecting
+    * Any data that new peer is "closer" to
 * FUNCTIONALITY: Add authentication layer in Javascript
     * Do via gateway (and try in browser)
     * Embed on index and test pages
 * FUNCTIONALITY - add caching, so dont reload, BUT disable for testing
 * FUNCTIONALITY - storing some content in lists and allowing searches of that content (listfind ? a=b c=d
+* FUNCTIONALITY - add notification lists
 * DOCS: Pass through docs, check all current  (done API-Integration)
 * DOCS: Complete "To extend with ... new obj,
 * FUNCTIONALITY: Work with P2P transport, probably IPFS

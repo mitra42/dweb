@@ -34,7 +34,7 @@ class Dweb(object):
         from TransportLocal import TransportLocal
 
         if transportclass:  # Explicitly set class and setup
-            cls.transport = transportclass.setup(**transportoptions)
+            cls.transport = transportclass.setup(verbose=verbose, **transportoptions)
 
         elif transportstring == "?":
             print cls.transport

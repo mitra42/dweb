@@ -4,7 +4,9 @@ import binascii # for crc32
 from random import randint
 import base64
 import socket   # for socket.error
+import threading
 from requests.exceptions import ConnectionError
+import Queue    #TODO-QUEUE
 from Transport import TransportFileNotFound
 from TransportHTTP import TransportHTTP
 from MyHTTPServer import exposed
@@ -24,7 +26,7 @@ class ServerPeer(DwebHTTPRequestHandler):
     # Do not define __init__ its handled in BaseHTTPRequestHandler superclass
 
     @classmethod
-    def run(cls, ipandport=None, dir=None, verbose=False, maxport=None, **options):
+    def setupandserveforever(cls, host=None, port=None, dir=None, verbose=False, **options):
         """
         The Peer server is standard HTTP server but instead of TransportLocal, it uses TransportDistPeer
         Defined on same port by default as it is a superset of DwebHTTPRequestHandler
@@ -35,17 +37,17 @@ class ServerPeer(DwebHTTPRequestHandler):
         :param options: 
         :return: 
         """
-        ipandport = ipandport or cls.defaultipandport
-        maxport = maxport or ipandport[1]+1
-        for port in range(ipandport[1],maxport or ipandport[1]+1):
-            try:
-                Dweb.settransport(transportclass=TransportDistPeer, ipandport=(ipandport[0], port), verbose=False,
+        port = port or cls.defaultipandport[1]
+        ipandport = (host or cls.defaultipandport[0], port)
+        # Creates a transport used for outgoing, and then creates a server that answers queries and passes to transport
+        Dweb.settransport(transportclass=TransportDistPeer, ipandport=ipandport, verbose=False,
                                   dir=dir or "../cache_peer/%s" % port)  # HTTP server is storing locally
-                cls.serve_forever(ipandport=(ipandport[0], port), verbose=verbose, **options)
-                return # Should never happen .. serve_forever runs forever
-            except socket.error as e:
-                print "failed:"+str(e)
-
+        try:
+            cls.serve_forever(ipandport=ipandport, verbose=verbose, **options)
+        except socket.error as e:
+            print "ServerPeer",host,port,str(e)
+            # Returns to caller and presumably exits which should kill any daemon thread
+        # ERR socket.error if port already in use
 
 
 
@@ -53,11 +55,12 @@ class ServerPeer(DwebHTTPRequestHandler):
     @exposed
     def peer(self, data=None, verbose=False, **options):    # data is string, not yet converted to json
         """
-        Add a Server command that takes a JSON packet (typically PeerRequest) on input, passes it to a dispatcher on the Transport layer, 
+        Server command that takes a JSON packet (typically PeerRequest) on input, passes it to a dispatcher on the Transport layer, 
         and returns the JSON result (typically PeerResponse).
         """
         req = PeerRequest.loads(data)
         res =  Dweb.transport.dispatch(req=req, verbose=verbose, **options)
+        Dweb.transport.learnfrom(res)   # Learn from full set - sent and received
         return { "Content-type": "application/json", "data": res }
     peer.arglist=["data"]
 
@@ -66,9 +69,9 @@ class ServerPeer(DwebHTTPRequestHandler):
         #Subclass DwebHTTPRequestHandler.info to return info about ServerPeer
         node = Dweb.transport
         return { 'Content-type': 'text/json',
-                 'data': {
+                 'data': {  # See other !ADD-INFO-FIELDS
                     'type': 'DistPeerHTTP',
-                    'peers': list(node.peers),
+                    'peers': node.peers,
                     'nodeid': node.nodeid,
         }        }
     info.arglist=[]
@@ -90,19 +93,21 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
     """
     bitlength = 30  # Allowsfor 2^n nodes, so 30 is ~ 1 billion.
 
-    def __init__(self, tl=None, nodeid=None, **options):
+    def __init__(self, tl=None, nodeid=None, verbose=False, ipandport=None, **options):
         """
         Create a distirbuted transport object (use "setup" instead)
 
         :param options:
         """
-        super(TransportDistPeer,self).__init__(**options) # Takes ipandport
+        super(TransportDistPeer,self).__init__(verbose=verbose, ipandport=ipandport, **options) # Takes ipandport
         assert tl is not None, "Setup must be wrong asit needs a TransportLocal"
         self.tl = tl    # Connect to TransportLocal
         self.nodeid = nodeid if nodeid else randint(1, 2 ** self.bitlength - 1)  # Random id
+        self.ipandport = ipandport
         self.peers = PeerSet()  # Will hold list of peers we know about
-        self.optimaxconnections = 10  # TODO-TX follow is this used
-        self.optiminconnections = 1  # TODO-TX follow is this used
+        self.connectionqueue = Queue.PriorityQueue()    # Queue of peers to try and connect to.
+        self.backgroundthread(verbose=verbose)  # Instantiate a background thread
+
 
     @classmethod
     def setup(cls, dir=None, **options):
@@ -126,6 +131,22 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
         if not isinstance(other, int):
             other = other.nodeid
         return self.nodeid == other
+
+    def backgroundthread(self, verbose=False):
+        """
+        A background thread, should do nothing till it starts getting queued requests as dont know actual ipandport etc
+        Note this is dependent on the main thread existing when the server is killed, or fails to open.
+
+        :return: 
+        """
+        thread = threading.Thread(target=self.runbackground, args=(verbose,))
+        thread.daemon = True  # Parent thread will exit if fails to get server port
+        thread.start()
+
+    def runbackground(self, verbose=False):
+        if verbose: print "Background thread starting"
+        task = self.queueprocess(True)
+        if verbose: print "Background thread exiting"
 
     #========== Standard list of Transport layer functions that have to be provided ================
     #see other !ADD-TRANSPORT-COMMAND - add a function copying the format below
@@ -157,7 +178,7 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
         :return:
         """
         # Note node will check locally first so dont need to save in tl first.
-        req = PeerRequest(command="reqfetch", hash=hash, verbose=verbose)
+        req = PeerRequest(command="reqfetch", sourcenode=Peer(node=self), hash=hash, verbose=verbose)
         peerresp = self.reqfetch(req=req, verbose=verbose, **options) # Err: TransportFileNotFound
         if verbose: print "reqfetch returned:", peerresp
         if not peerresp.success:
@@ -197,8 +218,7 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
         :param hash: Hash in table to be retrieved
         :return: list of dictionaries for each item retrieved
         """
-        #TODO-TX - via _rawlistreverse
-        req = PeerRequest(command="reqlist", hash=hash, verbose=verbose)
+        req = PeerRequest(command="reqlist", sourcenode=Peer(node=self), hash=hash, verbose=verbose)
         peerresp = self.reqlist(req=req, verbose=verbose, **options) # Err: TransportFileNotFound
         if verbose: print "reqlist returned:", peerresp
         if not peerresp.success:
@@ -216,8 +236,7 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
         :param hash: Hash in table to be retrieved
         :return: list of dictionaries for each item retrieved
         """
-        #TODO-TX - via _rawlistreverse
-        req = PeerRequest(command="reqreverse", hash=hash, verbose=verbose)
+        req = PeerRequest(command="reqreverse", hash=hash, sourcenode=Peer(node=self), verbose=verbose)
         peerresp = self.reqreverse(req=req, verbose=verbose, **options) # Err: TransportFileNotFound
         if verbose: print "reqreverse returned:", peerresp
         if not peerresp.success:
@@ -261,7 +280,7 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
         :param data: opaque data to store
         :return: hash of data
         """
-        req = PeerRequest(command="reqstore", data=data, verbose=verbose)
+        req = PeerRequest(command="reqstore", data=data, sourcenode=Peer(node=self), verbose=verbose)
         peerresp = self.reqstore(req=req, verbose=verbose, **options)
         if verbose: print "TransportDistPeer.reqstore returned:", peerresp
         if not peerresp.success:
@@ -302,19 +321,19 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
         if verbose: print "TransportDistPeer.rawadd: %s,%s" % (hash,subdir)
         subdir = subdir or ("list","reverse")
         if "list" in subdir:
-            reqL = PeerRequest(command="reqaddlist", hash=signedby, verbose=verbose,
+            reqL = PeerRequest(command="reqaddlist", hash=signedby, verbose=verbose, sourcenode=Peer(node=self),
                                data={ "hash": hash, "date": date, "signature": signature, "signedby": signedby })
             peerrespL = self.reqaddlist(req=reqL, verbose=verbose, **options)
             if verbose: print "node.reqadd returned:", peerrespL
         if "reverse" in subdir:
-            reqR = PeerRequest(command="reqaddreverse", hash=hash,  verbose=verbose,
+            reqR = PeerRequest(command="reqaddreverse", hash=hash,  verbose=verbose, sourcenode=Peer(node=self),
                                data={ "hash": hash, "date": date, "signature": signature, "signedby": signedby })
             peerrespR = self.reqaddreverse(req=reqR, verbose=verbose, **options)
             if verbose: print "node.reqadd returned:", peerrespR
         if not peerrespL.success or not peerrespR.success:
             print "XXX=> TransportDistPeer.rawadd  err=",peerrespL,peerrespR   # Debug, figure out what error it was
             raise TransportBlockNotFound(hash=hash) #TODO-TX choose better error
-        return peerrespL    # No significant result in peerrespR #TODO-TX maybe merge peers etc from peerrespR
+        return peerrespL    # No significant result in peerrespR #TODO-QUEUE maybe merge peers etc from peerrespR
 
     @exposed
     def reqaddlist(self, req=None, verbose=False, **options):
@@ -325,10 +344,8 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
         :param PeerRequest req: Signature to store contains: hash, date, signature, signedby
         :return:
         """
-        #TODO-TX need to split into adding list and reverse as will be different "closest"
         if verbose: print "TransportDistPeer.reqadd len=", len(req.data), req
         if self.tl and not options.get("ignorecache"):
-            #TODO-TX need to make sure tl.rawadd only adds to right list
             # Keep a local copy, note ignored in rawlist/rawreverse
             self.tl.rawadd(subdir="list", verbose=verbose, **req.data)  # Save local copy
         res = self.forwardClosest(req)
@@ -345,7 +362,6 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
         :param PeerRequest req: Signature to store contains: hash, date, signature, signedby
         :return:
         """
-        #TODO-TX need to split into adding list and reverse as will be different "closest"
         if verbose: print "TransportDistPeer.reqadd len=", len(req.data), req
         if self.tl and not options.get("ignorecache"):
             # Keep a local copy, note ignored in rawlist/rawreverse
@@ -397,93 +413,33 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
             peer_intermediate = self.peers.nextnode(req.targetnodeid, exclude=req.tried)
         return PeerResponse(success=False, req=req, err="No response from any of %s peers" % len(self.peers))
 
+    #======== Peer management ----------
+    def learnfrom(self, learning):
+        if isinstance(learning, PeerSet):
+            for peer in learning:
+                self.learnfrom(peer)
+        elif isinstance(learning, Peer):
+            if (self != learning) and (learning not in self.peers):
+                learning.connect = False    # We aren't connected to it yet
+                self.peers.append(learning)
+                self.queueconnections(learning) # Queue for connecting to #TODO-TX could maybe use a priority queue
+        elif isinstance(learning, PeerResponse):
+            self.learnfrom(learning.req.sourcenode)
+            self.learnfrom(learning.req.tried)
+        else: # isinstance(learning, (list, tuple, set, dict)):
+            assert False, "Node.learnfrom expects PeerSet or Peer, not"+learning.__class__.__name__
 
-    def OLDsetminmax(self, min, max):   #TODO-TX see if used anywhere
-        # Set min and max connections, (None means don't set)
-        if min: self.optiminconnections = min
-        if max: self.optimaxconnections = max
+    def queueconnections(self, peer):
+        priority = 0    #TODO-QUEUE can use heuristic on priority
+        self.connectionqueue.put((0,peer))
 
-    def OLDonconnected(self, peer):
-        """
-        Should be called when connect to peer.
-        """
-        # if debug: print "Onconnecting",self,"<",peer
-        peer.connected = True
-        pdiclist = peer.reqpeers()  # So we know who our peers are conencted to
-        peer.setcachedpeers(self, pdiclist)
-
-        for peerspeer in peer.cachedpeers:
-            if self.closer(peer, peerspeer) and peerspeer.connected:
-                # print "connected=", len(self.peers.connected()), "optimax=",self.optimaxconnections
-                if len(self.peers.connected()) > self.optimaxconnections:
-                    # Peer is connected to Peerspeer and is closer to us, so drop peerspeer and just connect to peer
-                    peerspeer.disconnect(connecttheirpeers=False,
-                                         reason="Connected via closer new peer %d and have %d/%d cconnected" %
-                                                (peer.nodeid, len(self.peers.connected()), self.optimaxconnections))
-
-    def OLDondisconnected(self, peer):
-        """
-        Should be called when disconnected from a peer
-        Should decide which of their peers we want to connect to directly.
-        """
-        for peerspeer in peer.cachedpeers:
-            peerspeer.connectedvia.remove(peer)  # XXXTODO not valid
-        self.considerconnecting()
-
-    def OLDconsiderconnecting(self):
-        """
-        Decide if want to connect to any peers that we know about that aren't connected
-        XXX Think this through - want to aggressively add connections below min, prune above max,
-        levels from one extreme to other ...
-        prune anything can get to another way
-        prune anything can get to via 1 hop
-        add anything have no way to reach
-        add anything cant get to via 1 hop
-        add anything 1 hop away
-        """
-        if len(self.peers.connected()) > self.optimaxconnections:
-            candidate = self.peers.connectedandviacloserpeer().furthestfrom(
-                self)  # We can get to it via something else
-            if candidate:
-                candidate.disconnect(reason="Dist=%d and connected via %s and have too many connections %d/%d" %
-                                            (self.distance(candidate),
-                                             ["%d@%d" % (p.nodeid, self.distance(p)) for p in
-                                              candidate.connectedvia], len(self.peers.connected()),
-                                             self.optimaxconnections))
-
-
-        elif len(self.peers.connected()) < self.optiminconnections:
-            candidate = self.peers.notconnectedandnotviapeer().closestto(
-                self) or self.peers.notconnected().closestto(
-                self)  # Look for closest cant reach and if none, just closest
-            if candidate:
-                candidate.connect()
-                # TODO should really be a bit more random else one close unconnectable peer will block everything
-        else:  # Between min and max, try connecting one that can't get via peer
-            candidate = self.peers.notconnectedandnotviapeer().closestto(self)
-            if candidate:
-                candidate.connect()
-                # TODO should really be a bit more random else one close unconnectable peer will block everything
-
-    def OLDcloser(self, peer, peerspeer):  # True if peer is closer than peerspeer
-        return self.distance(peer) < self.distance(peerspeer)
-
-    def OLDdistance(self, peer):
-        offset = peer.nodeid ^ self.nodeid
-        return bin(offset).count("1")
-
-    def OLDhandlereqpeers(self):
-        """
-        Called when contacted (typically over network) for list of peers
-        """
-        return [peer.dict() for peer in self.peers.connected()]
-
-    def OLDloop(self):
-        """
-        Frequently acted on
-        # TODO hook this to the sim
-        """
-        self.considerconnecting()
+    def queueprocess(self, block):
+        try:
+            task = self.connectionqueue.get(block)
+            print "XXX@439 queueprocess task=",task #TODO-QUEUE implement handling it
+        except Exception as e:
+            print "XXX@441 queueprocess exception needs handling:",e #TODO-QUEUE handle exceptions (empty ?)
+            raise e
 
 class PeerSet(set):
     """
@@ -499,11 +455,6 @@ class PeerSet(set):
     def notin(self, exclude):
         return PeerSet([peer for peer in self if peer not in exclude])
 
-    def OLDnotconnectedandnotviapeer(self): return PeerSet([peer for peer in self if not peer.connected and not peer.connectedvia])
-    def OLDconnectedandviapeer(self):       return PeerSet([peer for peer in self if peer.connected and peer.connectedvia])
-    def OLDconnectedandviacloserpeer(self): return PeerSet([peer for peer in self if peer.connected and peer.connectedvia and any([p.closer(peer) for p in peer.connectedvia])])
-    def OLDnotconnected(self):        return PeerSet([peer for peer in self if not peer.connected])
-
     def find(self, nodeid=None, ipandport=None):
         peers = [peer for peer in self if (nodeid and (nodeid == peer.nodeid)) or (ipandport and (ipandport == peer.ipandport))]
         if peers:
@@ -514,7 +465,7 @@ class PeerSet(set):
     def append(self, peer):
         if not isinstance(peer, (list, set)):
             peer = (peer,)
-        self.update(peer)
+        self.update(peer)   # Adds to list if not there already
 
     def closestto(self, nodeid):
         return self and min(self, key=lambda p: p.distanceto(nodeid))
@@ -540,7 +491,7 @@ class PeerSet(set):
     def dumps(self):
         return list(self)
 
-class Peer(object): #TODO-RX review this class
+class Peer(object):
     """
     One for each node we know about.
     Applies to both connected and disconnected peers.
@@ -554,13 +505,16 @@ class Peer(object): #TODO-RX review this class
     See other !ADD-PEER-FIELDS
     """
 
-
-    def __init__(self, nodeid=None, ipandport=None, verbose=False):
+    def __init__(self, node=None, nodeid=None, ipandport=None, verbose=False):
         if verbose: print "Peer.__init__",nodeid,ipandport
+        if node:
+            self.nodeid=node.nodeid
+            self.ipandport = node.ipandport
+        else:
+            self.ipandport = ipandport
+            self.nodeid = nodeid
         self.connected = False  # Start off disconnected
         self.transport = None
-        self.ipandport = ipandport
-        self.nodeid = nodeid
         self.info = None
         #See other !ADD - PEER - FIELDS
         """
@@ -580,28 +534,18 @@ class Peer(object): #TODO-RX review this class
         nodeid = other if isinstance(other, int) else other.nodeid
         return (nodeid and (self.nodeid == nodeid)) or (isinstance(other,(Peer,TransportDistPeer)) and (self.ipandport == other.ipandport) )
 
+    @property
+    def node(self):
+        """
+        May at some point want to store this on the Peer, but for now use Dweb.transport 
+        
+        :return: 
+        """
+        return Dweb.transport
+
     def dumps(self):
         #See other !ADD - PEER - FIELDS
         return {"nodeid": self.nodeid, "ipandport": self.ipandport}
-
-    def OLDreqpeers(self):  # Get a list of their peers from this peer and store in cachedpeers
-        return sim.find(self).handlereqpeers()  # Returns a dicarray
-
-    def OLDdisconnect(self, connecttheirpeers=False, verbose=False, reason=""):
-        """
-        Disconnect from this peer
-        if connecttheirpeers then consider connecting to any of their peers
-        if candidate then only disconnect if we are over limit
-        """
-        # if debug: print "Disconnecting",self
-        # Would disconnect HTTP here
-        if verbose: print "TransportDistPeer %d disconnecting from %d because %s" % (self.node.nodeid, self.nodeid, reason)
-        self.connected = False
-        # Remove any connections onwards since can no longer connect to those cachedpeers via this one we are disconnecting
-        for cachedpeer in self.cachedpeers:
-            cachedpeer.connectedvia.discard(self)
-        if connecttheirpeers:
-            raise ToBeImplementedException(name="disconnect with connecttheirpeers")
 
     def connect(self, verbose=False):
         if not self.connected:
@@ -614,14 +558,15 @@ class Peer(object): #TODO-RX review this class
                 pass
                 #raise e
             else:
+                # See other !ADD-INFO-FIELDS
                 self.nodeid = self.info["nodeid"]
+                self.peers = PeerSet(self.info["peers"])
+                self.type = self.info["type"]
                 if verbose: print "nodeid=", self.nodeid
                 self.connected = True
-                self.onconnected()
+                self.node.learnfrom(self.peers)
         return self # For chaining
 
-    def onconnected(self, verbose=False):
-        pass
 
     def distanceto(self, peerid):
         """
@@ -633,37 +578,6 @@ class Peer(object): #TODO-RX review this class
         if isinstance(peerid, (Peer, TransportDistPeer)): peerid = peerid.nodeid
         offset = peerid ^ self.nodeid
         return bin(offset).count("1")
-
-    def OLDsendMessage(self, msg):
-        # In real code this would send via HTTP, instead it simulates locally by finding the TransportDistPeer in "sim"
-        if msg.hops >= msg.maxhops:
-            if msg.verbose: print "Max hops exceeded"
-            print "XXX@295 max hops exceeded"
-            msg.debugprint()  # XXX comment out
-            return PeerResponse(success=False, err="Max hops exceeded", msg=msg)
-        return sim.sendMessage(self, msg)  # Ok to simulate sending
-
-    def OLDsetcachedpeers(self, node, pdiclist):
-        self.cachedpeers = PeerSet()  # Empty list
-        for p in pdiclist:
-            existingpeer = node.peers.find(p["nodeid"])
-            if existingpeer:
-                self.cachedpeers.append(existingpeer)
-                if self not in (node, existingpeer) and (node != existingpeer):
-                    assert self.nodeid != node.nodeid, "Shouldnt be working on node anyway"
-                    existingpeer.connectedvia.append(self)
-                    existingpeer.ipaddr = p["ipaddr"]
-            else:
-                cv = (self,) if self not in (node, p["nodeid"]) else []
-                newpeer = Peer(node=node, connectvia=PeerSet(cv), **p)
-                self.cachedpeers.append(newpeer)
-                node.peers.append(newpeer)
-
-    def OLDcloser(self, other):
-        """
-        True if self is closer to its node than other
-        """
-        return self.node.closer(self, other)
 
     def reqforward(self, req=None, verbose=False, **options):
         """
@@ -699,7 +613,8 @@ class PeerRequest(object):
     #!SEE-OTHER-PEERREQUEST-ADD-FIELDS
     """
 
-    def __init__(self, command=None, data=None, route=None, hash=None, hops=0, tried=None, verbose=False):
+    def __init__(self, sourcenode=None, command=None, data=None, route=None, hash=None, hops=0, tried=None, verbose=False, **kwargs):
+        self.sourcenode = Peer(sourcenode) if isinstance(sourcenode, Peer) else Peer(**sourcenode)
         self.command = command
         self.hops = hops
         self.data = data
@@ -707,7 +622,8 @@ class PeerRequest(object):
         self.tried = tried if isinstance(tried, PeerSet) else ( PeerSet(tried) if tried else PeerSet())   # Initialize if unset
         self.verbose = verbose
         self.hash = hash
-        #!SEE-OTHER-PEERREQUEST-ADD-FIELDS
+        self.__dict__.update(kwargs)    # Store any parameters we don't use, will pass on with dumps
+        #see other !PEERREQUEST-ADD-FIELDS
         """
         See how/if these ued
         self.sourceid = sourceid.nodeid if isinstance(sourceid, (TransportDistPeer, Peer)) else sourceid
@@ -720,9 +636,10 @@ class PeerRequest(object):
 
     def dumps(self):
         #see other !PEERREQUEST-ADD-FIELDS
-        #TODO-TX not sure if data will need encoding
-        serialisable={ "command": self.command, "hops": self.hops, "route": self.route, "tried": self.tried, "hash": self.hash,
-                 "data": CryptoLib.b64enc(self.data)}
+        # Make sure next line matches the parameters to init
+        serialisable = self.__dict__
+        serialisable.update({ "command": self.command, "sourcenode": self.sourcenode, "hops": self.hops, "route": self.route, "tried": self.tried, "hash": self.hash,
+                 "data": CryptoLib.b64enc(self.data)})
         return serialisable
 
     @classmethod
@@ -738,14 +655,9 @@ class PeerRequest(object):
         return PeerRequest(**dic)
 
     def copy(self):
-        return PeerRequest( command=self.command, hash=self.hash, hops=self.hops, route=self.route, tried=self.tried.copy(),
+        return PeerRequest( command=self.command,  sourcenode=self.sourcenode, hash=self.hash, hops=self.hops, route=self.route, tried=self.tried.copy(),
                             data=self.data, verbose=self.verbose)
         #!SEE-OTHER-PEERREQUEST-ADD-FIELDS
-
-
-    def OLDdebugprint(self, level=2):
-        print "To: %d Hops=%d maxhops=%d Route=%s Tried=%s" % (
-        self.nodeid, self.hops, self.maxhops, self.route, self.tried,)
 
     @property
     def targetnodeid(self):
@@ -796,6 +708,11 @@ class PeerResponse(object):
         return cls(**dic)
 
 if __name__ == "__main__":
-    ServerPeer.run(verbose=True, maxport=4250)  # TODO-TX-MULTIPLE pass ipandport else uses defaultipandport
-    # This (should) never return
+    import sys
+    if len(sys.argv) < 3:
+        print sys.argv
+        sys.argv.append(None)   # Host
+        sys.argv.append(0)   # Port
+    ServerPeer.setupandserveforever(verbose=True, host=sys.argv[1], port=int(sys.argv[2]))
+    # This only returns if the setup fails, in which cases it exists causing background daemon threads to be killed
 

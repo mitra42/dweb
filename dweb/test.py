@@ -25,7 +25,7 @@ from ServerHTTP import DwebHTTPRequestHandler
 class Testing(unittest.TestCase):
     def setUp(self):
         super(Testing, self).setUp()
-        testTransport = [TransportLocal, TransportHTTP, TransportDistPeer][2]  # Can switch between TransportLocal and TransportHTTP to test both
+        testTransporttype = 3 #TransportLocal, TransportHTTP, TransportDistPeer, TransportDistPeer = multi  # Can switch between TransportLocal and TransportHTTP to test both
         self.verbose=False
         self.quickbrownfox =  "The quick brown fox ran over the lazy duck"
         self.dog = "But the clever dog chased the fox"
@@ -34,14 +34,19 @@ class Testing(unittest.TestCase):
         #self.ipandport = ('192.168.1.156',4243)  # Serve it via HTTP on all addresses
         self.exampledir = "../examples/"    # Where example files placed
         self.mnemonic = "lecture name virus model jealous whisper stone broom harvest april notable lunch" # Random valid mnemonic
-        if testTransport == TransportLocal:
+        if testTransporttype == 0: # TransportLocal:
             Dweb.settransport(transportclass=TransportLocal, verbose=self.verbose, dir="../cache")
-        elif testTransport == TransportHTTP:
+        elif testTransporttype == 1: # TransportHTTP:
             # Run python -m ServerHTTP; before this
             Dweb.settransport(transportclass=TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
-        elif testTransport == TransportDistPeer:
+        elif testTransporttype in (2,3): # TransportDistPeer:
             Dweb.settransport(transportclass=TransportDistPeer, dir="../cache", ipandport=self.ipandport, verbose=self.verbose)
             Dweb.transport.peers.append(Peer(ipandport=ServerPeer.defaultipandport, verbose=self.verbose).connect())
+            if testTransporttype == 3:
+                maxport = ServerPeer.defaultipandport[1]+10
+                for i in range(ServerPeer.defaultipandport[1],maxport):
+                    if self.verbose: print "Adding peer",i
+                    Dweb.transport.peers.append(Peer(ipandport=(ServerPeer.defaultipandport[0],i), verbose=self.verbose).connect(verbose=self.verbose))
         else:
             assert False, "Unimplemented test for Transport "+testTransport.__class__.__name__
 
@@ -373,6 +378,7 @@ class Testing(unittest.TestCase):
             peer = Peer(ipandport=ipandport, verbose=self.verbose)    # Dont know nodeid yet
             node.peers.append(peer)
         peer.connect(verbose=self.verbose)
+        assert peer.connected
         assert peer.info["type"] == "DistPeerHTTP","Unexpected peer.info"+repr(peer.info)
         # Now we've got a peer so try again, should get bounced off peer server
         try:

@@ -120,7 +120,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
             data = res.get("data","")
             if data:
                 if isinstance(data, (dict, list, tuple)):    # Turn it into JSON
-                    data = dumps(data)
+                    data = CryptoLib.dumps(data)        # Need to do the CrypytoLib version since dict might hold a higher level class
                 elif hasattr(data, "dumps"):
                     data = CryptoLib.dumps(data)
                 if not isinstance(data, basestring):
