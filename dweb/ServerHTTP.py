@@ -21,7 +21,7 @@ LetterToClass = {
 class DwebHTTPRequestHandler(MyHTTPRequestHandler):
 
     #defaultipandport = ('192.168.1.156', 4243)
-    defaultipandport = (u'localhost', 4238)
+    defaultipandport = (u'localhost', 4243)
 
 
     @classmethod

@@ -439,7 +439,7 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
                 self.learnfrom(peer, verified=verified)
         elif isinstance(learning, Peer):
             if (self != learning) and (learning not in self.peers):
-                learning.connect = False    # We aren't connected to it yet
+                learning.connected = False    # We aren't connected to it yet
                 self.peers.append(learning)
                 self.queueconnections(learning) # Queue for connecting to #TODO-TX could maybe use a priority queue
         elif isinstance(learning, PeerResponse):
@@ -455,10 +455,12 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
     def queueprocess(self, block):
         try:
             task = self.connectionqueue.get(block)
-            print "XXX@439 queueprocess task=",task #TODO-QUEUE implement handling it
+            peer = task[1]
+            peer.connect()
+            #TODO-QUEUE may want to inform other connected peers.
         except Exception as e:
-            print "XXX@441 queueprocess exception needs handling:",e #TODO-QUEUE handle exceptions (empty ?)
-            raise e
+            print "XXX@441 queueprocess exception needs handling:", e.__class__.__name__, e #TODO-QUEUE handle exceptions (empty ?)
+             raise e
 
 
 class PeerSet(set):
@@ -476,9 +478,7 @@ class PeerSet(set):
         return PeerSet([peer for peer in self if peer not in exclude])
 
     def find(self, nodeid=None, ipandport=None):
-        print "XXX@478",self
         peers = [peer for peer in self if (nodeid and (nodeid == peer.nodeid)) or (ipandport and (ipandport == peer.ipandport))]
-        print "XXX@480", peers
         assert len(peers) < 2, "There should be only one or zero peers"
         if peers:
             return peers[0]  # Can only be one
@@ -584,7 +584,7 @@ class Peer(object):
                 self.info = self.transport.info(data=Dweb.transport.infodata())
                 if verbose: print self.info
             except ConnectionError as e:
-                pass
+                pass    # Dont set connected - unconnected Peers wont get used but may get retried
                 #raise e
             else:
                 # See other !ADD-INFO-FIELDS
@@ -595,7 +595,6 @@ class Peer(object):
                 if verbose: print "nodeid=", self.nodeid
                 self.connected = True
                 self.verified = True
-                print "XXX@597",self.peers
                 self.node.learnfrom(self.peers, verified=False)
         return self # For chaining
 

@@ -49,7 +49,7 @@ class TransportHTTPBase(Transport):
             if r is not None and (r.status_code == 404):
                 raise TransportURLNotFound(url=url, options=options)
             else:
-                print e
+                #print e.__class__.__name__, e
                 #TODO-LOGGING: logger.error(e)
                 raise e # For now just raise it
         #print r.status_code, r.text # r.json()
@@ -57,6 +57,7 @@ class TransportHTTPBase(Transport):
 
     def info(self, verbose=False, data=None, **options):
         """
+        ERR: ConnectionError (HTTPConnectionPool) if cant reach destn
         
         :param verbose: 
         :param options: 

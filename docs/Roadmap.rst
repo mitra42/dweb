@@ -46,14 +46,10 @@ TODO LIST
 This list is at a much finer lever of granularity than Roadmap above.
 
 * PEER: Peer knowledge system
-    * Add harvesting of knowledge about peers
-        * When connected to for info
-        * Test on html etc
-* PEER Add smart pruning of peer lists
-    * By distance
-    * By ping time (and simulate in testing)
-* PEER Send cached info when connecting
-    * Any data that new peer is "closer" to
+    * Test on html etc
+    * Move peer into Javascript
+* PEER Add smart pruning of peer lists by id-distance and ping time (sumulate ping time in testing)
+* PEER Send cached info when connecting  * Any data that new peer is "closer" to
 * FUNCTIONALITY: Add authentication layer in Javascript
     * Do via gateway (and try in browser)
     * Embed on index and test pages
