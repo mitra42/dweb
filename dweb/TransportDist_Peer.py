@@ -60,20 +60,28 @@ class ServerPeer(DwebHTTPRequestHandler):
         """
         req = PeerRequest.loads(data)
         res =  Dweb.transport.dispatch(req=req, verbose=verbose, **options)
-        Dweb.transport.learnfrom(res)   # Learn from full set - sent and received
+        Dweb.transport.learnfrom(res, verified=False)   # Learn from full set - sent and received
         return { "Content-type": "application/json", "data": res }
     peer.arglist=["data"]
 
     @exposed
-    def info(self, **kwargs):
+    def info(self, data=None, **kwargs):
+        """
+        Handle incoming info request - returns info on this node, but also learns from the request about peers the caller knows.
+        See TransportDistPeer.connect for caller
+        
+        :param data: 
+        :param kwargs: 
+        :return: 
+        """
         #Subclass DwebHTTPRequestHandler.info to return info about ServerPeer
         node = Dweb.transport
+        node.learnfrom(PeerSet(data["peers"], verified=False),verified=False)
+        del(data["peers"])
+        node.learnfrom(Peer(**data), verified=True)
         return { 'Content-type': 'text/json',
-                 'data': {  # See other !ADD-INFO-FIELDS
-                    'type': 'DistPeerHTTP',
-                    'peers': node.peers,
-                    'nodeid': node.nodeid,
-        }        }
+                 'data': node.infodata()
+        }
     info.arglist=[]
 
 
@@ -128,9 +136,19 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
         return "TransportDistPeer(%d, %s)" % (self.nodeid, self.tl.dir)
 
     def __eq__(self, other):
-        if not isinstance(other, int):
-            other = other.nodeid
-        return self.nodeid == other
+        othernodeid = other if isinstance(other, int) else other.nodeid
+        return self.nodeid == othernodeid or (isinstance(other, (Peer, TransportDistPeer)) and self.ipandport == other.ipandport)
+
+    def __ne__(self, other):
+        return not self==other
+
+    def infodata(self):
+        return {  # See other !ADD-INFO-FIELDS
+            'type': 'DistPeerHTTP',
+            'ipandport': self.ipandport,
+            'peers': self.peers,
+            'nodeid': self.nodeid,
+        }
 
     def backgroundthread(self, verbose=False):
         """
@@ -414,18 +432,19 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
         return PeerResponse(success=False, req=req, err="No response from any of %s peers" % len(self.peers))
 
     #======== Peer management ----------
-    def learnfrom(self, learning):
+    def learnfrom(self, learning, verified=False):
+        #print "XXX@424",learning.__class__.__name__, learning
         if isinstance(learning, PeerSet):
             for peer in learning:
-                self.learnfrom(peer)
+                self.learnfrom(peer, verified=verified)
         elif isinstance(learning, Peer):
             if (self != learning) and (learning not in self.peers):
                 learning.connect = False    # We aren't connected to it yet
                 self.peers.append(learning)
                 self.queueconnections(learning) # Queue for connecting to #TODO-TX could maybe use a priority queue
         elif isinstance(learning, PeerResponse):
-            self.learnfrom(learning.req.sourcenode)
-            self.learnfrom(learning.req.tried)
+            self.learnfrom(learning.req.sourcenode, verified=False)
+            self.learnfrom(learning.req.tried, verified=False)
         else: # isinstance(learning, (list, tuple, set, dict)):
             assert False, "Node.learnfrom expects PeerSet or Peer, not"+learning.__class__.__name__
 
@@ -441,13 +460,14 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
             print "XXX@441 queueprocess exception needs handling:",e #TODO-QUEUE handle exceptions (empty ?)
             raise e
 
+
 class PeerSet(set):
     """
     A list of peers
     """
-    def __init__(self,args=None):
+    def __init__(self,args=None, verified=False):
         args = args or []
-        super(PeerSet,self).__init__((a if isinstance(a,Peer) else Peer(**a)) for a in args)
+        super(PeerSet,self).__init__((a if isinstance(a,Peer) else Peer(verified=verified, **a)) for a in args)
 
     def connected(self):
         return PeerSet([peer for peer in self if peer.connected])
@@ -456,16 +476,24 @@ class PeerSet(set):
         return PeerSet([peer for peer in self if peer not in exclude])
 
     def find(self, nodeid=None, ipandport=None):
+        print "XXX@478",self
         peers = [peer for peer in self if (nodeid and (nodeid == peer.nodeid)) or (ipandport and (ipandport == peer.ipandport))]
+        print "XXX@480", peers
+        assert len(peers) < 2, "There should be only one or zero peers"
         if peers:
             return peers[0]  # Can only be one
         else:
             return None
 
     def append(self, peer):
-        if not isinstance(peer, (list, set)):
-            peer = (peer,)
-        self.update(peer)   # Adds to list if not there already
+        if isinstance(peer, (list, set)):
+            for p in peer: self.append(p)
+        else:
+            poss = self.find(nodeid=peer.nodeid, ipandport=peer.ipandport)  # Returns one or none
+            if poss:
+                poss.merge(peer)
+            else:
+                self.update((peer,))   # Adds to list
 
     def closestto(self, nodeid):
         return self and min(self, key=lambda p: p.distanceto(nodeid))
@@ -474,7 +502,7 @@ class PeerSet(set):
         max(self, key=lambda p: p.distanceto(nodeid))
 
     def __str__(self):
-        return str([(p.nodeid if p.nodeid else p.ipandport) for p in self])
+        return str([(p.nodeid, p.ipandport) for p in self])
 
     def nextnode(self, targetnodeid=None, exclude=None, verbose=False):
         """
@@ -501,11 +529,12 @@ class Peer(object):
     ipandport   HTTP address and port to connect to
     transport   How to get to Peer if connected (usually a TransportHTTP instance but could migrate to WebRTC
     info        Info packet as returned by connected peer
+    verified    True if got this info direct from peer #TODO-AUTHENTICAITON want encrypted 
 
     See other !ADD-PEER-FIELDS
     """
 
-    def __init__(self, node=None, nodeid=None, ipandport=None, verbose=False):
+    def __init__(self, node=None, nodeid=None, ipandport=None, type=None, verified=False, verbose=False):
         if verbose: print "Peer.__init__",nodeid,ipandport
         if node:
             self.nodeid=node.nodeid
@@ -513,26 +542,26 @@ class Peer(object):
         else:
             self.ipandport = ipandport
             self.nodeid = nodeid
+        self.type = type
         self.connected = False  # Start off disconnected
         self.transport = None
+        self.verified = verified
         self.info = None
-        #See other !ADD - PEER - FIELDS
-        """
-        self.cachedpeers = PeerSet()
-        self.connectedvia = connectedvia if connectedvia else PeerSet()  # List of peers connected via.
-        self.nodeid = nodeid
-        self.distance = node.distance(self)
-        self.node = node  # Parent node (in non Sim there would only ever be one)
-        assert node.nodeid not in [p.nodeid for p in self.connectedvia], "Shouldnt ever set connectedvia to incude TransportDistPeer"
-        """
+        #See other !ADD-PEER-FIELDS
 
     def __repr__(self):
-        #See other !ADD - PEER - FIELDS
+        #See other !ADD-PEER -FIELDS
         return "Peer(%s, %s, %s)" % (self.nodeid, self.ipandport,self.connected)
+
+    def __hash__(self): # For the set function to know what is equal - not quite same as the __eq__ but generally wont see case of matching ipandport nad not nodeid
+        return self.nodeid or hash(tuple(self.ipandport))
 
     def __eq__(self, other):    # Note this facilittes "in" to work on PeerSet's
         nodeid = other if isinstance(other, int) else other.nodeid
         return (nodeid and (self.nodeid == nodeid)) or (isinstance(other,(Peer,TransportDistPeer)) and (self.ipandport == other.ipandport) )
+
+    def __ne__(self, other):
+        return not (self == other)
 
     @property
     def node(self):
@@ -544,7 +573,7 @@ class Peer(object):
         return Dweb.transport
 
     def dumps(self):
-        #See other !ADD - PEER - FIELDS
+        #See other !ADD-PEER-FIELDS
         return {"nodeid": self.nodeid, "ipandport": self.ipandport}
 
     def connect(self, verbose=False):
@@ -552,21 +581,40 @@ class Peer(object):
             if verbose: print "Connecting to peer", self
             self.transport = TransportHTTP(ipandport=self.ipandport)
             try:
-                self.info = self.transport.info()
+                self.info = self.transport.info(data=Dweb.transport.infodata())
                 if verbose: print self.info
             except ConnectionError as e:
                 pass
                 #raise e
             else:
                 # See other !ADD-INFO-FIELDS
+                # This info is straight from the host, so verified, but the peerlist is indirect
                 self.nodeid = self.info["nodeid"]
-                self.peers = PeerSet(self.info["peers"])
+                self.peers = PeerSet(self.info["peers"], verified=False)    # This bit is verified, i.e. we know this Peer thinks these are its peers.
                 self.type = self.info["type"]
                 if verbose: print "nodeid=", self.nodeid
                 self.connected = True
-                self.node.learnfrom(self.peers)
+                self.verified = True
+                print "XXX@597",self.peers
+                self.node.learnfrom(self.peers, verified=False)
         return self # For chaining
 
+    def merge(self, peer):
+        """
+        Merge another peer into self, assumes latter more accurate for any info it contains.
+        Note usage applies to updating ipandport on known nodeid, or updating nodeid on known ipandport
+        
+        :param peer: 
+        :return: 
+        """
+        #See other !ADD-PEER-FIELDS
+        for field in ("nodeid", "ipandport", "type", "transport", "info"):
+            old = getattr(self, field, None)
+            new = getattr(peer, field, None)
+            res = (peer.verified and new) or (self.verified and old) or new or old  # Order of preference for result
+            setattr(self, field, res)
+        if peer.connected: self.connected = True            # Logical or of self and peer's connected status
+        if peer.verified: self.verified = True
 
     def distanceto(self, peerid):
         """
@@ -619,7 +667,7 @@ class PeerRequest(object):
         self.hops = hops
         self.data = data
         self.route = route or []
-        self.tried = tried if isinstance(tried, PeerSet) else ( PeerSet(tried) if tried else PeerSet())   # Initialize if unset
+        self.tried = tried if isinstance(tried, PeerSet) else ( PeerSet(tried, verified=False) if tried else PeerSet())   # Initialize if unset
         self.verbose = verbose
         self.hash = hash
         self.__dict__.update(kwargs)    # Store any parameters we don't use, will pass on with dumps

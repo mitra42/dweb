@@ -55,9 +55,18 @@ class TransportHTTPBase(Transport):
         #print r.status_code, r.text # r.json()
         return r    # r is a response
 
-    def info(self, verbose=False, **options):
+    def info(self, verbose=False, data=None, **options):
+        """
+        
+        :param verbose: 
+        :param options: 
+        :return: 
+        """
         if verbose: print "%s.info" % self.__class__.__name__
-        res = self._sendGetPost(False, "info", urlargs=[], verbose=verbose, params=options)
+        if data:
+            res = self._sendGetPost(True, "info", urlargs=[], headers={"Content-Type": "application/json"}, verbose=verbose, data=CryptoLib.dumps(data), params=options)
+        else:
+            res = self._sendGetPost(False, "info", urlargs=[], verbose=verbose, params=options)
         return res.json()
 
     def url(self, obj, command=None, hash=None, table=None, contenttype=None, url_output=None, **options):

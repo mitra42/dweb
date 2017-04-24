@@ -44,7 +44,7 @@ class Dweb(object):
                 serv = "../cache"
                 port = None
             elif transportstring == "http":
-                serv = "localhost"
+                serv = u"localhost"
                 port = 4243
             else:
                 serv, port = transportstring.split(':')
