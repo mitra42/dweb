@@ -5,6 +5,7 @@ import os
 from pathlib2 import Path
 from json import loads, dumps
 import base64
+import time
 from Crypto.PublicKey import RSA
 
 from misc import _print
@@ -26,7 +27,7 @@ class Testing(unittest.TestCase):
     def setUp(self):
         super(Testing, self).setUp()
         testTransporttype = 3 #TransportLocal, TransportHTTP, TransportDistPeer, TransportDistPeer = multi  # Can switch between TransportLocal and TransportHTTP to test both
-        self.verbose=False
+        self.verbose=True
         self.quickbrownfox =  "The quick brown fox ran over the lazy duck"
         self.dog = "But the clever dog chased the fox"
         self.mydic = { "a": "AAA", "1":100, "B_date": datetime.now()}  # Dic can't contain integer field names
@@ -51,6 +52,7 @@ class Testing(unittest.TestCase):
             assert False, "Unimplemented test for Transport "+testTransport.__class__.__name__
 
     def tearDown(self):
+        time.sleep(1)   # Allow background thread to finish
         super(Testing, self).tearDown()
 
     def keyfromfile(self, keyname, private=False):
@@ -398,4 +400,4 @@ class Testing(unittest.TestCase):
 
     def Xtest_current(self):
         self.verbose=True
-        self.test_peer()
+        self.test_Block()

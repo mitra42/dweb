@@ -1,5 +1,7 @@
 # encoding: utf-8
 
+####TODO-LIBSODIUM ## FROM HERE DOWN #####
+
 from json import dumps, loads
 import base64
 import hashlib
@@ -9,10 +11,10 @@ from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES, PKCS1_OAEP
 import os
 from mnemonic import Mnemonic
+from multihash import encode, SHA1,SHA2_256, SHA2_512, SHA3
 
 from misc import MyBaseException, ToBeImplementedException
 import sha3 # To add to hashlib
-from multihash import encode, SHA1,SHA2_256, SHA2_512, SHA3
 from CommonBlock import Transportable, SmartDict
 from Dweb import Dweb
 

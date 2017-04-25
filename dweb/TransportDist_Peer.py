@@ -4,15 +4,15 @@ import binascii # for crc32
 from random import randint
 import base64
 import socket   # for socket.error
-import threading
 from requests.exceptions import ConnectionError
+import threading
 import Queue    #TODO-QUEUE
 from Transport import TransportFileNotFound
 from TransportHTTP import TransportHTTP
 from MyHTTPServer import exposed
 from CryptoLib import CryptoLib
 from Dweb import Dweb
-from Transport import TransportFileNotFound, TransportBlockNotFound
+from Transport import TransportFileNotFound, TransportBlockNotFound, TransportURLNotFound
 from TransportHTTP import TransportHTTPBase
 from TransportLocal import TransportLocal
 from ServerHTTP import DwebHTTPRequestHandler
@@ -157,13 +157,16 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
 
         :return: 
         """
+        if verbose: print "starting background thread"
         thread = threading.Thread(target=self.runbackground, args=(verbose,))
         thread.daemon = True  # Parent thread will exit if fails to get server port
         thread.start()
 
     def runbackground(self, verbose=False):
         if verbose: print "Background thread starting"
-        task = self.queueprocess(True)
+        while True:
+            task = self.queueprocess(True)
+            if verbose: print "Background thread looping"
         if verbose: print "Background thread exiting"
 
     #========== Standard list of Transport layer functions that have to be provided ================
@@ -453,14 +456,21 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
         self.connectionqueue.put((0,peer))
 
     def queueprocess(self, block):
+        #TODO-QUEUE does this need a loop
+        #print "queueprocess start"
         try:
             task = self.connectionqueue.get(block)
+            #print "got a task"
             peer = task[1]
             peer.connect()
             #TODO-QUEUE may want to inform other connected peers.
-        except Exception as e:
-            print "XXX@441 queueprocess exception needs handling:", e.__class__.__name__, e #TODO-QUEUE handle exceptions (empty ?)
-             raise e
+        except TransportURLNotFound as e:
+            # Typical error if server thinks it knows a peer but its wrong.
+            print "Not reaching peer:",peer
+        #Leave commented to make failures fail at point, otherwise
+        #except Exception as e:
+        #    print "XXX@441 queueprocess exception needs handling:", e.__class__.__name__, e #TODO-QUEUE handle exceptions (empty ?)
+        #    raise e
 
 
 class PeerSet(set):

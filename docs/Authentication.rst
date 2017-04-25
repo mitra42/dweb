@@ -119,3 +119,7 @@ To view an item
     KeyChain: KC_keypair [ KC_item* ]
     KC_item: encrypr(ViewerKey | MBM, KC_keypair)
 
+Notes from Javascropt implementation
+------------------------------------
+https://download.libsodium.org/doc/public-key_cryptography/authenticated_encryption.html
+
