@@ -9,7 +9,7 @@ import time
 from Crypto.PublicKey import RSA
 
 from misc import _print
-from CryptoLib import CryptoLib, KeyPair
+from CryptoLib import CryptoLib, KeyPair, WordHashKey
 from Transport import TransportBlockNotFound, TransportURLNotFound, TransportFileNotFound
 from TransportLocal import TransportLocal
 from TransportHTTP import TransportHTTP
@@ -26,7 +26,7 @@ from ServerHTTP import DwebHTTPRequestHandler
 class Testing(unittest.TestCase):
     def setUp(self):
         super(Testing, self).setUp()
-        testTransporttype = 3 #TransportLocal, TransportHTTP, TransportDistPeer, TransportDistPeer = multi  # Can switch between TransportLocal and TransportHTTP to test both
+        testTransporttype = 2 #TransportLocal, TransportHTTP, TransportDistPeer, TransportDistPeer = multi  # Can switch between TransportLocal and TransportHTTP to test both
         self.verbose=True
         self.quickbrownfox =  "The quick brown fox ran over the lazy duck"
         self.dog = "But the clever dog chased the fox"
@@ -34,7 +34,9 @@ class Testing(unittest.TestCase):
         self.ipandport = DwebHTTPRequestHandler.defaultipandport  # Serve it via HTTP on all addresses
         #self.ipandport = ('192.168.1.156',4243)  # Serve it via HTTP on all addresses
         self.exampledir = "../examples/"    # Where example files placed
-        self.mnemonic = "lecture name virus model jealous whisper stone broom harvest april notable lunch" # Random valid mnemonic
+        # Random valid mnemonic
+        #self.mnemonic = "lecture name virus model jealous whisper stone broom harvest april notable lunch"  # 16byte
+        self.mnemonic = "olympic high dress found sport caution grant insect receive upper connect regret limit awesome image text bamboo dawn fold pen raccoon math delay virus" # 32 byte
         if testTransporttype == 0: # TransportLocal:
             Dweb.settransport(transportclass=TransportLocal, verbose=self.verbose, dir="../cache")
         elif testTransporttype == 1: # TransportHTTP:
@@ -44,6 +46,7 @@ class Testing(unittest.TestCase):
             Dweb.settransport(transportclass=TransportDistPeer, dir="../cache", ipandport=self.ipandport, verbose=self.verbose)
             Dweb.transport.peers.append(Peer(ipandport=ServerPeer.defaultipandport, verbose=self.verbose).connect())
             if testTransporttype == 3:
+                #TODO replace this with a "learnfrom" experience, so connects background etc
                 maxport = ServerPeer.defaultipandport[1]+10
                 for i in range(ServerPeer.defaultipandport[1],maxport):
                     if self.verbose: print "Adding peer",i
@@ -69,10 +72,10 @@ class Testing(unittest.TestCase):
     # ======== STANDARD CREATION ROUTINES
     def _acl(self): # See test_keychain for use and canonical testing
         if self.verbose: print "Creating AccessControlList"
-        # Create a acl for testing, - full breakout is in test_acl
+        # Create a acl for testing, - full breakout is in test_keychain
         accesskey=CryptoLib.randomkey()
         acl = AccessControlList(name="test_acl.acl", master=True, keypair=self.keyfromfile("test_acl1_rsa", private=True),
-                                accesskey=base64.urlsafe_b64encode(accesskey), verbose=self.verbose)
+                                accesskey=CryptoLib.b64enc(accesskey), verbose=self.verbose)
         acl._allowunsafestore = True    # Not setting _acl on this
         acl.store(verbose=self.verbose)
         acl._allowunsafestore = False
@@ -118,7 +121,7 @@ class Testing(unittest.TestCase):
         #signedblock.sign(commonlist0, verbose=self.verbose) # This should fail, but
         if self.verbose: print "test_Signatures CommonLost"
         CommonList.table = "BOGUS"  # Defeat errors
-        commonlist = CommonList(keypair=keypair, keygen=RSA, master=True, name="test_Signatures.commonlist")
+        commonlist = CommonList(keypair=keypair, keygen=True, master=True, name="test_Signatures.commonlist")
         if self.verbose: print "test_Signatures sign"
         commonlist._allowunsafestore = True
         signedblock.sign(commonlist, verbose=self.verbose)
@@ -132,7 +135,7 @@ class Testing(unittest.TestCase):
     def test_MutableBlocks(self):
         #self.verbose=True
         if self.verbose: print "test_MutableBlocks: Create master"
-        mblockm = MutableBlock(master=True, keygen=RSA, verbose=self.verbose)      # Create a new block with a new key
+        mblockm = MutableBlock(master=True, keygen=True, verbose=self.verbose)      # Create a new block with a new key
         mblockm._current.data = self.quickbrownfox                       # Put some data in it (goes in the StructuredBlock at _current
         mblockm._allowunsafestore = True                        # Avoid dependency on ACL and encryption in this test
         mblockm.signandstore(verbose=self.verbose)              # Sign it - this publishes it
@@ -291,17 +294,22 @@ class Testing(unittest.TestCase):
     def test_crypto(self):
         if self.verbose: print "test_crypto: tests of the crypto library - esp round trips through functions"
         # Try symetric encrypt/decrypt
-        aeskey = CryptoLib.randomkey()
-        enc = CryptoLib.sym_encrypt(self.quickbrownfox, aeskey)
-        dec = CryptoLib.sym_decrypt(enc, aeskey)
+        symkey = CryptoLib.randomkey()
+        enc = CryptoLib.sym_encrypt(self.quickbrownfox, symkey)
+        dec = CryptoLib.sym_decrypt(enc, symkey)
         assert dec == self.quickbrownfox
-        # Try RSA encrypt/decrypt
-        keypair = KeyPair.keygen()
-        enc = keypair.encrypt(self.quickbrownfox)
-        dec = keypair.decrypt(enc)
-        assert dec == self.quickbrownfox
+        if CryptoLib.defaultlib == "NACL":
+            # TODO-LIBSODIUM add test of sign/verify
+            print "XXX@302 - NACL NOT DONE YET FOR PLAIN ENCRYPT/DECRYPT"
+        else:
+            # Try RSA encrypt/decrypt
+            keypair = KeyPair.keygen()
+            enc = keypair.encrypt(self.quickbrownfox)
+            enclong = keypair.encrypt(self.quickbrownfox*100)
+            dec = keypair.decrypt(enc)
+            assert dec == self.quickbrownfox
 
-    def test_keychain(self): # TODO rename test_keychain
+    def test_keychain(self):
         """
         This is a supercomplex test, that effectively tests a lot of subsystems including AccessControlLists, KeyChains and encryption in transport
         """
@@ -400,4 +408,8 @@ class Testing(unittest.TestCase):
 
     def Xtest_current(self):
         self.verbose=True
-        self.test_Block()
+        print "XXX@405",WordHashKey.generate().mnemonic
+        self.test_crypto()
+        self.test_keychain()
+
+

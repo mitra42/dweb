@@ -50,7 +50,7 @@ class CommonList(SmartDict):
         if keypair:
             self.keypair = keypair
         if keygen:
-                self.keypair = KeyPair.keygen(keyclass=keygen, verbose=verbose, **options)   # Note these options are also set on smartdict, so catch explicitly if known.
+                self.keypair = KeyPair.keygen(verbose=verbose, **options)   # Note these options are also set on smartdict, so catch explicitly if known.
         if not self._master:
             self._publichash = hash # Maybe None.
         self._list = Signatures([])
@@ -64,7 +64,7 @@ class CommonList(SmartDict):
         if value and not isinstance(value, KeyPair):
             value = KeyPair(key=value)
         self.__dict__["keypair"] = value
-        self._master = value and value._key.has_private()
+        self._master = value and value.has_private()
 
 
     def preflight(self, dd=None):
@@ -176,7 +176,7 @@ class MutableBlock(CommonList):
     """
     table = "mb"
 
-    def __init__(self, master=False, keypair=None, data=None, hash=None, contenthash=None, contentacl=None, verbose=False, **options):
+    def __init__(self, master=False, keypair=None, data=None, hash=None, contenthash=None, contentacl=None, keygen=False, verbose=False, **options):
         """
         Create and initialize a MutableBlock
         Adapted to dweb.js.MutableBlock.constructor
@@ -189,8 +189,8 @@ class MutableBlock(CommonList):
         :param options: # Can indicate how to initialize content
         """
         # This next line for "hash" is odd, side effect of hash being for content with MB.master and for key with MB.!master
-        if verbose: print "MutableBlock( keypair=",keypair, "data=",data, "hash=", hash, "options=", options,")"
-        super(MutableBlock, self).__init__(master=master, keypair=keypair, data=data, hash=hash, verbose=verbose, **options)
+        if verbose: print "MutableBlock( keypair=",keypair, "data=",data, "hash=", hash, "keygen=", keygen, "options=", options,")"
+        super(MutableBlock, self).__init__(master=master, keypair=keypair, data=data, hash=hash, keygen=keygen, verbose=verbose, **options)
         # Exception PrivateKeyException if passed public key and master=True
         self.contentacl = contentacl    # Hash of content when publishing - calls contentacl.setter which retrieves it , only has meaning if master - triggers setter on content
         self._current = StructuredBlock(hash=contenthash, verbose=verbose) if master else None # Create a place to hold content, pass hash to load content
@@ -319,7 +319,7 @@ class AccessControlList(EncryptionList):
         viewerpublickeypair = KeyPair(hash=viewerpublichash).fetch(verbose=verbose)
         aclinfo = {
             # Need to go B64->binary->encrypt->B64
-            "token": viewerpublickeypair.encrypt(base64.urlsafe_b64decode(self.accesskey), b64=True),
+            "token": viewerpublickeypair.encrypt(CryptoLib.b64dec(self.accesskey), b64=True),
             "viewer": viewerpublichash,
         }
         sb = StructuredBlock(data=aclinfo)
@@ -392,7 +392,7 @@ class KeyChain(EncryptionList):
         KeyChain.addkeychains(kc)
         kc.fetch(verbose=verbose, fetchlist=True, fetchblocks=False)    # Was fetching blocks, but now done by "keys"
         if verbose: print "Created keychain for:", kc.keypair.private.mnemonic
-        if verbose: print "Record these words if you want to access again"
+        if verbose and not mnemonic: print "Record these words if you want to access again"
         return kc
 
     @property
@@ -412,7 +412,7 @@ class KeyChain(EncryptionList):
         :param verbose:
         :return:
         """
-        symkey = base64.urlsafe_b64decode(self.accesskey)
+        symkey = CryptoLib.b64dec(self.accesskey)
         r = CryptoLib.sym_decrypt(data, symkey, b64=True)  # Exception DecryptionFail (would be bad)
         return r
 
@@ -434,7 +434,7 @@ class KeyChain(EncryptionList):
 
     @property
     def accesskey(self):
-        return base64.urlsafe_b64encode(self.keypair._key._private)
+        return CryptoLib.b64enc(self.keypair._key._private)
 
     def store(self, verbose=False, **options ):
         return super(KeyChain, self).store(verbose=verbose, dontstoremaster=True, **options)  # Stores public version and sets _publichash

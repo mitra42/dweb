@@ -6,13 +6,13 @@ fPIPUPGRADE=true
 fMAKECHANGE=true
 fVERBOSE=true
 
-PIPINSTALLS="py-dateutil pycrypto sha3 requests pathlib http multihash mnemonic"
+PIPINSTALLS="py-dateutil pycrypto sha3 requests pathlib http multihash mnemonic pynacl"
 # This set are probably builtins but get imported
 # Pip install failed (not allowed) on: os sys json hashlib
 # Pip install failed (cant uninstall predecessr) on: datetime
 # Pip install failed on python-magic because needs libmagic - so not used in code
 # Pip couldnt find - so maybe another name, or builtin: base64 cgi urllib hashlib cgi urllib BaseHTTPServer urlparse traceback unittest abc
-#OTHER MODULES USE OFTEN : pytz CherryPy lxml xlwt phonenumbers requests-mock passlib
+#OTHER MODULES USE OFTEN in other projects: pytz CherryPy lxml xlwt phonenumbers requests-mock passlib
 # Maybe use pysha3
 PIPEGREP=`echo $PIPINSTALLS | sed -e 's/ /|/g'`
 DIRS="../cache ../cache_http ../cache_peer"
@@ -32,7 +32,7 @@ fi
 ${fVERBOSE} && pip list --format=columns | egrep ${PIPEGREP}
 
 checkAndCreate() {
-    # Check for existance of diretory $1,
+    # Check for existance of directory $1,
     # if doesnt exist then create and make g+rw and group=luminutes
     # make sure all directories and files in it are also g+w and luminutes
     if [ ! -d "$1" ]
