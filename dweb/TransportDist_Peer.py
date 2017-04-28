@@ -137,7 +137,10 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
 
     def __eq__(self, other):
         othernodeid = other if isinstance(other, int) else other.nodeid
-        return self.nodeid == othernodeid or (isinstance(other, (Peer, TransportDistPeer)) and self.ipandport == other.ipandport)
+        # See identical code on Peer & TransportDist_Peer
+        # Have to do this comparison carefully as (u'localhost',4243) != [u'localhost',4243]
+        return self.nodeid == othernodeid or \
+               (isinstance(other, (Peer, TransportDistPeer)) and (self.ipandport[0] == other.ipandport[0]) and (self.ipandport[1] == other.ipandport[1]))
 
     def __ne__(self, other):
         return not self==other
@@ -567,8 +570,11 @@ class Peer(object):
         return self.nodeid or hash(tuple(self.ipandport))
 
     def __eq__(self, other):    # Note this facilittes "in" to work on PeerSet's
-        nodeid = other if isinstance(other, int) else other.nodeid
-        return (nodeid and (self.nodeid == nodeid)) or (isinstance(other,(Peer,TransportDistPeer)) and (self.ipandport == other.ipandport) )
+        othernodeid = other if isinstance(other, int) else other.nodeid
+        # See identical code on Peer & TransportDist_Peer
+        # Have to do this comparison carefully as (u'localhost',4243) != [u'localhost',4243]
+        return self.nodeid == othernodeid or \
+               (isinstance(other, (Peer, TransportDistPeer)) and (self.ipandport[0] == other.ipandport[0]) and (self.ipandport[1] == other.ipandport[1]))
 
     def __ne__(self, other):
         return not (self == other)
