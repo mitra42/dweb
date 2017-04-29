@@ -470,10 +470,10 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
         except TransportURLNotFound as e:
             # Typical error if server thinks it knows a peer but its wrong.
             print "Not reaching peer:",peer
-        #Leave commented to make failures fail at point, otherwise
-        #except Exception as e:
-        #    print "XXX@441 queueprocess exception needs handling:", e.__class__.__name__, e #TODO-QUEUE handle exceptions (empty ?)
-        #    raise e
+        #Comment out to make failures fail at point, otherwise
+        except Exception as e:  # Comment out this block if want exceptions raised at place happen
+            print "queueprocess exception needs handling:", e.__class__.__name__, e #TODO-QUEUE handle exceptions (empty ?)
+            raise e
 
 
 class PeerSet(set):

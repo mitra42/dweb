@@ -7,6 +7,9 @@ from json import loads, dumps
 import base64
 import time
 from Crypto.PublicKey import RSA
+import nacl.public
+import nacl.signing
+import nacl.encoding
 
 from misc import _print
 from CryptoLib import CryptoLib, KeyPair, WordHashKey
@@ -27,13 +30,14 @@ class Testing(unittest.TestCase):
     def setUp(self):
         super(Testing, self).setUp()
         testTransporttype = 2 #TransportLocal, TransportHTTP, TransportDistPeer, TransportDistPeer = multi  # Can switch between TransportLocal and TransportHTTP to test both
-        self.verbose=True
+        self.verbose=False
         self.quickbrownfox =  "The quick brown fox ran over the lazy duck"
         self.dog = "But the clever dog chased the fox"
         self.mydic = { "a": "AAA", "1":100, "B_date": datetime.now()}  # Dic can't contain integer field names
         self.ipandport = DwebHTTPRequestHandler.defaultipandport  # Serve it via HTTP on all addresses
         #self.ipandport = ('192.168.1.156',4243)  # Serve it via HTTP on all addresses
         self.exampledir = "../examples/"    # Where example files placed
+        self.keytail = ["_rsa","_nacl"][CryptoLib.defaultlib]
         # Random valid mnemonic
         #self.mnemonic = "lecture name virus model jealous whisper stone broom harvest april notable lunch"  # 16byte
         self.mnemonic = "olympic high dress found sport caution grant insect receive upper connect regret limit awesome image text bamboo dawn fold pen raccoon math delay virus" # 32 byte
@@ -58,31 +62,32 @@ class Testing(unittest.TestCase):
         time.sleep(1)   # Allow background thread to finish
         super(Testing, self).tearDown()
 
-    def keyfromfile(self, keyname, private=False):
+    def keyfromfile(self, keyname, keytype=None, private=False):
         """
         Load a key from a file, if file doesnt exist then create it with a new randome key.
         Note that in normal testing, the file will be created when the test is run first, then that key file will end up in git so will be same on all machines.
         """
-        keypath = self.exampledir + keyname
+        keypath = self.exampledir + keyname + self.keytail
         if not os.path.exists(keypath):
-            keypair = KeyPair.keygen()
-            File._write(filepath=keypath, data=keypair.privateexport if private else keypair.publicexport)
+            keypair = KeyPair.keygen(keytype=keytype)
+            data=keypair.privateexport if private else keypair.publicexport
+            File._write(filepath=keypath, data=data)
         return File.load(filepath=keypath).content()
 
     # ======== STANDARD CREATION ROUTINES
-    def _acl(self): # See test_keychain for use and canonical testing
+    def _makeacl(self): # See test_keychain for use and canonical testing
         if self.verbose: print "Creating AccessControlList"
         # Create a acl for testing, - full breakout is in test_keychain
         accesskey=CryptoLib.randomkey()
-        acl = AccessControlList(name="test_acl.acl", master=True, keypair=self.keyfromfile("test_acl1_rsa", private=True),
+        acl = AccessControlList(name="test_acl.acl", master=True, keypair=self.keyfromfile("test_acl1"+self.keytail, private=True, keytype=KeyPair.KEYTYPESIGN),
                                 accesskey=CryptoLib.b64enc(accesskey), verbose=self.verbose)
         acl._allowunsafestore = True    # Not setting _acl on this
-        acl.store(verbose=self.verbose)
+        h = acl.store(verbose=self.verbose)
         acl._allowunsafestore = False
         if self.verbose: print "Creating AccessControlList hash=", acl._hash
         return acl
 
-    def _sb(self, acl=None):    # See test_structuredblock for canonical testing of this
+    def _makesb(self, acl=None):    # See test_structuredblock for canonical testing of this
         if self.verbose: print "Create Structured Block"
         sb = StructuredBlock()
         sb.name = "test _sb"
@@ -114,7 +119,7 @@ class Testing(unittest.TestCase):
         # Test Signatures
         #self.verbose=True
         signedblock = StructuredBlock(data=self.mydic)
-        keypair = KeyPair.keygen()
+        keypair = KeyPair.keygen(keytype=KeyPair.KEYTYPESIGN)
         # This test should really fail, BUT since keypair has private it passes signature
         #commonlist0 = CommonList(keypair=keypair, master=False)
         #print commonlist0
@@ -194,7 +199,7 @@ class Testing(unittest.TestCase):
             assert resp.text == content, "Should return data stored"
             assert resp.headers["Content-type"] == "text/html", "Should get type"
         # Now test a MutableBlock that uses this content
-        mbm = MutableBlock(master=True, keypair=self.keyfromfile("index_html_rsa", private=True), contenthash=sb._hash)
+        mbm = MutableBlock(master=True, keypair=self.keyfromfile("index_html"+self.keytail, private=True, keytype=KeyPair.KEYTYPESIGN), contenthash=sb._hash)
         mbm._allowunsafestore = True
         mbm.store().signandstore(verbose=self.verbose)
         mbm._allowunsafestore = False
@@ -227,13 +232,13 @@ class Testing(unittest.TestCase):
         assert resp.content == content, "Should return data stored"
 
     def test_badblock(self):
-        Dweb.settransport(transportclass=TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         try:
-            resp = Dweb.transport._sendGetPost(False, "rawfetch", [ "12345"], params={"contenttype": "image/png"})
-        except TransportURLNotFound as e:
+            resp = Dweb.transport.rawfetch(hash="12345")
+            #resp = Dweb.transport._sendGetPost(False, "rawfetch", [ "12345"], params={"contenttype": "image/png"})
+        except (TransportURLNotFound,TransportFileNotFound, TransportBlockNotFound) as e:
             pass
         else:
-            assert False, "Should raise a TransportURLNotFound error"
+            assert False, "Should raise a TransportURLNotFound, TransportBlockNotFound or TransportFileNotFound error"
 
     def _storeas(self, filename, keyname, contenttype, **options):
         filepath = self.exampledir + filename
@@ -242,9 +247,8 @@ class Testing(unittest.TestCase):
         else:
             f = File.load(filepath=filepath, contenttype=contenttype, upload=True, verbose=self.verbose, **options)
         if self.verbose: print f
-        keypath = self.exampledir + keyname if keyname else None
-        if keypath:
-            mbm = MutableBlock(master=True, keypair=self.keyfromfile(keyname, private=True), contenthash=f._hash, verbose=self.verbose)
+        if keyname:
+            mbm = MutableBlock(master=True, keypair=self.keyfromfile(keyname, private=True, keytype=KeyPair.KEYTYPESIGN), contenthash=f._hash, verbose=self.verbose)
             mbm._allowunsafestore = True    # TODO could encrypt these
             mbm.store(private=True, verbose=self.verbose)
             mbm.signandstore(verbose=self.verbose)
@@ -263,17 +267,17 @@ class Testing(unittest.TestCase):
             return
         #Dweb.settransport(transportclass=TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         b=Block(data=self.dog); b.store(); print self.dog,b.url()
-        self._storeas("dweb.js", "dweb_js_rsa", "application/javascript")
+        self._storeas("dweb.js", "dweb_js", "application/javascript")
         self._storeas("jquery-3.1.1.js", None, "application/javascript")
-        self._storeas("index.html", "index_html_rsa", "text/html")
-        self._storeas("test.html", "test_html_rsa", "text/html")
-        self._storeas("snippet.html", "snippet_html_rsa", "text/html")
-        self._storeas("snippet2.html", "snippet_html_rsa", "text/html")
+        self._storeas("index.html", "index_html", "text/html")
+        self._storeas("test.html", "test_html", "text/html")
+        self._storeas("snippet.html", "snippet_html", "text/html")
+        self._storeas("snippet2.html", "snippet_html", "text/html")
         self._storeas("WrenchIcon.png", None, "image/png")
-        self._storeas("DWebArchitecture.png", "DwebArchitecture_png_rsa","image/png")
-        self._storeas("../tinymce", "tinymce_rsa", None)
-        self._storeas("../docs/_build/html", "docs_build_html_rsa", None)
-        self._storeas("objbrowser.html", "objbrowser_html_rsa", "text/html")
+        self._storeas("DWebArchitecture.png", "DwebArchitecture_png","image/png")
+        self._storeas("../tinymce", "tinymce", None)
+        self._storeas("../docs/_build/html", "docs_build_html", None)
+        self._storeas("objbrowser.html", "objbrowser_html", "text/html")
 
     def test_uploadandrelativepaths(self):
         # Test that a directory can be uploaded and then accessed by a relative path
@@ -298,9 +302,23 @@ class Testing(unittest.TestCase):
         enc = CryptoLib.sym_encrypt(self.quickbrownfox, symkey)
         dec = CryptoLib.sym_decrypt(enc, symkey)
         assert dec == self.quickbrownfox
-        if CryptoLib.defaultlib == "NACL":
+        if CryptoLib.defaultlib == CryptoLib.NACL:
             # TODO-LIBSODIUM add test of sign/verify
-            print "XXX@302 - NACL NOT DONE YET FOR PLAIN ENCRYPT/DECRYPT"
+            keypair = KeyPair.keygen(keytype=KeyPair.KEYTYPEENCRYPT)
+            svpair = KeyPair.keygen(keytype=KeyPair.KEYTYPESIGN)
+            svpair_key = svpair._key.encode(nacl.encoding.RawEncoder)
+            svpair_encrypt = nacl.public.PrivateKey(svpair_key)
+            sendingbox = nacl.public.Box(svpair_encrypt, keypair._key.public_key)
+            #print "sendingbox.sharedsecret=",sendingbox.shared_key()
+            encmsg = sendingbox.encrypt(self.quickbrownfox)
+            receivingbox = nacl.public.Box(keypair._key, svpair_encrypt.public_key)
+            #print "receivingbox.sharedsecret=",receivingbox.shared_key()
+            assert sendingbox.shared_key() == receivingbox.shared_key()
+            res = receivingbox.decrypt(encmsg)
+            assert res == self.quickbrownfox
+            #print res
+            assert sendingbox.encode(nacl.encoding.URLSafeBase64Encoder) == receivingbox.encode(nacl.encoding.URLSafeBase64Encoder)
+
         else:
             # Try RSA encrypt/decrypt
             keypair = KeyPair.keygen()
@@ -323,7 +341,7 @@ class Testing(unittest.TestCase):
         kc.add(mblockm, verbose=self.verbose)   # Sign and store on KC's list
         if self.verbose: print "KEYCHAIN 2 - add viewerkeypair to it"
         vkpname="test_keychain viewerkeypair"
-        viewerkeypair = KeyPair(name=vkpname, key=self.keyfromfile("test_viewer1_rsa", private=True))
+        viewerkeypair = KeyPair(name=vkpname, key=self.keyfromfile("test_viewer1"+self.keytail, private=True, keytype=KeyPair.KEYTYPEENCRYPT))
         viewerkeypair._acl = kc
         viewerkeypair.store(verbose=self.verbose) # Defaults to store private=False
         kc.add(viewerkeypair, verbose=self.verbose)
@@ -339,16 +357,16 @@ class Testing(unittest.TestCase):
         assert mbm3.__class__.__name__ == "MutableBlock", "Should be a mutable block"
         assert mbm3.name == mblockm.name, "Names should survive round trip"
         if self.verbose: print "KEYCHAIN 5: Check can user ViewerKeyPair"
-        acl = self._acl()   # Create Access Control List    - dont require encrypting as pretending itssomeone else's
+        acl = self._makeacl()   # Create Access Control List    - dont require encrypting as pretending itssomeone else's
         acl._allowunsafestore = True
         acl.add(viewerpublichash=viewerkeypair._hash, verbose=self.verbose)   # Add us as viewer
-        sb = self._sb(acl=acl)   # Encrypted obj
+        sb = self._makesb(acl=acl)   # Encrypted obj
         assert KeyChain.myviewerkeys()[0].name == vkpname, "Should find viewerkeypair stored above"
         if self.verbose: print "KEYCHAIN 6: Check can fetch and decrypt - should use viewerkeypair stored above"
         sb2 = StructuredBlock(hash=sb._hash, verbose=self.verbose).fetch(verbose=self.verbose) # Fetch & decrypt
         assert sb2.data == self.quickbrownfox, "Data should survive round trip"
         if self.verbose: print "KEYCHAIN 7: Check can store content via an MB"
-        mblockm = MutableBlock.new(contentacl=acl, _allowunsafestore=True, content=self.quickbrownfox, signandstore=True, verbose=self.verbose)  # Simulate other end
+        mblockm = MutableBlock.new(contentacl=acl, name="mblockm", _allowunsafestore=True, content=self.quickbrownfox, signandstore=True, verbose=self.verbose)  # Simulate other end
         mb = MutableBlock(name="test_acl mb", hash=mblockm._publichash, verbose=self.verbose)
         assert mb.content(verbose=self.verbose) == self.quickbrownfox, "should round trip through acl"
         if self.verbose: print "test_keychain: done"
@@ -365,12 +383,17 @@ class Testing(unittest.TestCase):
         if not isinstance(Dweb.transport, TransportDistPeer):
             print "Can't run test_peer on ",Dweb.transport.__class__.__name__
             return
-        qbfhash="SHA3256B64URL.heOtR2QnWEvPuVdxo-_2nPqxCSOUUjTq8GShJv8VUFI="    # Hash of self.quickbrownfox
-        cdhash="SHA3256B64URL.50GNWgUQ9GgrVfMvpedEg77ByMRYkUgPRU9P1gWaNF8="    # Hash of self.dog "Clever Dog" string saved in test_upload
+        if CryptoLib.defaultlib == CryptoLib.CRYPTO:
+            qbfhash="SHA3256B64URL.heOtR2QnWEvPuVdxo-_2nPqxCSOUUjTq8GShJv8VUFI="    # Hash of self.quickbrownfox
+            cdhash = "SHA3256B64URL.50GNWgUQ9GgrVfMvpedEg77ByMRYkUgPRU9P1gWaNF8="  # Hash of self.dog "Clever Dog" string saved in test_upload
+            newdatahash = "SHA3256B64URL.ZhVKuERkgeQtVaTnfLxU2QRpBptdk11J8vw30G8DhIU="
+        else:
+            qbfhash = "BLAKE2.YOanaCqfg3UsKoqlNmVG7SFwLgDyB3aToEmLCH-vOzs="
+            cdhash = "BLAKE2.A5JOSLvsRV-dFuFqNlpQeBP5OojtIuJmUq9mmoAJXkA="
+            newdatahash = "BLAKE2.nlUV_dAC5psmShv8jSCmDAa1-LWGbMrGKOQ2PkHcx5g="
         newdata = "I am a new piece of data"    # Note *not* stored by any other test here
-        newdatahash="SHA3256B64URL.ZhVKuERkgeQtVaTnfLxU2QRpBptdk11J8vw30G8DhIU="
         hash = Dweb.transport.rawstore(data=self.quickbrownfox, verbose=self.verbose)
-        assert hash == qbfhash, "Stored correctly (locally - no peers connected yet"
+        assert hash == qbfhash, "Stored correctly (locally - no peers connected yet, got "+hash+" expected "+qbfhash
         data = Dweb.transport.rawfetch(hash=qbfhash,verbose=self.verbose)
         assert data == self.quickbrownfox, "Local cache of quick brown fox"+data
         invalidhash="SHA3256B64URL.aaaabbbbccccVfMvpedEg77ByMRYkUgPRU9P1gWaNF8="
@@ -403,7 +426,8 @@ class Testing(unittest.TestCase):
         for i in range(ServerPeer.defaultipandport[1],maxport):
             if self.verbose: print "Adding peer",i
             Dweb.transport.peers.append(Peer(ipandport=(ServerPeer.defaultipandport[0],i), verbose=self.verbose).connect(verbose=self.verbose))
-        assert newdatahash == Dweb.transport.rawstore(data=newdata, verbose=self.verbose)
+        hash = Dweb.transport.rawstore(data=newdata, verbose=self.verbose)
+        assert newdatahash == hash,"hashes dont match exp "+newdatahash+" got "+hash
         assert newdata == Dweb.transport.rawfetch(hash=newdatahash, verbose=self.verbose, ignorecache=True)
 
     def Xtest_current(self):

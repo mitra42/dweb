@@ -2,6 +2,7 @@
 
 from CryptoLib import CryptoLib, KeyPair, WordHashKey, PrivateKeyException, AuthenticationException, DecryptionFail, SecurityWarning
 import base64
+import nacl.signing
 from StructuredBlock import StructuredBlock
 from SignedBlock import Signatures
 from misc import ForbiddenException, _print, AssertionFail
@@ -42,6 +43,7 @@ class CommonList(SmartDict):
         :param keychain: Set to class to use for Key (supports RSA or WordHashKey)
         :param options: Set on SmartDict unless specifically handled here
         """
+        #TODO-LIBSODIUM - needs to handle different kinds of keys (signing, box, encrypting or rather call keypair creation with that)
         #if verbose: print "master=%s, keypair=%s, key=%s, hash=%s, verbose=%s, options=%s)" % (master, keypair, key, hash, verbose, options)
         self._master = master
         super(CommonList, self).__init__(data=data, hash=hash, verbose=verbose, **options)  # Initializes __dict__ via _data -> _setdata
@@ -50,7 +52,7 @@ class CommonList(SmartDict):
         if keypair:
             self.keypair = keypair
         if keygen:
-                self.keypair = KeyPair.keygen(verbose=verbose, **options)   # Note these options are also set on smartdict, so catch explicitly if known.
+                self.keypair = KeyPair.keygen(verbose=verbose, keytype=KeyPair.KEYTYPESIGN, **options)   # Note these options are also set on smartdict, so catch explicitly if known.
         if not self._master:
             self._publichash = hash # Maybe None.
         self._list = Signatures([])
@@ -67,7 +69,7 @@ class CommonList(SmartDict):
         self._master = value and value.has_private()
 
 
-    def preflight(self, dd=None):
+    def preflight(self, dd=None):   #TODO-REFACTOR make callers (store) set dd
         if not dd:
             dd = self.__dict__.copy()
         master = dd["_master"]  # Use master from dd if modified
@@ -77,7 +79,8 @@ class CommonList(SmartDict):
             dd["keypair"] = dd["keypair"].privateexport if master else dd["keypair"].publicexport
         publichash = dd.get("_publichash")
         dd = super(CommonList, self).preflight(dd=dd)  # Will edit dd in place since its a dic,
-        dd["_publichash"] = publichash   # May be None, hae to do this AFTER the super call as super filters out "_*"  #TODO-REFACTOR_PUBLICHASH
+        if master:  # Only store on Master, on !Master will be None and override storing hash as _publichash
+            dd["_publichash"] = publichash   # May be None, have to do this AFTER the super call as super filters out "_*"  #TODO-REFACTOR_PUBLICHASH
         return dd
 
 
@@ -103,9 +106,16 @@ class CommonList(SmartDict):
         return self # for chaining
 
     def _storepublic(self, verbose=False, **options):
+        """
+        Store a publicly visible version of this list. 
+        
+        :param verbose: 
+        :param options: 
+        :return: 
+        """
         acl2 = self.__class__(keypair=self.keypair, name=self.name)
         acl2._master = False
-        acl2.store(verbose=verbose, **options)
+        acl2.store(verbose=verbose, **options)  # Note will call preflight with _master = False
         return acl2._hash
 
     def store(self, verbose=False, dontstoremaster=False, **options):
@@ -305,6 +315,14 @@ class AccessControlList(EncryptionList):
     """
     table = "acl"
 
+    def preflight(self, dd=None):   #TODO-REFACTOR all preflight to have dd defined by caller (store)
+        if not dd:
+            dd = self.__dict__.copy()
+        if (not self._master) and isinstance(self.keypair._key, nacl.signing.SigningKey):
+            dd["naclpublic"] = dd.get("naclpublic") or dd["keypair"].naclpublicexport()   # Store naclpublic for verification
+        # Super has to come after above as overrights keypair, also cant put in CommonList as MB's dont have a naclpublic and are only used for signing, not encryption
+        return super(AccessControlList, self).preflight(dd)
+
     def add(self, viewerpublichash=None, verbose=False, **options):
         """
         Add a new ACL entry
@@ -319,7 +337,7 @@ class AccessControlList(EncryptionList):
         viewerpublickeypair = KeyPair(hash=viewerpublichash).fetch(verbose=verbose)
         aclinfo = {
             # Need to go B64->binary->encrypt->B64
-            "token": viewerpublickeypair.encrypt(CryptoLib.b64dec(self.accesskey), b64=True),
+            "token": viewerpublickeypair.encrypt(CryptoLib.b64dec(self.accesskey), b64=True, signer=self),
             "viewer": viewerpublichash,
         }
         sb = StructuredBlock(data=aclinfo)
@@ -342,7 +360,7 @@ class AccessControlList(EncryptionList):
         viewerhash = viewerkeypair._hash
         toks = [ a.block().token for a in self._list if a.block().viewer == viewerhash ]
         if decrypt:
-            toks = [ viewerkeypair.decrypt(str(a), b64=True) for a in toks ]
+            toks = [ viewerkeypair.decrypt(str(a), b64=True, signer=self) for a in toks ]
         return toks
 
     def decrypt(self, data, viewerkeypair=None, verbose=False):

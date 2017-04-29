@@ -123,7 +123,7 @@ class SmartDict(Transportable):
 
     def preflight(self, dd=None):
         """
-        Run before converting to data, by default does nothing, typically subclassed to turn objects into hashes
+        Run before converting to data, by default strips any attributes starting with "_", and turns objects into hashes
         :return:
         """
         if not dd:
