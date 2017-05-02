@@ -43,7 +43,6 @@ class CommonList(SmartDict):
         :param keychain: Set to class to use for Key (supports RSA or WordHashKey)
         :param options: Set on SmartDict unless specifically handled here
         """
-        #TODO-LIBSODIUM - needs to handle different kinds of keys (signing, box, encrypting or rather call keypair creation with that)
         #if verbose: print "master=%s, keypair=%s, key=%s, hash=%s, verbose=%s, options=%s)" % (master, keypair, key, hash, verbose, options)
         self._master = master
         super(CommonList, self).__init__(data=data, hash=hash, verbose=verbose, **options)  # Initializes __dict__ via _data -> _setdata
@@ -137,7 +136,7 @@ class CommonList(SmartDict):
 
         :return:
         """
-        return Dweb.transport.url(self, command="update", hash=self.privatehash, contenttype=self._current.__getattr__("Content-type"))
+        return Dweb.transport.url(self, command="update", contenttype=self._current.__getattr__("Content-type"))
         #TODO-AUTHENTICATION - this is particularly vulnerable w/o authentication as stores PrivateKey in unencrypted form
 
 

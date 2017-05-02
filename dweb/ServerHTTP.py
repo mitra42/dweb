@@ -143,7 +143,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         mbm = MutableBlock(master=True, hash=hash, contenthash=sb._hash, verbose=verbose).signandstore(verbose=verbose)
         #Exception PrivateKeyException if passed public key and master=True
         return {"Content-type": "text/plain",       # Always returning plain text as the URL whatever type stored
-                "data": self.url(mbm, command="file", table="mb", hash=mbm.publichash)}
+                "data": self.url(mbm, command="file", table="mb", hash=mbm._publichash)}
     update.arglist=["hash","contenttype"]
 
 

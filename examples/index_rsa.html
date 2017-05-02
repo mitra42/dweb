@@ -4,11 +4,11 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>DWEB Demonstration page</title>
     <!--<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script><!-- Jquery via Google -->
-    <script src="/file/sb/BLAKE2.RXiIhCFXXknh1K54zIpF53Fi2wieHY6SluWML39taS4="></script><!-- jquery-3.1.1.js-->
-    <script src="/file/mb/BLAKE2.C0pfg39FLVAO9eCBrT76D5lHQp6XtN32vxmretoFxQE="></script><!-- dweb.js -->
+    <script src="/file/sb/SHA3256B64URL.NbMBEb-Iq7EwgfCWqtrGB14tIcAcv5v5s2m9o7aLu6Y="></script><!-- jquery-3.1.1.js-->
+    <script src="/file/mb/SHA3256B64URL.vVaaIWT976GT8_oVr_eKQxIgWqUdCH9Nf0PCZhQ2iTw="></script><!-- dweb.js -->
     <!--<script src='/dweb/tinymce/tinymce.min.js'></script><!-- TinyMCE -->
     <!--<script src='//cloud.tinymce.com/stable/tinymce.min.js'></script><!-- TinyMCE -->
-    <script src='/file/mb/BLAKE2.dfMoOqTdXvqKhoZo7HPvD5raBXfgH7chXsN2PElizs8=/tinymce.min.js'></script><!-- TinyMCE via relative URL-->
+    <script src='/file/mb/SHA3256B64URL.JHqfnJNzZzaY76qZSbSO21N3PK8gXBmtjAK48ONpA9k=/tinymce.min.js'></script><!-- TinyMCE via relative URL-->
     <script>//TODO this needs lots of work to be pretty editor
         // url for content is: SHA3256B64URL.CLw7p4lteb5oxmXBkuk9lDqM89hRic7RPITGWg1AAD4=
         //dwebfile("mytextarea", "mb", "SHA3256B64URL.CLw7p4lteb5oxmXBkuk9lDqM89hRic7RPITGWg1AAD4="); // Via Public URL
@@ -19,7 +19,7 @@
             toolbar: "save",
             save_onsavecallback: function() {
                 content = tinyMCE.get('mytextarea').getContent();
-                hash = "BLAKE2.pOutfp-rmccZaPlx3vF-PjC0o8Mpz38khpwjn79WEJI="; // The privatehash of the "snippet.html editable - should be a parameter
+                hash = "SHA3256B64URL.gy5hH5zw_rUlb9RG1DeXDXGtbTvXJ5sERJC5tFtYIII="; // The privatehash of the "snippet.html editable - should be a parameter
                 // alert(content);
                 type = "text%2Fhtml";
                 dwebupdate(hash, type, content, {"elem": "myDiv"});  // Post to Dweb and store URL at myDiv
@@ -29,15 +29,15 @@
         // Demonstrate how to load various features using either simplified functions (dwebfile, dweblist) or objects (Block, StructuredBlock)
         // This is my current testing script first of block
         console.log("Block=======");
-        let b = new Block("BLAKE2.A5JOSLvsRV-dFuFqNlpQeBP5OojtIuJmUq9mmoAJXkA=", null); // Block with "clever dog..."
+        let b = new Block("SHA3256B64URL.50GNWgUQ9GgrVfMvpedEg77ByMRYkUgPRU9P1gWaNF8=", null); // Block with "clever dog..."
         b.load(true, {"elem": "myList.0"});      // Load block in background
         // Now of SB
         console.log("StructuredBlock=======");
-        let sb = new StructuredBlock("BLAKE2.0gUsOWiNqWGN3fmZYjhYs04_DprCn6yhh4LoeBGNN2s="); // This comes from looking in list/..hash of MB below..
+        let sb = new StructuredBlock("SHA3256B64URL.-t0rXKuIYpnxrvsVeAffH57bGtoSjjYBQ2gZgUJB5i4="); // This comes from looking in list/..hash of MB below..
         sb.load(true, {"elem": "myList.1"} ); // hash of SB containing data containing "I'm a paragraph" // Load SB in background
         // Now MB
         console.log("MutableBlock=======");
-        dweblist("List2", "BLAKE2.x6uk_DPyAiV6_QpaNScTP4PgowErzNM7sjeCaVWUDdo=", true);  // Hash of snippet.html
+        dweblist("List2", "SHA3256B64URL.4MyChBfwQgiMKKy8hzJRU7QkTIa8L9sjQzMys4XLT5U=", true);  // Hash of snippet.html
     </script>
 
 </head>
@@ -46,7 +46,7 @@
 <p>This page is a demonstration page for the Decentralized Web.</p>
 <p>It will includue a range of features as they are added to DWEB</p>
 <p>
-    <img src="/file/sb/BLAKE2.qx5KvTXQerCQWyZIp5gXQEIlMjzq28XFgYA9dO5JR4w=" width="50px" align="left"><!--wrench-->
+    <img src="/file/sb/SHA3256B64URL.4HKTuYB7dvj8dB7JTTFt9_r51TFKQ3du-Cfi5xbrCXw=" width="50px" align="left"><!--wrench-->
     This is an image loaded by an absolute dweb URL not via the library</p>
 
 <ul id="myList"><li id="myList.0">Text replaced with a Block</li><li id="myList.1">Text replaced with a StructuredBlock</li></ul>
@@ -54,7 +54,7 @@
 <ul id="List2"><li>What was there before - should be replaced</li></ul>
 <h4>Architecture of DWeb</h4>
 <p>
-    <img src="/file/mb/BLAKE2.SSST2rQYjgpJuGrJE92jhgvCi0Q8wUmNteM1pCl3iI0="><!--diagram-->
+    <img src="/file/mb/SHA3256B64URL.20kEtLsILxSHUFgyN5yFC8UlF4fQAsKZXiWx6di_rRA="><!--diagram-->
 </p>
 <form method="post"><!--TODO see if it needs the form-->
     <textarea id="mytextarea" width="60%">Testing</textarea>
@@ -62,9 +62,9 @@
 <div>Last saved to:<span id="myDiv" name="myDiv">Unreplaced text</span></div>
 <h3>Experimental from here on down</h3>
 <p>This is a good place to put links to other tests - working or not.</p>
-<a href="/file/mb/BLAKE2.nBWNoMyOJdhm-wrx0URYo7Utw3jG8J3boEBUcXvATVU=/index.html">Documentation in Sphinx</a>
-<a href="/file/mb/BLAKE2.O1C1LsCF12NO4qTKMQEJxXavNmcKBQXL3rww-g5OXJM=">test.html</a>
-<a href="/file/mb/BLAKE2.WDWRXDhNDMt7bI3lSOCzMiImRVkMza_5DFJ7TES-GVc=">Object Browser</a>
+<a href="/file/mb/SHA3256B64URL.pDaVoHks4FVLN1KcSk5i5c_xOQVh2bZpfnWSrOCwemQ=/index.html">Documentation in Sphinx</a>
+<a href="/file/mb/SHA3256B64URL.10X6_IGbmgts2BqFk7qozQajP9y3ClBYXMAengFba1E=">test.html</a>
+<a href="/file/mb/SHA3256B64URL.KxhjwYPKxDmZOdXeMuf_Zi8sS5AMUwnnFxfMFp-WDs8=">Object Browser</a>
 <h4>List to be loaded by a button</h4>
 
 <p>This page is a current test, will just be testing current (usually broken) stuff.</p>

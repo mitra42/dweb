@@ -37,7 +37,7 @@ class Transport(object):
     fetch(command, cls, hash, path)
     list(command, cls, hash, path) = list.command([cls(l).path for l in rawlist(hash)])
     store(command, cls, hash, path, data) = fetch(cls, hash, path).command(data) || rawstore(data)  #TODO unsure of this
-    add(obj, date, key) = rawadd(obj._hash, date, key.privatehash)
+    add(obj, date, signature, signedby) = rawadd(obj._hash, date, signature, signedby ) #TODO could take "key" 
 
     Either the raw, or cooked functions can be subclassed
     """
@@ -184,13 +184,10 @@ class Transport(object):
     def rawadd(self, hash=None, date=None, signature=None, signedby=None, verbose=False, **options):
         raise ToBeImplementedException(name=cls.__name__+".rawadd")
 
-    def add(self, hash=None, date=None, signature=None, signedby=None, verbose=False, obj=None, key=None, **options ):
-        #add(obj, date, key) = add(obj._hash, sig(obj + date, key), date, key.hash)
+    def add(self, hash=None, date=None, signature=None, signedby=None, verbose=False, obj=None, **options ):
         #add(datahash, sig, date, keyhash)
         if (obj and not hash):
             hash = obj._hash
-        if (key and not signedby):
-            signedby = key.privatehash
         return self.rawadd(hash=hash, date=date, signature=signature, signedby=signedby, verbose=verbose, **options)
 
     def _add_value(self, hash=None, date=None, signature=None, signedby=None, verbose=False, **options ):

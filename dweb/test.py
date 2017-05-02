@@ -155,7 +155,6 @@ class Testing(unittest.TestCase):
         mblockm._allowunsafestore = False
         testhash = mblockm._current._hash                       # Get a pointer to the new version
         mbmpubhash = mblockm._publichash
-        #keyhash = mblockm.keypair.store().publichash           # Get the publickey pointer to the block
         if self.verbose: print "test_MutableBlocks: And check it"
         mblock = MutableBlock(hash=mbmpubhash, verbose=self.verbose)                     # Setup a copy (not Master) via the publickey
         mblock.fetch(verbose=self.verbose)                      # Fetch the content
@@ -303,7 +302,6 @@ class Testing(unittest.TestCase):
         dec = CryptoLib.sym_decrypt(enc, symkey)
         assert dec == self.quickbrownfox
         if CryptoLib.defaultlib == CryptoLib.NACL:
-            # TODO-LIBSODIUM add test of sign/verify
             keypair = KeyPair.keygen(keytype=KeyPair.KEYTYPEENCRYPT)
             svpair = KeyPair.keygen(keytype=KeyPair.KEYTYPESIGN)
             svpair_key = svpair._key.encode(nacl.encoding.RawEncoder)

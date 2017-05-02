@@ -62,11 +62,9 @@ class CryptoLib(object):
     defaultlib = 1  # CRYPRO | NACL
     libname = ["Crypto","NACL"][defaultlib]
 
-    ####TODO-LIBSODIUM ## PASS 1 - FROM HERE DOWN #####
-
     @staticmethod
     #def Curlhash(data, hashscheme="SHA3256B64URL", **options):
-    def Curlhash(data, hashscheme=None, **options):  #TODO-LIBSODIUM-HASH - move to their hash, make visible, check callers dont specify hash
+    def Curlhash(data, hashscheme=None, **options):
         """
         Hashing - using either Crypto or NACL.
         There is a multihash version under development below.
@@ -92,10 +90,12 @@ class CryptoLib(object):
                 raise ToBeImplementedException(name="CryptoLib.Curlhash for NACL hashscheme=" + hashscheme)
             else:
                 return hashscheme + "." + hashfunction(data, encoder=nacl.encoding.URLSafeBase64Encoder)
+        else:
+            raise ToBeImplementedException(name="CryptoLib.Curlhash for lib="+str(CryptoLib.defaultlib))
 
     @staticmethod
     def Multihash_Curlhash(data, hashscheme="SHA2256B64URL", **options):
-        if CryptoLib.defaultlib != CryptoLib.CRYPTO: raise ToBeImplementedException(name="#TODO-LIBSODIUM Multihash_Curlhash")
+        if CryptoLib.defaultlib != CryptoLib.CRYPTO: raise ToBeImplementedException(name="Multihash_Curlhash to include NACL")
         """
         This version will uses multihash, which unfortunately doesnt work on larger than 127 strings or on SHA3
 
@@ -113,22 +113,6 @@ class CryptoLib(object):
         else:
             raise ToBeImplementedException(name="CryptoLib.Multihash_Curlhash for hashscheme=" + hashscheme)
 
-    @staticmethod
-    def hash2binary(hash, hashscheme="SHA2256B64URL", bits=None, **options):    #TODO-LIBSODIUM-HASH find out if and how used
-        if CryptoLib.defaultlib != CryptoLib.CRYPTO: raise ToBeImplementedException(name="#TODO-LIBSODIUM hash2binary")
-        """
-        Invert the stringification of the binary hash. Note returns a binary string. NOT an int
-
-        :param self:
-        :param hashscheme:
-        :param options:
-        :return:
-        """
-        hash = hash[len(hashscheme)+1:] # Trim hash name
-        bin = CryptoLib.b64dec(hash)
-        if bits:
-            bin = bin[:len(hashscheme)]
-        return bin
 
     @staticmethod
     def _signable(date, data):
@@ -143,7 +127,7 @@ class CryptoLib(object):
         return date.isoformat() + str(data)
 
     @staticmethod
-    def signature(keypair, date, data, verbose=False, **options):   #TODO-LIBSODIUM-SIGNING - use libsodium signing maybe base on class of key and/or define "sign" on keypair instead of decrypt
+    def signature(keypair, date, data, verbose=False, **options):
         """
         Pair of verify(), signs date and data using public key function.
 
@@ -151,10 +135,10 @@ class CryptoLib(object):
         :param date: Date that signing (usually now)
         :return: signature that can be verified with verify
         """
-        #TODO-AUTHENTICATION - replace with better signing/verification e.g. from http://pydoc.net/Python/pycrypto/2.6.1/Crypto.Signature.PKCS1_v1_5/
-        #TODO-AUTHENTICATION - note this will require reworking WordHash.decrypt
         signable = CryptoLib._signable(date, data)
         if isinstance(keypair._key, RSA._RSAobj):
+            # TODO-AUTHENTICATION - replace with better signing/verification e.g. from http://pydoc.net/Python/pycrypto/2.6.1/Crypto.Signature.PKCS1_v1_5/
+            # TODO-AUTHENTICATION - note this will require reworking WordHash.decrypt
             return CryptoLib.b64enc(keypair.private.decrypt(signable))
         elif isinstance(keypair._key, nacl.signing.SigningKey):
             sig=keypair._key.sign(signable, nacl.encoding.URLSafeBase64Encoder).signature
@@ -167,7 +151,7 @@ class CryptoLib(object):
             raise ToBeImplementedException(name="signature for key ="+keypair._key.__class__.__name__)
 
     @staticmethod
-    def verify(sig, hash=None): # { publickey=None, signature=None, date=None, hash=None, **unused }    #TODO-LIBSODIUM-SIGNING - use libsodium, define verify on keypair as alternative to encrypt
+    def verify(sig, hash=None): # { publickey=None, signature=None, date=None, hash=None, **unused }
         """
         Pair of signature(), compares signature and date against encrypted data.
         Typically called with \*\*block where block is a signature dictionary read from Transport with date transformed to datetime.
@@ -205,7 +189,7 @@ class CryptoLib(object):
         else:
             raise ToBeImplementedException(name="verify for " + keypair._key.__class__.__name__)
 
-    @staticmethod   #TODO-LIBSODIUM-ENCODING check LIBSODIUM b64 matchs this one but first look for callers of base64 and centralize here
+    @staticmethod
     def b64dec(data):
         """
         Decode arbitrary data encoded using b64enc
@@ -231,7 +215,7 @@ class CryptoLib(object):
             raise e
 
     @staticmethod
-    def b64enc(data): #TODO-LIBSODIUM-ENCODING check LIBSODIUM b64 matchs this one but first look for callers of base64 and centralize here
+    def b64enc(data):
         """
         Encode arbitrary data to b64 
 
@@ -306,14 +290,13 @@ class CryptoLib(object):
             return value
 
     # ============ METHODS dealing with Symetric keys ==============================
-    @staticmethod   #TODO-LIBSODIUM-SYMETRIC use its key generation
-    def randomkey(): #TODO-LIBSODIUM why isnt this called more places ?
+    @staticmethod
+    def randomkey():
         """
         Return a key suitable for symetrically encrypting content or sessions
 
         :return:
         """
-        #TODO-AUTHENTICATION - check this is the right function to use for 16 random bytes
         # see http://stackoverflow.com/questions/20460061/pythons-pycrypto-library-for-random-number-generation-vs-os-urandom
         return nacl.utils.random(nacl.secret.SecretBox.KEY_SIZE)    # 32 bytes - required for SecretBox
         #return os.urandom(16)
@@ -381,10 +364,9 @@ class CryptoLib(object):
 class KeyPair(SmartDict):
     """
     This uses the CryptoLib functions to encapsulate KeyPairs of different Public Key systems.
-    Currently supports: RSA; adding LibSodium
+    Currently supports: RSA; and the PyNaCl bindings to LibSodium
     It is intended to provide a consistent interface to the application, masking the characteristics of different crypto systems underneath.
     """
-    #TODO-LIBSODIUM use libsodium keys
     table = "kp"
     _allowunsafestore = False
     KEYTYPESIGN = 1
@@ -411,7 +393,7 @@ class KeyPair(SmartDict):
         return "KeyPair" + repr(self.__dict__)  #TODO only useful for debugging,
 
     @classmethod
-    def keygen(cls, keyclass=None, keytype=None, verbose=False, **options):   #TODO-LIBSODIUM-CHECK-THIS-FUNCTION
+    def keygen(cls, keyclass=None, keytype=None, verbose=False, **options):
         """
         Generate a new key pair
 
@@ -439,10 +421,9 @@ class KeyPair(SmartDict):
         return cls(key=key)
 
     @property
-    def key(self):   #TODO-LIBSODIUM-CHECK-THIS-FUNCTION
-        if CryptoLib.defaultlib != CryptoLib.CRYPTO: raise ToBeImplementedException(name="#TODO-LIBSODIUM key")
+    def key(self):
         """
-        Returns key - maybe public or private
+        Returns key - maybe public or private (looks like most places are using _key instead of key
         :return:
         """
         return self._key
@@ -467,7 +448,7 @@ class KeyPair(SmartDict):
             raise ToBeImplementedException(name="key import for " + value)
 
     @key.setter
-    def key(self, value):   #TODO-LIBSODIUM-CHECK-THIS-FUNCTION
+    def key(self, value):
         """
         Sets a key - public or private from a KeyPair or a string that can be imported
         :return:
@@ -488,10 +469,9 @@ class KeyPair(SmartDict):
         return self._key
 
     @private.setter
-    def private(self, value):   #TODO-LIBSODIUM-CHECK-THIS-FUNCTION
-        if CryptoLib.defaultlib != CryptoLib.CRYPTO: raise ToBeImplementedException(name="#TODO-LIBSODIUM privatesetter")
+    def private(self, value):
         """
-        Sets the key from either a string,
+        Sets the key from a string, or a key (doesnt appear to be used)
 
         :param value: Either a string from exporting the key, or a RSA key
         :return:
@@ -501,7 +481,7 @@ class KeyPair(SmartDict):
             raise PrivateKeyException()
 
     @property
-    def public(self):   #TODO-LIBSODIUM-CHECK-THIS-FUNCTION
+    def public(self):
         """
         Return the public side of any Private/Public key pair suitable for encryption or verification
         
@@ -520,10 +500,9 @@ class KeyPair(SmartDict):
             raise ToBeImplementedException(name="public for " + k.__class__.__name__)
 
     @public.setter
-    def public(self, value):   #TODO-LIBSODIUM-CHECK-THIS-FUNCTION
-        if CryptoLib.defaultlib != CryptoLib.CRYPTO: raise ToBeImplementedException(name="#TODO-LIBSODIUM public setter")
+    def public(self, value):
         """
-        Sets the key from either a string or a key.
+        Sets the key from either a string or a key. (Doesnt appear to be being used)
 
         :param value: Either a string from exporting the key, or a RSA key
         :return:
@@ -541,65 +520,20 @@ class KeyPair(SmartDict):
             raise ToBeImplementedException(name="export for "+key.__class__.__name__)
 
     @property
-    def publicexport(self):   #TODO-LIBSODIUM-CHECK-THIS-FUNCTION
-        k = self.public
+    def publicexport(self):
         if isinstance(self._key, WordHashKey):  # Handle own classes which have a publicexport() method
             return self._key.publicexport()   # (Dont use k as its a hash already)
         else:
-            return self._exportkey(k)
+            return self._exportkey(self.public)
 
     @property
-    def privateexport(self):   #TODO-LIBSODIUM-CHECK-THIS-FUNCTION
+    def privateexport(self):
         if isinstance(self._key, WordHashKey):
             return ""  # Not exportable
         elif isinstance(self._key, (nacl.public.PublicKey, nacl.signing.VerifyKey)):    # Dont have private
             raise PrivateKeyException()
         else:
             return self._exportkey(self._key)
-
-    @property
-    def privatehash(self):   #TODO-LIBSODIUM-CHECK-THIS-FUNCTION
-        if CryptoLib.defaultlib != CryptoLib.CRYPTO: raise ToBeImplementedException(name="#TODO-LIBSODIUM privatehash")
-        """
-        The hash of the key, note does NOT store the key itself
-
-        :return:
-        """
-        return CryptoLib.Curlhash(self.privateexport)
-
-    @privatehash.setter
-    def privatehash(self, value):   #TODO-LIBSODIUM-CHECK-THIS-FUNCTION
-        if CryptoLib.defaultlib != CryptoLib.CRYPTO: raise ToBeImplementedException(name="#TODO-LIBSODIUM privatehash setter")
-        """
-        Set a privatehash, note this implies where to get the actual data from
-        Note that privatehash and publichash setters are identical
-
-        :param value:
-        :return:
-        """
-        self.key = Dweb.transport.rawfetch(hash=value)
-
-    @property
-    def publichash(self):   #TODO-LIBSODIUM-CHECK-THIS-FUNCTION
-        if CryptoLib.defaultlib != CryptoLib.CRYPTO: raise ToBeImplementedException(name="#TODO-LIBSODIUM publichash")
-        return CryptoLib.Curlhash(self.publicexport)
-
-    @publichash.setter
-    def publichash(self, value):   #TODO-LIBSODIUM-CHECK-THIS-FUNCTION
-        if CryptoLib.defaultlib != CryptoLib.CRYPTO: raise ToBeImplementedException(name="#TODO-LIBSODIUM publichash setter")
-        """
-        Set a publichash, note this implies where to get the actual data from
-        Note that privatehash and publichash setters are identical
-
-        :param value:
-        :return:
-        """
-        self.key = Dweb.transport.rawfetch(hash=value)
-        #TODO-AUTHENTICATION what happens if cant find
-        if self.publichash != value and self.privatehash != value:
-            self._key = None    # Blank out bad key
-            raise AuthenticationException(message="Retrieved key doesnt match hash="+value)
-            #TODO-AUTHENTICATION copy this verification code up to privatehash
 
     @staticmethod
     def _key_has_private(key):
@@ -658,7 +592,7 @@ class KeyPair(SmartDict):
         else:
             raise ToBeImplementedException(name="encrypt for"+self._key.__class__.__name__)
 
-    def decrypt(self, data, b64=False, signer=None):   #TODO-LIBSODIUM-CHECK-THIS-FUNCTION
+    def decrypt(self, data, b64=False, signer=None):
         """
         Decrypt date encrypted with encrypt (above)        
 
