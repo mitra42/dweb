@@ -51,9 +51,12 @@ To minimize the chance of this, to revoke access requires changing the AES key a
 
 Key Chain (KC)
 --------------
+Key Chain's represent things you own.
 A Key Chain is a list of "master" items.
 These items are typically MutableBlock Masters, or ViewerKeys.
 These items are enrypted with KeyChains key before adding to the list.
+The old way of implementing this was the the KeyChain used a "WordHashKey" from which a symetric key was derived.
+New way of implementing this will be (or is already) that object is encrypted with public key of KeyChain.
 
 WordHash Keys
 ~~~~~~~~~~~~~

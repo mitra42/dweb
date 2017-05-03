@@ -3,9 +3,10 @@
 from CryptoLib import CryptoLib, KeyPair, WordHashKey, PrivateKeyException, AuthenticationException, DecryptionFail, SecurityWarning
 import base64
 import nacl.signing
+import nacl.encoding
 from StructuredBlock import StructuredBlock
 from SignedBlock import Signatures
-from misc import ForbiddenException, _print, AssertionFail
+from misc import ForbiddenException, _print, AssertionFail, ToBeImplementedException
 from CommonBlock import SmartDict
 from Dweb import Dweb
 
@@ -46,12 +47,12 @@ class CommonList(SmartDict):
         #if verbose: print "master=%s, keypair=%s, key=%s, hash=%s, verbose=%s, options=%s)" % (master, keypair, key, hash, verbose, options)
         self._master = master
         super(CommonList, self).__init__(data=data, hash=hash, verbose=verbose, **options)  # Initializes __dict__ via _data -> _setdata
-        if mnemonic:
-            self.keypair = WordHashKey(mnemonic)
+        #if mnemonic:
+        #    self.keypair = WordHashKey(mnemonic)
         if keypair:
             self.keypair = keypair
-        if keygen:
-                self.keypair = KeyPair.keygen(verbose=verbose, keytype=KeyPair.KEYTYPESIGN, **options)   # Note these options are also set on smartdict, so catch explicitly if known.
+        if keygen or mnemonic:
+                self.keypair = KeyPair.keygen(verbose=verbose, mnemonic=mnemonic, keytype=KeyPair.KEYTYPESIGN, **options)   # Note these options are also set on smartdict, so catch explicitly if known.
         if not self._master:
             self._publichash = hash # Maybe None.
         self._list = Signatures([])
@@ -408,7 +409,7 @@ class KeyChain(EncryptionList):
         kc.store(verbose=verbose)   # Set the _publichash
         KeyChain.addkeychains(kc)
         kc.fetch(verbose=verbose, fetchlist=True, fetchblocks=False)    # Was fetching blocks, but now done by "keys"
-        if verbose: print "Created keychain for:", kc.keypair.private.mnemonic
+        if verbose: print "Created keychain for:", kc.keypair.mnemonic
         if verbose and not mnemonic: print "Record these words if you want to access again"
         return kc
 
@@ -419,6 +420,13 @@ class KeyChain(EncryptionList):
         return self._keys
 
     def add(self, obj, verbose=False, **options):
+        """
+        Add a 
+        :param obj: 
+        :param verbose: 
+        :param options: 
+        :return: 
+        """
         sig = super(KeyChain, self).add(obj, verbose=verbose, **options)  # Adds to dWeb list
         self._list.append(sig)
 
@@ -450,8 +458,14 @@ class KeyChain(EncryptionList):
         return kcs[0] if kcs else None
 
     @property
-    def accesskey(self):
-        return CryptoLib.b64enc(self.keypair._key._private)
+    def accesskey(self):    #TODO any use of this in KeyChain should probably just use the PrivateKey to encrypt rather than symkey
+        key = self.keypair._key
+        if isinstance(key, WordHashKey):    # Needs own case as privateexport is blocked
+            return CryptoLib.b64enc(self.keypair._key._private)
+        elif isinstance(key, nacl.signing.SigningKey):
+            return self.keypair._key.encode(nacl.encoding.URLSafeBase64Encoder)
+        else:
+            raise ToBeImplementedException(name="accesskey for "+key.__class__.__name__)
 
     def store(self, verbose=False, **options ):
         return super(KeyChain, self).store(verbose=verbose, dontstoremaster=True, **options)  # Stores public version and sets _publichash

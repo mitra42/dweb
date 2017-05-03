@@ -393,29 +393,36 @@ class KeyPair(SmartDict):
         return "KeyPair" + repr(self.__dict__)  #TODO only useful for debugging,
 
     @classmethod
-    def keygen(cls, keyclass=None, keytype=None, verbose=False, **options):
+    def keygen(cls, keyclass=None, keytype=None, mnemonic=None, seed=None, verbose=False, **options):
         """
         Generate a new key pair
 
         :param options: unused
-        :keyclass class: Can override default of RSA to WordHash
+        :keyclass class: RSA, CryptoLib.NACL, or WordHashKey
+        :keytype int: one of KEYTYPESIGN, KEYTYPEENCRYPT or KEYTYPESIGNANDENCRYPT (latter not supported)
+        :mnemonic string: Words to convert into seed for key (valid with NACL and WordHashKey)
+        :seed binary: Seed to keygen (valid with keyclass=NACL, invalid with mnemonic)
         :return: KeyPair
         """
         #assert keytype  # Required parameter
         if not keyclass:
             keyclass = RSA if CryptoLib.defaultlib == CryptoLib.CRYPTO else CryptoLib.NACL
         if verbose: print "Generating key for",keyclass
+        if mnemonic:
+            seed = str(Mnemonic("english").to_entropy(mnemonic))
         if keyclass in (RSA, "RSA"):
+            if seed:
+                raise ToBeImplementedException(name="keygen - support for RSA with seeds")
             key=RSA.generate(1024, Random.new().read)
         elif keyclass in (CryptoLib.NACL,):
             if keytype == cls.KEYTYPESIGN:
-                key = nacl.signing.SigningKey.generate()
+                key = nacl.signing.SigningKey(seed) if seed else nacl.signing.SigningKey.generate()
             elif keytype == cls.KEYTYPEENCRYPT:
-                key=nacl.public.PrivateKey.generate()
+                key=nacl.public.PrivateKey(seed) if seed else nacl.public.PrivateKey.generate()
             else:
                 raise ToBeImplementedException(name="keygen for keytype="+str(keytype))
         elif keyclass in (WordHashKey,):
-            key = WordHashKey.generate(strength=256)    # Must be 32 bytes=156 for symkey (was using 128)
+            key = WordHashKey(mnemonic=mnemonic) if mnemomic else WordHashKey.generate(strength=256)    # Must be 32 bytes=156 for symkey (was using 128)
         else:
             raise ToBeImplementedException(name="keygen for keyclass="+keyclass.__class__.__name__)
         return cls(key=key)
@@ -508,6 +515,13 @@ class KeyPair(SmartDict):
         :return:
         """
         self.key = value
+
+    @property
+    def mnemonic(self):
+        if isinstance(self._key, (nacl.public.PrivateKey, nacl.signing.SigningKey)):
+            return Mnemonic("english").to_mnemonic(self._key.encode(nacl.encoding.RawEncoder))
+        else:
+            raise ToBeImplementedException(name="mnemonic for "+self._key.__class__.__name__)
 
     def _exportkey(self, key):
         # Export any of a set of key classes, note those with explicit publicexport() etc methods should have been already handled.

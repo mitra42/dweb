@@ -12,7 +12,7 @@ import nacl.signing
 import nacl.encoding
 
 from misc import _print
-from CryptoLib import CryptoLib, KeyPair, WordHashKey
+from CryptoLib import CryptoLib, KeyPair
 from Transport import TransportBlockNotFound, TransportURLNotFound, TransportFileNotFound
 from TransportLocal import TransportLocal
 from TransportHTTP import TransportHTTP
@@ -459,13 +459,14 @@ class Testing(unittest.TestCase):
         assert newdata == Dweb.transport.rawfetch(hash=newdatahash, verbose=self.verbose, ignorecache=True)
 
     def Xtest_current(self):
-        #self.verbose=True
-        self.uploads = {}
-        self._storeas("libsodium", None, None)
-        self._storeas("test.html", "test_html", "text/html")
-        print "EXPERIMENTAL"
-        print "test.html",self.uploads["test.html"]["read"]
-        print "libsodium", self.uploads["libsodium"]["relread"]+"/sodium.js"
+        self.verbose=True
+        self.test_keychain()
+        #self.uploads = {}
+        #self._storeas("libsodium", None, None)
+        #self._storeas("test.html", "test_html", "text/html")
+        #print "EXPERIMENTAL"
+        #print "test.html",self.uploads["test.html"]["read"]
+        #print "libsodium", self.uploads["libsodium"]["relread"]+"/sodium.js"
 
 
 
