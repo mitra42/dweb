@@ -45,6 +45,11 @@ TODO LIST
 =========
 This list is at a much finer lever of granularity than Roadmap above.
 
+
+* CRYPTO: Implement on JS
+    * KeyChain.new
+        * mnemonic
+            * Make python version use regular keys rather than wordhash
 * PEER: Peer knowledge system
     * Test on html etc
     * Move peer into Javascript

@@ -34,6 +34,18 @@
             let mb = new MutableBlock(mb2hash);
             mb.load(true, true, true, false, {"path": ['_static'], "objbrowser": "ObjBrowser"} ); //,"readme.md"
         }
+        function cryptotest() { //TODO-CRYPTO Still working on this
+            let mnemonic = "olympic high dress found sport caution grant insect receive upper connect regret limit awesome image text bamboo dawn fold pen raccoon math delay virus" # 32 byte
+            let qbf="The quick brown fox ran over the lazy duck";
+            let key = sodium.randombytes_buf(sodium.crypto_shorthash_KEYBYTES);
+            let shash_u64 = sodium.crypto_shorthash('test', key, 'urlsafebase64'); // urlsafebase64 is support added by mitra
+            key = null;
+            let hash_hex = sodium.crypto_generichash(32, qbf, key, 'hex'); // Try this with null as the key
+            let hash_64 = sodium.crypto_generichash(32, qbf, key, 'base64'); // Try this with null as the key
+            let hash_u64 = sodium.crypto_generichash(32, qbf, key, 'urlsafebase64'); // Try this with null as the key
+            console.log("hash_hex = ",shash_u64, hash_hex, hash_64, hash_u64);
+            if (hash_u64 != "YOanaCqfg3UsKoqlNmVG7SFwLgDyB3aToEmLCH-vOzs=") { console.log("ERR Bad blake2 hash"); }
+        }
     </script>
     <style>
         .props {padding-left: 0px; } /*Move back directly under type name*/
@@ -55,7 +67,10 @@
 </ul>
 <ul id="ObjBrowser">
 </ul>
+<h4>Encryption testing</h4>
+
 <script>
-    working(); // Can comment this line out when debugging
+    //working(); // Can comment this line out when debugging
     //browser();
+    cryptotest();
 </script>

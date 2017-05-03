@@ -371,12 +371,12 @@ class StructuredBlock extends SmartDict {
         return null;    // If not found
     }
 
-    content() { alert("Undefined function StructuredBlock.store"); }
-    file() { alert("Undefined function StructuredBlock.store"); }
-    size() { alert("Undefined function StructuredBlock.store"); }
-    path() { alert("Undefined function StructuredBlock.store"); }   // Done in onloaded, asynchronous recursion.
-    sign() { alert("Undefined function StructuredBlock.store"); }
-    verify() { alert("Undefined function StructuredBlock.store"); }
+    content() { alert("Undefined function StructuredBlock.content"); }
+    file() { alert("Undefined function StructuredBlock.file"); }
+    size() { alert("Undefined function StructuredBlock.size"); }
+    path() { alert("Undefined function StructuredBlock.path"); }   // Done in onloaded, asynchronous recursion.
+    sign() { alert("Undefined function StructuredBlock.sign"); }
+    verify() { alert("Undefined function StructuredBlock.verify"); }
 
 
     earliestdate() {    // Set the _date field to the earliest date of any signature or null if not found
@@ -546,6 +546,25 @@ class MutableBlock extends CommonList {
     path() { alert("Undefined function MutableBlock.path"); }   // Built into onloaded
     new() { alert("Undefined function MutableBlock.new"); }   // Utility function for creating mb
 
+}
+
+class KeyChain extends CommonList {
+
+
+    constructor(hash, data, master) {   //TODO will need to take more parameters like python version
+        super(hash, null, master);
+    }
+    static new(mnemonic, keygen, name, verbose) {
+        kc = new KeyChain(xxxx);        //TODO add parameters
+        //kc.store()                    //TODO store not yet defined
+        //KeyChain.addkeychains(kc)
+        //kc.fetch(verbose=verbose, fetchlist=True, fetchblocks=False)    # Was fetching blocks, but now done by "keys"
+        //if verbose: print "Created keychain for:", kc.keypair.private.mnemonic
+        //if verbose and not mnemonic: print "Record these words if you want to access again"
+        //return kc
+    }
+
+    constructor()
 }
 // ==== UI related functions, not dWeb specific =========
 function togglevisnext(elem) {   // Hide the next sibling object and show the one after, or vica-versa,
