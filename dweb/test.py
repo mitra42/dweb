@@ -242,7 +242,7 @@ class Testing(unittest.TestCase):
     def _storeas(self, filename, keyname, contenttype, **options):
         filepath = self.exampledir + filename
         if os.path.isdir(filepath):
-            f = Dir.load(filepath=filepath, upload=True, verbose=self.verbose, option=options)
+            f = Dir.load(filepath=filepath, upload=True, verbose=self.verbose, option=options) # Recurses
         else:
             f = File.load(filepath=filepath, contenttype=contenttype, upload=True, verbose=self.verbose, **options)
         if self.verbose: print f
@@ -252,10 +252,17 @@ class Testing(unittest.TestCase):
             mbm.store(private=True, verbose=self.verbose)
             mbm.signandstore(verbose=self.verbose)
             mbm._allowunsafestore = False
-            print filename + " editable:" + mbm.privateurl()    # Side effect of storing
-            print filename + ":" + mbm.publicurl(command="file", table="mb")
+            #print filename + " editable:" + mbm.privateurl()    # Side effect of storing
+            #print filename + ":" + mbm.publicurl(command="file", table="mb")
+            url = mbm.publicurl(command="file", table="mb")
+            self.uploads[filename]  = { "publichash": mbm._publichash, "editable": mbm.privateurl(), "editablehash": mbm._hash, "read": url, "relread": url.split('/', 3)[3], "contenthash": mbm._current._hash}
+            #print self.uploads[filename]
         else:
-            print filename + ":" + f.url(command="file", table="sb")
+            #print filename + ":" + f.url(command="file", table="sb")
+            url = f.url(command="file", table="sb")
+            scheme, ipandport, unused, rest = url.split('/', 3)
+            self.uploads[filename]  = { "publichash": f._hash, "relread": "/"+url.split('/', 3)[3], "read": url}
+            #print self.uploads[filename]
 
 
     def test_uploads(self):
@@ -266,6 +273,7 @@ class Testing(unittest.TestCase):
             return
         #Dweb.settransport(transportclass=TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         b=Block(data=self.dog); b.store(); print self.dog,b.url()
+        self.uploads = {}
         self._storeas("dweb.js", "dweb_js", "application/javascript")
         self._storeas("jquery-3.1.1.js", None, "application/javascript")
         self._storeas("index.html", "index_html", "text/html")
@@ -277,6 +285,27 @@ class Testing(unittest.TestCase):
         self._storeas("../tinymce", "tinymce", None)
         self._storeas("../docs/_build/html", "docs_build_html", None)
         self._storeas("objbrowser.html", "objbrowser_html", "text/html")
+        self._storeas("libsodium", None, None)
+        print "INDEX.HTML"
+        print "jquery-3.1.1.js",self.uploads["jquery-3.1.1.js"]["relread"]
+        print "dweb.js",self.uploads["dweb.js"]["relread"]
+        print "../tinymce/tinymce.min.js", self.uploads["../tinymce"]["relread"]+"/tinymce.min.js"
+        print "snippet.html", self.uploads["snippet.html"]["editablehash"]
+        print "cleverdog", b._hash
+        print "snippet.html content", self.uploads["snippet.html"]["contenthash"]
+        print "snippet.html", self.uploads["snippet.html"]["relread"]
+        print "WrenchIcon.png", self.uploads["WrenchIcon.png"]["relread"]
+        print "DWebArchitecture.png", self.uploads["DWebArchitecture.png"]["relread"]
+        print "Sphinx Documentation", self.uploads["../docs/_build/html"]["relread"]
+        print "test.html",self.uploads["test.html"]["relread"]
+        print "objbrowser.html", self.uploads["objbrowser.html"]["relread"]
+        print "TEST.HTML or OBJECTBROWSER.HTML"
+        print "dweb.js",self.uploads["dweb.js"]["relread"]
+        print "mbhash Tinymce", self.uploads["../tinymce"]["publichash"]
+        print "mb2hash Sphinx docs", self.uploads["../docs/_build/html"]["publichash"]
+        print "sbhash Tinymce cont", self.uploads["../tinymce"]["contenthash"]
+        print "EXPERIMENTAL"
+        print "libsodium", self.uploads["libsodium"]["relread"]+"/sodium.js"
 
     def test_uploadandrelativepaths(self):
         # Test that a directory can be uploaded and then accessed by a relative path
@@ -331,6 +360,7 @@ class Testing(unittest.TestCase):
         """
         #self.verbose=True
         if self.verbose: print "KEYCHAIN 0 - create"
+        # Not using KeyChain.new as don't want to fetch for test, .new is tested below
         kc = KeyChain(mnemonic=self.mnemonic, verbose=self.verbose, name="test_keychain kc").store(verbose=self.verbose)
         KeyChain.addkeychains(kc)
         if self.verbose: print "KEYCHAIN 1 - add mbm to it"
@@ -429,9 +459,13 @@ class Testing(unittest.TestCase):
         assert newdata == Dweb.transport.rawfetch(hash=newdatahash, verbose=self.verbose, ignorecache=True)
 
     def Xtest_current(self):
-        self.verbose=True
-        print "XXX@405",WordHashKey.generate().mnemonic
-        self.test_crypto()
-        self.test_keychain()
+        #self.verbose=True
+        self.uploads = {}
+        self._storeas("libsodium", None, None)
+        self._storeas("test.html", "test_html", "text/html")
+        print "EXPERIMENTAL"
+        print "test.html",self.uploads["test.html"]["read"]
+        print "libsodium", self.uploads["libsodium"]["relread"]+"/sodium.js"
+
 
 

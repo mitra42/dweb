@@ -5,15 +5,16 @@
     <title>DWEB Test page</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script><!-- Jquery via Google -->
     <!--<script src="/file/sb/SHA3256B64URL.BDCbn_l9rrlCdVkB9o6qozSP84HBCGors5dBLxdyro8="></script><!-- jquery-3.1.1.js-->
-    <script src="/file/mb/SHA3256B64URL.vVaaIWT976GT8_oVr_eKQxIgWqUdCH9Nf0PCZhQ2iTw="></script><!-- dweb.js -->
+    <script src="/file/mb/BLAKE2.C0pfg39FLVAO9eCBrT76D5lHQp6XtN32vxmretoFxQE="></script><!-- dweb.js -->
+    <script src="/file/sb/BLAKE2.0JN4oR4nl5psxJUHpTFHy0u7xZwDjcfViFPYmcvnPpU=/sodium.js""></script><!-- libsodium/sodium.js-->
     <script>
         // This is my current testing script first of block
     </script>
     <script>
         // This is a script that previously worked
-        mbhash = "SHA3256B64URL.JHqfnJNzZzaY76qZSbSO21N3PK8gXBmtjAK48ONpA9k=";  // Hash reported out at tinymce.html
-        mb2hash = "SHA3256B64URL.pDaVoHks4FVLN1KcSk5i5c_xOQVh2bZpfnWSrOCwemQ="; // Hash reported for docs/_build/html
-        sbhash="SHA3256B64URL.kBir9WGvnDV72SRbK6CTAIMPtYS1nv_1T45wZQt3ZFE=" // This is teh hash field from any line of list/..mbhash..
+        mbhash = "BLAKE2.dfMoOqTdXvqKhoZo7HPvD5raBXfgH7chXsN2PElizs8=";  // Hash reported out at tinymce.html
+        mb2hash = "BLAKE2.nBWNoMyOJdhm-wrx0URYo7Utw3jG8J3boEBUcXvATVU="; // Hash reported for docs/_build/html
+        sbhash="BLAKE2.spTuo7yuSJEQyYy3rUFV2G0SCDxhkZEHhQQttozxWtQ=" // This is teh hash field from any line of list/..mbhash..
         function working() {
             console.log("StructuredBlock=======");
             let sb = new StructuredBlock(sbhash);
@@ -53,7 +54,6 @@
     <li id="myList.3">Failed to load mb via dwebfile</li>
 </ul>
 <ul id="ObjBrowser">
-
 </ul>
 <script>
     working(); // Can comment this line out when debugging

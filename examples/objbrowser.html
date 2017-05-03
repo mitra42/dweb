@@ -13,8 +13,8 @@
         mb2hash = "SHA3256B64URL.pDaVoHks4FVLN1KcSk5i5c_xOQVh2bZpfnWSrOCwemQ="; // Hash reported for docs/_build/html
         sbhash="SHA3256B64URL.kBir9WGvnDV72SRbK6CTAIMPtYS1nv_1T45wZQt3ZFE=" // This is teh hash field from any line of list/..mbhash..
 
-        function browser() {
-            //let obj = new StructuredBlock(sbhash);
+        function browser(hash) {
+            //let obj = new StructuredBlock(hash);
             let obj = new MutableBlock(mb2hash);
             let path = []; // [ 'langs', 'readme.md' ]  // Direct to a file
             obj.load(true, {"path": path, "fetchlist": {"objbrowser": "ObjBrowser"}} );
@@ -35,7 +35,7 @@
 <p>This is intended for geek-consumption !</p>
 <ul id="ObjBrowser"></ul><!-- This is where objects inserted-->
 <script>
-    browser();
+    browser(sbhash);
 </script>
 </body>
 </html>
