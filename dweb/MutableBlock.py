@@ -164,6 +164,7 @@ class CommonList(SmartDict):
         :param obj: Object to store on this list
         """
         hash = obj if isinstance(obj, basestring) else obj._hash
+        assert hash # Empty string, or None would be an error
         from SignedBlock import Signature
         sig = Signature.sign(self, hash, verbose=verbose, **options)
         Dweb.transport.add(hash=hash, date=sig.date,
@@ -363,6 +364,16 @@ class AccessControlList(EncryptionList):
             toks = [ viewerkeypair.decrypt(str(a), b64=True, signer=self) for a in toks ]
         return toks
 
+    def encrypt (self, res, b64=False):
+        """
+        Encrypt an object (usually represented by the json string). Pair of .decrypt()
+
+        :param res: The material to encrypt, usually JSON but could probably also be opaque bytes
+        :param b64: 
+        :return: 
+        """
+        return CryptoLib.sym_encrypt(res, CryptoLib.b64dec(self.accesskey), b64=b64)
+
     def decrypt(self, data, viewerkeypair=None, verbose=False):
         """
 
@@ -421,7 +432,9 @@ class KeyChain(EncryptionList):
 
     def add(self, obj, verbose=False, **options):
         """
-        Add a 
+        Add a obj (usually a MutableBlock or a ViewerKey) to the keychain. by signing with this key.  
+        Item should usually itself be encrypted (by setting its _acl field)
+        
         :param obj: 
         :param verbose: 
         :param options: 
@@ -430,6 +443,17 @@ class KeyChain(EncryptionList):
         sig = super(KeyChain, self).add(obj, verbose=verbose, **options)  # Adds to dWeb list
         self._list.append(sig)
 
+    def encrypt (self, res, b64=False):
+        """
+        Encrypt an object (usually represented by the json string). Pair of .decrypt()
+
+        :param res: The material to encrypt, usually JSON but could probably also be opaque bytes
+        :param b64: 
+        :return: 
+        """
+        return CryptoLib.sym_encrypt(res, CryptoLib.b64dec(self.accesskey), b64=b64)
+
+
     def decrypt(self, data, verbose=False):
         """
 
@@ -437,9 +461,21 @@ class KeyChain(EncryptionList):
         :param verbose:
         :return:
         """
+        #TODO-WORDHASH just decrypt with key, but need to ensure store calls enc  with key not assumes symetric
         symkey = CryptoLib.b64dec(self.accesskey)
         r = CryptoLib.sym_decrypt(data, symkey, b64=True)  # Exception DecryptionFail (would be bad)
         return r
+
+    @property
+    def accesskey(self):    #TODO-WORDHASHKEY any use of this in KeyChain should probably just use the PrivateKey to encrypt rather than symkey
+        key = self.keypair._key
+        if isinstance(key, WordHashKey):    # Needs own case as privateexport is blocked
+            return CryptoLib.b64enc(self.keypair._key._private)
+        elif isinstance(key, nacl.signing.SigningKey):
+            return self.keypair._key.encode(nacl.encoding.URLSafeBase64Encoder)
+        else:
+            raise ToBeImplementedException(name="accesskey for "+key.__class__.__name__)
+
 
     @classmethod
     def addkeychains(cls, *keychains):
@@ -456,16 +492,6 @@ class KeyChain(EncryptionList):
         kcs = [ kc for kc in Dweb.keychains if kc._publichash == publichash ]
         if verbose and kcs: print "KeyChain.find successful"
         return kcs[0] if kcs else None
-
-    @property
-    def accesskey(self):    #TODO any use of this in KeyChain should probably just use the PrivateKey to encrypt rather than symkey
-        key = self.keypair._key
-        if isinstance(key, WordHashKey):    # Needs own case as privateexport is blocked
-            return CryptoLib.b64enc(self.keypair._key._private)
-        elif isinstance(key, nacl.signing.SigningKey):
-            return self.keypair._key.encode(nacl.encoding.URLSafeBase64Encoder)
-        else:
-            raise ToBeImplementedException(name="accesskey for "+key.__class__.__name__)
 
     def store(self, verbose=False, **options ):
         return super(KeyChain, self).store(verbose=verbose, dontstoremaster=True, **options)  # Stores public version and sets _publichash

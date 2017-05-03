@@ -154,7 +154,7 @@ class SmartDict(Transportable):
             print self.__dict__
             raise e
         if self._acl:   # Need to encrypt
-            encdata = CryptoLib.sym_encrypt(res, CryptoLib.b64dec(self._acl.accesskey), b64=True)
+            encdata = self._acl.encrypt(res, b64=True)
             dic = {"encrypted": encdata, "acl": self._acl._publichash, "table": self.table}
             res = CryptoLib.dumps(dic)
         return res
