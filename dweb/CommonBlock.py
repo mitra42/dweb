@@ -195,8 +195,7 @@ class UnknownBlock(SmartDict):
         if options:
             raise ToBeImplementedException(name="UnknownBlock.__init__ with options") # Normally don't pass options as dont know obj to set
         if data:
-            raise ToBeImplementedException(
-                name="UnknownBlock.__init__ with data")  # Normally don't pass data as dont know type of obj to set - if have data, then use to determine type
+            raise ToBeImplementedException(name="UnknownBlock.__init__ with data")  # Normally don't pass data as dont know type of obj to set - if have data, then use to determine type
         super(UnknownBlock, self).__init__(hash=hash, verbose=verbose) # Uses _data.setter to set data
 
     def fetch(self, verbose=False, **options):

@@ -161,7 +161,7 @@ class CommonList(SmartDict):
         """
         Add a object, typically MBM or ACL (i.e. not a StructuredBlock) to a List,
 
-        :param obj: Object to store on this list
+        :param obj: Object to store on this list or a hash string.
         """
         hash = obj if isinstance(obj, basestring) else obj._hash
         assert hash # Empty string, or None would be an error
@@ -451,8 +451,13 @@ class KeyChain(EncryptionList):
         :param b64: 
         :return: 
         """
-        return CryptoLib.sym_encrypt(res, CryptoLib.b64dec(self.accesskey), b64=b64)
-
+        key = self.keypair._key
+        if isinstance(key, WordHashKey):
+            return CryptoLib.sym_encrypt(res, CryptoLib.b64dec(self.accesskey), b64=b64)
+        elif isinstance(key, nacl.signing.SigningKey):
+            return self.keypair.encrypt(res, b64=b64, signer=self)
+        else:
+            raise ToBeImplementedException(name="Keypair.encrypt for " + key.__class__.__name__)
 
     def decrypt(self, data, verbose=False):
         """
@@ -461,10 +466,14 @@ class KeyChain(EncryptionList):
         :param verbose:
         :return:
         """
-        #TODO-WORDHASH just decrypt with key, but need to ensure store calls enc  with key not assumes symetric
-        symkey = CryptoLib.b64dec(self.accesskey)
-        r = CryptoLib.sym_decrypt(data, symkey, b64=True)  # Exception DecryptionFail (would be bad)
-        return r
+        key = self.keypair._key
+        if isinstance(key, WordHashKey):
+            symkey = CryptoLib.b64dec(self.accesskey)
+            return CryptoLib.sym_decrypt(data, symkey, b64=True)  # Exception DecryptionFail (would be bad)
+        elif isinstance(key, nacl.signing.SigningKey):
+            return self.keypair.decrypt(data, b64=True, signer=self)
+        else:
+            raise ToBeImplementedException(name="Keypair.decrypt for " + key.__class__.__name__)
 
     @property
     def accesskey(self):    #TODO-WORDHASHKEY any use of this in KeyChain should probably just use the PrivateKey to encrypt rather than symkey

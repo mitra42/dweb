@@ -45,14 +45,15 @@ TODO LIST
 =========
 This list is at a much finer lever of granularity than Roadmap above.
 
+* FUNCTIONALITY: Add authentication layer in Javascript
+    * Do via gateway (and try in browser)
+    * Add Libsodium to JS
+    * Embed on index and test pages
 * PEER: Peer knowledge system
     * Test on html etc
     * Move peer into Javascript
 * PEER Add smart pruning of peer lists by id-distance and ping time (sumulate ping time in testing)
 * PEER Send cached info when connecting  * Any data that new peer is "closer" to
-* FUNCTIONALITY: Add authentication layer in Javascript
-    * Do via gateway (and try in browser)
-    * Embed on index and test pages
 * FUNCTIONALITY - add caching, so dont reload, BUT disable for testing
 * FUNCTIONALITY - storing some content in lists and allowing searches of that content (listfind ? a=b c=d
 * FUNCTIONALITY - add notification lists
