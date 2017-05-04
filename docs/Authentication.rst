@@ -41,7 +41,7 @@ Access Control List (ACL)
 -------------------------
 To manage who can access an object, an ACL is used.
 The ACL contains a KeyPair (private/public keys), an encryption (AES) key, and a list of who can access it.
-Each item on the List is the AES key encrypted with the public key of the viewer, and the hash of the viewer's public key.
+Each item on the List is the AES key encrypted with the public key of the viewer; and the hash of the viewer's public key.
 To find a key, the viewer can look on the list for items with the hash of its public key, and then decrypt with its private key.
 
 Revoking Access
@@ -51,9 +51,12 @@ To minimize the chance of this, to revoke access requires changing the AES key a
 
 Key Chain (KC)
 --------------
+Key Chain's represent things you own.
 A Key Chain is a list of "master" items.
 These items are typically MutableBlock Masters, or ViewerKeys.
 These items are enrypted with KeyChains key before adding to the list.
+The old way of implementing this was the the KeyChain used a "WordHashKey" from which a symetric key was derived.
+New way of implementing this will be (or is already) that object is encrypted with public key of KeyChain.
 
 WordHash Keys
 ~~~~~~~~~~~~~

@@ -99,7 +99,7 @@ class Signatures(list):
             results = {}
             sigs = Signatures(Signature(s) for s in lines )
             if fetchblocks:
-                raise ToBeImplementedException(msg="fetchblocks for Signatures")    # Note havent defined a way to store the block on the sig
+                raise ToBeImplementedException(name="fetchblocks for Signatures")    # Note havent defined a way to store the block on the sig
             return Signatures([ s for s in sigs if CryptoLib.verify(s) ])
 
     def blocks(self, fetchblocks=True, verbose=False):

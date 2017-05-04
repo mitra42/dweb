@@ -3,9 +3,10 @@
 from CryptoLib import CryptoLib, KeyPair, WordHashKey, PrivateKeyException, AuthenticationException, DecryptionFail, SecurityWarning
 import base64
 import nacl.signing
+import nacl.encoding
 from StructuredBlock import StructuredBlock
 from SignedBlock import Signatures
-from misc import ForbiddenException, _print, AssertionFail
+from misc import ForbiddenException, _print, AssertionFail, ToBeImplementedException
 from CommonBlock import SmartDict
 from Dweb import Dweb
 
@@ -46,12 +47,12 @@ class CommonList(SmartDict):
         #if verbose: print "master=%s, keypair=%s, key=%s, hash=%s, verbose=%s, options=%s)" % (master, keypair, key, hash, verbose, options)
         self._master = master
         super(CommonList, self).__init__(data=data, hash=hash, verbose=verbose, **options)  # Initializes __dict__ via _data -> _setdata
-        if mnemonic:
-            self.keypair = WordHashKey(mnemonic)
+        #if mnemonic:
+        #    self.keypair = WordHashKey(mnemonic)
         if keypair:
             self.keypair = keypair
-        if keygen:
-                self.keypair = KeyPair.keygen(verbose=verbose, keytype=KeyPair.KEYTYPESIGN, **options)   # Note these options are also set on smartdict, so catch explicitly if known.
+        if keygen or mnemonic:
+                self.keypair = KeyPair.keygen(verbose=verbose, mnemonic=mnemonic, keytype=KeyPair.KEYTYPESIGN, **options)   # Note these options are also set on smartdict, so catch explicitly if known.
         if not self._master:
             self._publichash = hash # Maybe None.
         self._list = Signatures([])
@@ -160,9 +161,10 @@ class CommonList(SmartDict):
         """
         Add a object, typically MBM or ACL (i.e. not a StructuredBlock) to a List,
 
-        :param obj: Object to store on this list
+        :param obj: Object to store on this list or a hash string.
         """
         hash = obj if isinstance(obj, basestring) else obj._hash
+        assert hash # Empty string, or None would be an error
         from SignedBlock import Signature
         sig = Signature.sign(self, hash, verbose=verbose, **options)
         Dweb.transport.add(hash=hash, date=sig.date,
@@ -362,6 +364,16 @@ class AccessControlList(EncryptionList):
             toks = [ viewerkeypair.decrypt(str(a), b64=True, signer=self) for a in toks ]
         return toks
 
+    def encrypt (self, res, b64=False):
+        """
+        Encrypt an object (usually represented by the json string). Pair of .decrypt()
+
+        :param res: The material to encrypt, usually JSON but could probably also be opaque bytes
+        :param b64: 
+        :return: 
+        """
+        return CryptoLib.sym_encrypt(res, CryptoLib.b64dec(self.accesskey), b64=b64)
+
     def decrypt(self, data, viewerkeypair=None, verbose=False):
         """
 
@@ -408,7 +420,7 @@ class KeyChain(EncryptionList):
         kc.store(verbose=verbose)   # Set the _publichash
         KeyChain.addkeychains(kc)
         kc.fetch(verbose=verbose, fetchlist=True, fetchblocks=False)    # Was fetching blocks, but now done by "keys"
-        if verbose: print "Created keychain for:", kc.keypair.private.mnemonic
+        if verbose: print "Created keychain for:", kc.keypair.mnemonic
         if verbose and not mnemonic: print "Record these words if you want to access again"
         return kc
 
@@ -419,8 +431,33 @@ class KeyChain(EncryptionList):
         return self._keys
 
     def add(self, obj, verbose=False, **options):
+        """
+        Add a obj (usually a MutableBlock or a ViewerKey) to the keychain. by signing with this key.  
+        Item should usually itself be encrypted (by setting its _acl field)
+        
+        :param obj: 
+        :param verbose: 
+        :param options: 
+        :return: 
+        """
         sig = super(KeyChain, self).add(obj, verbose=verbose, **options)  # Adds to dWeb list
         self._list.append(sig)
+
+    def encrypt (self, res, b64=False):
+        """
+        Encrypt an object (usually represented by the json string). Pair of .decrypt()
+
+        :param res: The material to encrypt, usually JSON but could probably also be opaque bytes
+        :param b64: 
+        :return: 
+        """
+        key = self.keypair._key
+        if isinstance(key, WordHashKey):
+            return CryptoLib.sym_encrypt(res, CryptoLib.b64dec(self.accesskey), b64=b64)
+        elif isinstance(key, nacl.signing.SigningKey):
+            return self.keypair.encrypt(res, b64=b64, signer=self)
+        else:
+            raise ToBeImplementedException(name="Keypair.encrypt for " + key.__class__.__name__)
 
     def decrypt(self, data, verbose=False):
         """
@@ -429,9 +466,25 @@ class KeyChain(EncryptionList):
         :param verbose:
         :return:
         """
-        symkey = CryptoLib.b64dec(self.accesskey)
-        r = CryptoLib.sym_decrypt(data, symkey, b64=True)  # Exception DecryptionFail (would be bad)
-        return r
+        key = self.keypair._key
+        if isinstance(key, WordHashKey):
+            symkey = CryptoLib.b64dec(self.accesskey)
+            return CryptoLib.sym_decrypt(data, symkey, b64=True)  # Exception DecryptionFail (would be bad)
+        elif isinstance(key, nacl.signing.SigningKey):
+            return self.keypair.decrypt(data, b64=True, signer=self)
+        else:
+            raise ToBeImplementedException(name="Keypair.decrypt for " + key.__class__.__name__)
+
+    @property
+    def accesskey(self):    #TODO-WORDHASHKEY any use of this in KeyChain should probably just use the PrivateKey to encrypt rather than symkey
+        key = self.keypair._key
+        if isinstance(key, WordHashKey):    # Needs own case as privateexport is blocked
+            return CryptoLib.b64enc(self.keypair._key._private)
+        elif isinstance(key, nacl.signing.SigningKey):
+            return self.keypair._key.encode(nacl.encoding.URLSafeBase64Encoder)
+        else:
+            raise ToBeImplementedException(name="accesskey for "+key.__class__.__name__)
+
 
     @classmethod
     def addkeychains(cls, *keychains):
@@ -448,10 +501,6 @@ class KeyChain(EncryptionList):
         kcs = [ kc for kc in Dweb.keychains if kc._publichash == publichash ]
         if verbose and kcs: print "KeyChain.find successful"
         return kcs[0] if kcs else None
-
-    @property
-    def accesskey(self):
-        return CryptoLib.b64enc(self.keypair._key._private)
 
     def store(self, verbose=False, **options ):
         return super(KeyChain, self).store(verbose=verbose, dontstoremaster=True, **options)  # Stores public version and sets _publichash

@@ -265,6 +265,9 @@ class CryptoLib(object):
         :param data:
         :return: Dict or Array from loading json in data
         """
+        if data is None:
+            pass        # For breakpoint
+        assert data is not None
         return loads(data)
 
     @classmethod
@@ -393,29 +396,36 @@ class KeyPair(SmartDict):
         return "KeyPair" + repr(self.__dict__)  #TODO only useful for debugging,
 
     @classmethod
-    def keygen(cls, keyclass=None, keytype=None, verbose=False, **options):
+    def keygen(cls, keyclass=None, keytype=None, mnemonic=None, seed=None, verbose=False, **options):
         """
         Generate a new key pair
 
         :param options: unused
-        :keyclass class: Can override default of RSA to WordHash
+        :keyclass class: RSA, CryptoLib.NACL, or WordHashKey
+        :keytype int: one of KEYTYPESIGN, KEYTYPEENCRYPT or KEYTYPESIGNANDENCRYPT (latter not supported)
+        :mnemonic string: Words to convert into seed for key (valid with NACL and WordHashKey)
+        :seed binary: Seed to keygen (valid with keyclass=NACL, invalid with mnemonic)
         :return: KeyPair
         """
         #assert keytype  # Required parameter
         if not keyclass:
             keyclass = RSA if CryptoLib.defaultlib == CryptoLib.CRYPTO else CryptoLib.NACL
         if verbose: print "Generating key for",keyclass
+        if mnemonic:
+            seed = str(Mnemonic("english").to_entropy(mnemonic))
         if keyclass in (RSA, "RSA"):
+            if seed:
+                raise ToBeImplementedException(name="keygen - support for RSA with seeds")
             key=RSA.generate(1024, Random.new().read)
         elif keyclass in (CryptoLib.NACL,):
             if keytype == cls.KEYTYPESIGN:
-                key = nacl.signing.SigningKey.generate()
+                key = nacl.signing.SigningKey(seed) if seed else nacl.signing.SigningKey.generate()
             elif keytype == cls.KEYTYPEENCRYPT:
-                key=nacl.public.PrivateKey.generate()
+                key=nacl.public.PrivateKey(seed) if seed else nacl.public.PrivateKey.generate()
             else:
                 raise ToBeImplementedException(name="keygen for keytype="+str(keytype))
         elif keyclass in (WordHashKey,):
-            key = WordHashKey.generate(strength=256)    # Must be 32 bytes=156 for symkey (was using 128)
+            key = WordHashKey(mnemonic=mnemonic) if mnemomic else WordHashKey.generate(strength=256)    # Must be 32 bytes=156 for symkey (was using 128)
         else:
             raise ToBeImplementedException(name="keygen for keyclass="+keyclass.__class__.__name__)
         return cls(key=key)
@@ -509,6 +519,13 @@ class KeyPair(SmartDict):
         """
         self.key = value
 
+    @property
+    def mnemonic(self):
+        if isinstance(self._key, (nacl.public.PrivateKey, nacl.signing.SigningKey)):
+            return Mnemonic("english").to_mnemonic(self._key.encode(nacl.encoding.RawEncoder))
+        else:
+            raise ToBeImplementedException(name="mnemonic for "+self._key.__class__.__name__)
+
     def _exportkey(self, key):
         # Export any of a set of key classes, note those with explicit publicexport() etc methods should have been already handled.
         tag = self.naclkeyclasses.get(key.__class__)
@@ -547,6 +564,7 @@ class KeyPair(SmartDict):
         else:
             raise ToBeImplementedException(name="KeyPair._key_has_private for _key is "+key.__class__.__name__)
 
+    @property
     def naclprivate(self):
         if isinstance(self._key, nacl.public.PrivateKey):
             return self._key
@@ -555,10 +573,21 @@ class KeyPair(SmartDict):
         else:
             raise PrivateKeyException()
 
+    @property
+    def naclpublic(self):
+        # Return the public key, for NACL this made by turning SigningKey into PrivateKey into Publickey
+        if isinstance(self._key, nacl.public.PublicKey):
+            return self._key
+        if isinstance(self._key, (nacl.public.PrivateKey, nacl.signing.SigningKey)):
+            return self.naclprivate.public_key
+        else:
+            raise ToBeImplementedException(name="naclpublic for _key is "+self._key.__class__.__name__)
+            #return None
+
     def naclpublicexport(self):
         # Export the public encryption key, for NACL this made by turning SigningKey into PrivateKey into Publickey
         if isinstance(self._key, (nacl.public.PrivateKey,nacl.signing.SigningKey)):
-            return self._exportkey(self.naclprivate().public_key)
+            return self._exportkey(self.naclpublic)
         else:
             return None
 
@@ -571,7 +600,7 @@ class KeyPair(SmartDict):
 
         :param data:
         :b64 bool:  Trye if want result encoded
-        :signer AccessControlList: If want result signed (currently ignored for RSA, reqd for NACL)
+        :signer AccessControlList or KeyPair: If want result signed (currently ignored for RSA, reqd for NACL)
         :return: str, binary encryption of data
         """
         if isinstance(self._key,RSA._RSAobj):
@@ -584,11 +613,10 @@ class KeyPair(SmartDict):
             if b64:
                 res = CryptoLib.b64enc(res)
             return res
-        elif isinstance(self._key, nacl.public.PrivateKey):
+        elif isinstance(self._key, (nacl.public.PrivateKey, nacl.signing.SigningKey)):
             assert signer, "Until PyNaCl bindings have secretbox we require a signer and have to add authentication"
-            box = nacl.public.Box(signer.keypair.naclprivate(), self.public)
+            box = nacl.public.Box(signer.keypair.naclprivate, self.naclpublic)
             return box.encrypt(data, encoder=(nacl.encoding.URLSafeBase64Encoder if b64 else nacl.encoding.RawEncoder))
-        # Dont put a test here for SigningKey which should be using Signature, not encrypt
         else:
             raise ToBeImplementedException(name="encrypt for"+self._key.__class__.__name__)
 
@@ -608,13 +636,16 @@ class KeyPair(SmartDict):
             cipher = PKCS1_OAEP.new(self._key)
             aeskey = cipher.decrypt(enckey)     # Matches aeskey in encrypt
             return CryptoLib.sym_decrypt(data, aeskey)
-        elif isinstance(self._key, nacl.public.PrivateKey):
+        elif isinstance(self._key, (nacl.public.PrivateKey, nacl.signing.SigningKey)):
             assert signer, "Until PyNaCl bindings have secretbox we require a signer and have to add authentication"
             # Naclpublic comes from either one already stored on ACL or if it has a private key can be derived from that.
-            naclpublic = signer.naclpublic and self._importkey(signer.naclpublic)
+            naclpublic = (signer.naclpublic and self._importkey(signer.naclpublic))  or signer.keypair.naclpublic
             assert naclpublic
-            box = nacl.public.Box(self._key, naclpublic)
-            return box.decrypt(data, encoder=(nacl.encoding.URLSafeBase64Encoder if b64 else nacl.encoding.RawEncoder))
+            box = nacl.public.Box(self.naclprivate, naclpublic)
+            #Convert data to "str" first as its most likely unicode having gone through JSON.
+            return box.decrypt(str(data), encoder=(nacl.encoding.URLSafeBase64Encoder if b64 else nacl.encoding.RawEncoder))
+        else:
+            raise ToBeImplementedException(name="KeyPair.decrypt for "+self._key.__class__.__name__)
 
 
 class WordHashKey(object):   #TODO-LIBSODIUM-CHECK-THIS-FUNCTION maybe replace with deterministic pub key from mnemonic

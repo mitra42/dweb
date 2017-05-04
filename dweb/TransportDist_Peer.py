@@ -304,6 +304,7 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
         :param data: opaque data to store
         :return: hash of data
         """
+        assert data is not None, "Meaningless to store None"
         req = PeerRequest(command="reqstore", data=data, sourcenode=Peer(node=self), verbose=verbose)
         peerresp = self.reqstore(req=req, verbose=verbose, **options)
         if verbose: print "TransportDistPeer.reqstore returned:", peerresp
@@ -322,6 +323,7 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
         :return: 
         """
         if verbose: print "TransportDistPeer.reqstore len=", len(req.data), req
+        assert req.data is not None, "Meaningless to store None"
         if self.tl and not options.get("ignorecache"):
             hash = self.tl.rawstore(req.data, verbose=verbose, **options)  # Save local copy
             if req.hash:

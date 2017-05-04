@@ -120,6 +120,7 @@ class TransportLocal(Transport):
         :param data: opaque data to store
         :return: hash of data
         """
+        assert data is not None # Its meaningless (or at least I think so) to store None (empty string is meaningful)
         hash = CryptoLib.Curlhash(data)
         filename = self._filename("block", hash, verbose=verbose, **options)
         try:
