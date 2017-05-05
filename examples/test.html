@@ -6,7 +6,10 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script><!-- Jquery via Google -->
     <!--<script src="/file/sb/SHA3256B64URL.BDCbn_l9rrlCdVkB9o6qozSP84HBCGors5dBLxdyro8="></script><!-- jquery-3.1.1.js-->
     <script src="/file/mb/BLAKE2.C0pfg39FLVAO9eCBrT76D5lHQp6XtN32vxmretoFxQE="></script><!-- dweb.js -->
-    <script src="/file/sb/BLAKE2.0JN4oR4nl5psxJUHpTFHy0u7xZwDjcfViFPYmcvnPpU=/sodium.js""></script><!-- libsodium/sodium.js-->
+    <script src="/file/sb/BLAKE2.8fTTeCloSFNMqvHxvdWBFFewU9hCGtZfiekmDtBCpsw=/sodium.js"></script><!-- libsodium/sodium.js-->
+    <!--<script src="/file/sb/BLAKE2.ZxsegoRtOLB_KH5GEpOTpZE-WRVcxln8Kpv0SllhqLc=/index.js"></script><!-- bip39/index.js-->
+    <!--<script src="/file/sb/BLAKE2.1PW-n24xBzjT-VBp4EMEZAyCar0EafZiYuBey0Ldr4o=/mnemonic.js"></script><!-- mnemonic.js/mnemonic.js-->
+
     <script>
         // This is my current testing script first of block
     </script>
@@ -35,7 +38,8 @@
             mb.load(true, true, true, false, {"path": ['_static'], "objbrowser": "ObjBrowser"} ); //,"readme.md"
         }
         function cryptotest() { //TODO-CRYPTO Still working on this
-            let mnemonic = "olympic high dress found sport caution grant insect receive upper connect regret limit awesome image text bamboo dawn fold pen raccoon math delay virus" # 32 byte
+            let verbose = true;
+            // First test some of the lower level functionality - create key etc
             let qbf="The quick brown fox ran over the lazy duck";
             let key = sodium.randombytes_buf(sodium.crypto_shorthash_KEYBYTES);
             let shash_u64 = sodium.crypto_shorthash('test', key, 'urlsafebase64'); // urlsafebase64 is support added by mitra
@@ -43,8 +47,15 @@
             let hash_hex = sodium.crypto_generichash(32, qbf, key, 'hex'); // Try this with null as the key
             let hash_64 = sodium.crypto_generichash(32, qbf, key, 'base64'); // Try this with null as the key
             let hash_u64 = sodium.crypto_generichash(32, qbf, key, 'urlsafebase64'); // Try this with null as the key
-            console.log("hash_hex = ",shash_u64, hash_hex, hash_64, hash_u64);
+            if (verbose) { console.log("hash_hex = ",shash_u64, hash_hex, hash_64, hash_u64); }
             if (hash_u64 != "YOanaCqfg3UsKoqlNmVG7SFwLgDyB3aToEmLCH-vOzs=") { console.log("ERR Bad blake2 hash"); }
+            let signingkey = sodium.crypto_sign_keypair();
+            if (verbose) { console.log(signingkey); }
+
+            // Set mnemonic to value that generates seed "01234567890123456789012345678901"
+            let mnemonic = "coral maze mimic half fat breeze thought champion couple muscle snack heavy gloom orchard tooth alert cram often ask hockey inform broken school cotton" // 32 byte
+            // Test sequence extracted from test.py
+            kc = KeyChain.new(mnemonic, false, "test_keychain kc", verbose);
         }
     </script>
     <style>

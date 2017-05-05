@@ -399,6 +399,7 @@ class KeyPair(SmartDict):
     def keygen(cls, keyclass=None, keytype=None, mnemonic=None, seed=None, verbose=False, **options):
         """
         Generate a new key pair
+        ERR: ValueError - wrong size seed
 
         :param options: unused
         :keyclass class: RSA, CryptoLib.NACL, or WordHashKey
@@ -419,9 +420,9 @@ class KeyPair(SmartDict):
             key=RSA.generate(1024, Random.new().read)
         elif keyclass in (CryptoLib.NACL,):
             if keytype == cls.KEYTYPESIGN:
-                key = nacl.signing.SigningKey(seed) if seed else nacl.signing.SigningKey.generate()
+                key = nacl.signing.SigningKey(seed) if seed else nacl.signing.SigningKey.generate() #ValueError if seed != 32 bytes
             elif keytype == cls.KEYTYPEENCRYPT:
-                key=nacl.public.PrivateKey(seed) if seed else nacl.public.PrivateKey.generate()
+                key=nacl.public.PrivateKey(seed) if seed else nacl.public.PrivateKey.generate() #ValueError if seed != 32 bytes
             else:
                 raise ToBeImplementedException(name="keygen for keytype="+str(keytype))
         elif keyclass in (WordHashKey,):
@@ -646,7 +647,6 @@ class KeyPair(SmartDict):
             return box.decrypt(str(data), encoder=(nacl.encoding.URLSafeBase64Encoder if b64 else nacl.encoding.RawEncoder))
         else:
             raise ToBeImplementedException(name="KeyPair.decrypt for "+self._key.__class__.__name__)
-
 
 class WordHashKey(object):   #TODO-LIBSODIUM-CHECK-THIS-FUNCTION maybe replace with deterministic pub key from mnemonic
     """

@@ -4,6 +4,11 @@ var dwebserver = 'localhost';
 //var dwebserver = '192.168.1.156';
 var dwebport = '4243';
 
+// Constants
+var KEYPAIRKEYTYPESIGN = 1
+var KEYPAIRKEYTYPEENCRYPT = 2
+var KEYPAIRKEYTYPESIGNANDENCRYPT = 2    // Currently unsupported
+
 // ==== OBJECT ORIENTED JAVASCRIPT ===============
 
 
@@ -105,12 +110,12 @@ class Transportable {
 
     constructor(hash, data) {
         this._hash = hash;  // Hash of the _data
-        this._setdata(data); // The data being stored
+        this._setdata(data); // The data being stored - note _setdata usually subclassed
         if (hash && !data) { this._needsfetch = true; }
     }
 
     _setdata(value) {
-        this._data = value;  // Default behavior, assumes opaque bytes, and not a dict
+        this._data = value;  // Default behavior, assumes opaque bytes, and not a dict - note subclassed in SmartDict
     }
     //UNDEFINED FUNCTIONS in PYTHON: store, dirty, fetch, file, url
     store() { alert("Undefined function Transportable.store"); }
@@ -171,8 +176,9 @@ class Transportable {
 }
 
 class SmartDict extends Transportable {
-    constructor(hash, data) {
+    constructor(hash, data, verbose) {
         super(hash, data); // _hash is _hash of SB, not of data
+        // data = json string or dict
         // Note this does not set fields (with _setproperties) unlike Python version which sets it in _data.setter
     }
     __setattr__(name, value) {
@@ -181,7 +187,8 @@ class SmartDict extends Transportable {
         //    if "date" in name and isinstance(value,basestring):
         //        value = dateutil.parser.parse(value)
         //}
-        return this[name] = value; //TODO: Python-Javascript: In Python can assume will get methods of property e.g. _data, in javascript need to be explicit here, or in caller.
+        //TODO - instead of calling "setter" automatically, assuming that __setattr__ in each class does so.
+        this[name] = value; //TODO: Python-Javascript: In Python can assume will get methods of property e.g. _data, in javascript need to be explicit here, or in caller.
     }
     _setproperties(dict) { // < _setdata < constructor or onloaded
         for (let prop in dict) {
@@ -229,7 +236,7 @@ class SmartDict extends Transportable {
         for (let prop in this) {
             if (this[prop]) {
                 let text = this[prop].toString();
-                if (text != "" && prop != "_hash") {    // Skip empty values; _hash (as shown above);
+                if (text !== "" && prop !== "_hash") {    // Skip empty values; _hash (as shown above);
                     let li2 = document.createElement("li");
                     li2.className='prop';
                     ul2.appendChild(li2);
@@ -265,13 +272,13 @@ class SmartDict extends Transportable {
                             }
                         }
                     } else {    // Any other field
-                        if (prop == "hash") {
+                        if (prop === "hash") {
                             var spanval = document.createElement('a');
                             spanval.setAttribute('href','/file/b/'+this[prop]+"?contenttype="+this["Content-type"]);
                         } else {
                             // Group of fields where display then add behavior or something
                             var spanval = document.createElement('span');
-                            if (prop == "_needsfetch") {
+                            if (prop === "_needsfetch") {
                                 li2.setAttribute('onclick','dofetch(this.parentNode.parentNode);');
                             }
                         }
@@ -311,8 +318,8 @@ class Block extends Transportable {
 // ######### Parallel development to StructuredBlock.py ########
 
 class StructuredBlock extends SmartDict {
-    constructor(hash, data) {
-        super(hash, data); // _hash is _hash of SB, not of data
+    constructor(hash, data, verbose) {
+        super(hash, data, verbose); // _hash is _hash of SB, not of data
         this._signatures = new Array()
         this._date = null;  // Updated in _earliestdate when loaded
         this.table = "sb";  // Note this is cls.table on python but need to separate from dictionary
@@ -321,10 +328,11 @@ class StructuredBlock extends SmartDict {
 
     __setattr__(name, value) {  // Called by _setproperties < _setdata < constructor or onloaded.
         //catch equivalent of getters and setters here
-        if (name == "links") {  // Assume its a SB TODO make dependent on which table
+        let verbose = false;
+        if (name === "links") {  // Assume its a SB TODO make dependent on which table
             let links = value;
             for (let len = links.length, i=0; i<len; i++) {
-                let sb = new StructuredBlock(null, links[i]);
+                let sb = new StructuredBlock(null, links[i], verbose);
                 links[i] = sb;
             }
             this[name] = links;
@@ -363,7 +371,7 @@ class StructuredBlock extends SmartDict {
     link(name) {    // Note python version allows call by number as well as name
         let links = this.links;
         for (let len = links.length, i=0; i<len; i++) {
-            if (links[i].name == name) {
+            if (links[i].name === name) {
                 return links[i]
             }
         }
@@ -406,8 +414,8 @@ class StructuredBlock extends SmartDict {
 // ######### Parallel development to SignedBlock.py which also has SignedBlocks and Signatures classes ########
 
 class Signature extends SmartDict {
-    constructor(hash, dic) {
-        super(hash, dic);
+    constructor(hash, dic, verbose) {
+        super(hash, dic, verbose);
         //console.log("Signature created",this.hash);
         //TODO turn s.date into java date
         //if isinstance(s.date, basestring):
@@ -422,11 +430,19 @@ class Signature extends SmartDict {
 
 
 class CommonList extends SmartDict {
-    constructor(hash, data, master) {
-        //TODO note python allows constructor with use of mnemonic, keypair, keygen and pub/private
-        super(hash, data);
+    constructor(hash, data, master, keypair, keygen, mnemonic, verbose) {
+        // data = json string, or dict
+        //TODO implmenent mnemonic, keypair, keygen
+        if (keypair) { console.log("ERR CommonList.constructor called with unsupported keypair"); }
+        if (keygen) { console.log("ERR CommonList.constructor called with unsupported keygen"); }
+        super(hash, data, verbose);
         this._master = master;
         this._list = new Array();   // Array of signatures
+        this.keypair = keypair;
+        if (keygen || mnemonic) {
+            this.keypair = KeyPair.keygen(KEYPAIRKEYTYPESIGN, mnemonic, null, verbose); //TODO - implement KeyPair and keygen
+        }
+        if (!this._master) { this._publichash = hash; }
     }
     _setkeypair() { alert("Undefined function CommonList._setkeypair"); }
     preflight() { alert("Undefined function CommonList.preflight"); }   // For storing data
@@ -460,7 +476,7 @@ class CommonList extends SmartDict {
         for (let i in lines) {
             //TODO verify signature
             //if CryptoLib.verify(s):
-            let s = new Signature(null, lines[i]);        // Signature ::= {date, hash, privatekey etc }
+            let s = new Signature(null, lines[i], verbose);        // Signature ::= {date, hash, privatekey etc }
             this._list.push(s)
         }
         if (options.fetchblocks) {
@@ -480,7 +496,7 @@ class CommonList extends SmartDict {
         for (let i in this._list) {
             let s = this._list[i];
             if (! results[s.hash]) {
-                results[s.hash] = new StructuredBlock(s.hash, null);  //TODO Handle cases where its not a SB
+                results[s.hash] = new StructuredBlock(s.hash, null, verbose);  //TODO Handle cases where its not a SB
             }
             results[s.hash]._signatures.push(s);
         }
@@ -512,7 +528,7 @@ class MutableBlock extends CommonList {
         let handled = super.onlisted(hash, lines, verbose, options);
         if (handled) {  // Should always be handled until fetchblocks implemented
             let sig = this._list[this._list.length-1];
-            this._current = new StructuredBlock(sig.hash, null);
+            this._current = new StructuredBlock(sig.hash, null, verbose);
             if (options.path && options.path.length) {  //TODO-PATH unclear if want a path or a list - start with a list
                 this._current.load(verbose, options);
             } else { // elem, objbrowser etc are done on the leaf, not the intermediaries
@@ -549,13 +565,17 @@ class MutableBlock extends CommonList {
 }
 
 class KeyChain extends CommonList {
+    // This class is pulled form MutableBlock.py
+    // Notable changes:
 
 
-    constructor(hash, data, master) {   //TODO will need to take more parameters like python version
-        super(hash, null, master);
+    constructor(hash, data, master, keypair, keygen, mnemonic, verbose) { //Note not all these parameters are supported (yet) by CommonList.constructor
+        super(hash, data, master, keypair, keygen, mnemonic, verbose);  //TODO-WONT WORK TILL Keypair.keygen implemented
     }
     static new(mnemonic, keygen, name, verbose) {
-        kc = new KeyChain(xxxx);        //TODO add parameters
+        //TODO support name - by adding to dic -
+        console.log("TODO - STARTING PARTIALLY IMPLEMENTED KeyChain.new");
+        let kc = new KeyChain(null, { "name": name }, false, null, keygen, mnemonic, verbose); //TODO-WONT WORK TILL Keypair.keygen implemented
         //kc.store()                    //TODO store not yet defined
         //KeyChain.addkeychains(kc)
         //kc.fetch(verbose=verbose, fetchlist=True, fetchblocks=False)    # Was fetching blocks, but now done by "keys"
@@ -564,13 +584,87 @@ class KeyChain extends CommonList {
         //return kc
     }
 
-    constructor()
+}
+// ==== Crypto.py - Encapsulate all the Cryptography =========
+class KeyPair extends SmartDict {
+    // This class is (partially) pulled from Crypto.py
+    constructor(hash, data, verbose) {
+        super(hash, data, verbose);    // SmartDict takes data=json or dict
+    }
+
+    static keygen(keytype, mnemonic, seed, verbose) {
+        // keyclass parameter (from Python) not supported as only support Libsodium=NACL keys
+        if (verbose) { console.log("Generating keypair"); }
+        if (mnemonic) {
+            //TODO Mnemonic libraries are either non-BIP39 or have node dependencies - need to rewrite one of them
+            if (mnemonic == "coral maze mimic half fat breeze thought champion couple muscle snack heavy gloom orchard tooth alert cram often ask hockey inform broken school cotton") { // 32 byte
+                seed = "01234567890123456789012345678901";
+                console.log("Faking mnemonic encoding for now")
+            } else {
+                console.log("MNEMONIC STILL TO BE IMPLEMENTED");    //TODO-mnemonic
+            }
+        }
+        if (keytype === KEYPAIRKEYTYPESIGN) {
+            if (seed) {
+                var key = sodium.crypto_sign_seed_keypair(seed);
+            } else {
+                var key = sodium.crypto_sign_keypair();
+            }
+            //key = Object { publicKey: Uint8Array[32], privateKey: Uint8Array[64], keyType: "ed25519" }
+        } else if (keytype === KEYPAIRKEYTYPEENCRYPT) {
+            if (seed) {
+                var key = sodium.crypto_box_seed_keypair(seed);
+            } else {
+                var key = sodium.crypto_box_keypair();
+            }
+        } else {
+            console.log("UNSUPPORTED keytype=", keytype);
+        }
+        if (verbose) { console.log("key generated:",key); }
+        return new KeyPair(null, {"key": key}, verbose);
+    }
+    __setattr__(name, value) { // Superclass SmartDict to catch "setter"s
+        let verbose = false;
+        if (name === "key") {
+            this.key_setter(value);
+        } else if (name === "private") {
+            alert("Undefined function KeyPair.private.setter");
+        } else if (name === "public") {
+            alert("Undefined function KeyPair.public.setter");
+        } else {
+            super.__setattr__(name, value);
+        }
+    }
+
+    key_setter(value) {
+        if (typeof value === "string") {
+            this._key = this._importkey(value); //TODO unimplemented
+        } else {
+            this._key = value;
+        }
+    }
+    preflight() { alert("Undefined function KeyPair.preflight"); }
+    _importkey(value) { alert("Undefined function KeyPair._importkey"); }
+    key() { alert("Undefined function KeyPair.key"); }
+    private() { alert("Undefined function KeyPair.private"); }
+    public() { alert("Undefined function KeyPair.public"); }
+    mnemonic() { alert("Undefined function KeyPair.mnemonic"); }
+    _exportkey() { alert("Undefined function KeyPair._exportkey"); }
+    publicexport() { alert("Undefined function KeyPair.publicexport"); }
+    privateexport() { alert("Undefined function KeyPair.privateexport"); }
+    _key_has_private() { alert("Undefined function KeyPair._key_has_private"); }
+    naclprivate() { alert("Undefined function KeyPair.naclprivate"); }
+    naclpublic() { alert("Undefined function KeyPair.naclpublic"); }
+    naclpublicexport() { alert("Undefined function KeyPair.naclpublicexport"); }
+    has_private() { alert("Undefined function KeyPair.has_private"); }
+    encrypt() { alert("Undefined function KeyPair.encrypt"); }
+    decrypt() { alert("Undefined function KeyPair.decrypt"); }
 }
 // ==== UI related functions, not dWeb specific =========
 function togglevisnext(elem) {   // Hide the next sibling object and show the one after, or vica-versa,
     el1 = elem.nextSibling;
     el2 = el1.nextSibling;
-    if (el1.style.display == "none") {
+    if (el1.style.display === "none") {
         el1.style.display = "";
         el2.style.display = "none";
     } else {
@@ -591,14 +685,15 @@ function dofetch(el) {
 
 function dwebfile(table, hash, path, options) {
     // Simple utility function to load into a hash without dealing with individual objects
+    let verbose = false;
     if (path && (path.length > 0)) {
         options.path = path.split('/');
     }
-    if (table == "mb") {
+    if (table === "mb") {
         var mb = new MutableBlock(hash, null, false);
         mb.load(true, { "fetchlist": options}); // for dwebfile, we want to apply the optiosn to the file - which is in the content after fetchlist
-    } else if (table == "sb") {
-        var sb = new StructuredBlock(hash, null);
+    } else if (table === "sb") {
+        var sb = new StructuredBlock(hash, null, verbose);
         sb.load(true, options);
     } else {
         alert("dwebfile called with invalid table="+table);

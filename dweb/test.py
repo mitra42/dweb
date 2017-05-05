@@ -40,7 +40,9 @@ class Testing(unittest.TestCase):
         self.keytail = ["_rsa","_nacl"][CryptoLib.defaultlib]
         # Random valid mnemonic
         #self.mnemonic = "lecture name virus model jealous whisper stone broom harvest april notable lunch"  # 16byte
-        self.mnemonic = "olympic high dress found sport caution grant insect receive upper connect regret limit awesome image text bamboo dawn fold pen raccoon math delay virus" # 32 byte
+        #self.mnemonic = "olympic high dress found sport caution grant insect receive upper connect regret limit awesome image text bamboo dawn fold pen raccoon math delay virus" # 32 byte
+        self.seed = "01234567890123456789012345678901"
+        self.mnemonic="coral maze mimic half fat breeze thought champion couple muscle snack heavy gloom orchard tooth alert cram often ask hockey inform broken school cotton"
         if testTransporttype == 0: # TransportLocal:
             Dweb.settransport(transportclass=TransportLocal, verbose=self.verbose, dir="../cache")
         elif testTransporttype == 1: # TransportHTTP:
@@ -271,6 +273,7 @@ class Testing(unittest.TestCase):
         if isinstance(Dweb.transport, TransportLocal):
             print "Can't test_uploads on",Dweb.transport.__class__.__name__
             return
+        ext = True
         #Dweb.settransport(transportclass=TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         b=Block(data=self.dog); b.store(); print self.dog,b.url()
         self.uploads = {}
@@ -282,30 +285,34 @@ class Testing(unittest.TestCase):
         self._storeas("snippet2.html", "snippet_html", "text/html")
         self._storeas("WrenchIcon.png", None, "image/png")
         self._storeas("DWebArchitecture.png", "DwebArchitecture_png","image/png")
-        self._storeas("../tinymce", "tinymce", None)
-        self._storeas("../docs/_build/html", "docs_build_html", None)
         self._storeas("objbrowser.html", "objbrowser_html", "text/html")
         self._storeas("libsodium", None, None)
-        print "INDEX.HTML"
+        if ext: # Not uploaded if doing fast cycle dev
+            self._storeas("../tinymce", "tinymce", None)
+            self._storeas("../docs/_build/html", "docs_build_html", None)
+        #self._storeas("mnemonic.js", None, None)
+        print "INDEX.HTML at",self.uploads["index.html"]["read"]
         print "jquery-3.1.1.js",self.uploads["jquery-3.1.1.js"]["relread"]
         print "dweb.js",self.uploads["dweb.js"]["relread"]
-        print "../tinymce/tinymce.min.js", self.uploads["../tinymce"]["relread"]+"/tinymce.min.js"
+        #print "../tinymce/tinymce.min.js", self.uploads["../tinymce"]["relread"]+"/tinymce.min.js"
         print "snippet.html", self.uploads["snippet.html"]["editablehash"]
         print "cleverdog", b._hash
         print "snippet.html content", self.uploads["snippet.html"]["contenthash"]
         print "snippet.html", self.uploads["snippet.html"]["relread"]
         print "WrenchIcon.png", self.uploads["WrenchIcon.png"]["relread"]
         print "DWebArchitecture.png", self.uploads["DWebArchitecture.png"]["relread"]
-        print "Sphinx Documentation", self.uploads["../docs/_build/html"]["relread"]
+        #print "Sphinx Documentation", self.uploads["../docs/_build/html"]["relread"]
         print "test.html",self.uploads["test.html"]["relread"]
         print "objbrowser.html", self.uploads["objbrowser.html"]["relread"]
-        print "TEST.HTML or OBJECTBROWSER.HTML"
+        print "TEST.HTML at",self.uploads["test.html"]["read"]
+        print "or OBJECTBROWSER.HTML at", self.uploads["objbrowser.html"]["read"]
         print "dweb.js",self.uploads["dweb.js"]["relread"]
-        print "mbhash Tinymce", self.uploads["../tinymce"]["publichash"]
-        print "mb2hash Sphinx docs", self.uploads["../docs/_build/html"]["publichash"]
-        print "sbhash Tinymce cont", self.uploads["../tinymce"]["contenthash"]
+        if ext: print "mbhash Tinymce", self.uploads["../tinymce"]["publichash"]
+        if ext: print "mb2hash Sphinx docs", self.uploads["../docs/_build/html"]["publichash"]
+        if ext: print "sbhash Tinymce cont", self.uploads["../tinymce"]["contenthash"]
         print "EXPERIMENTAL"
         print "libsodium", self.uploads["libsodium"]["relread"]+"/sodium.js"
+        #print "mnemonic.js", self.uploads["mnemonic.js"]["relread"]+"/mnemonic.js"
 
     def test_uploadandrelativepaths(self):
         # Test that a directory can be uploaded and then accessed by a relative path
@@ -345,7 +352,6 @@ class Testing(unittest.TestCase):
             assert res == self.quickbrownfox
             #print res
             assert sendingbox.encode(nacl.encoding.URLSafeBase64Encoder) == receivingbox.encode(nacl.encoding.URLSafeBase64Encoder)
-
         else:
             # Try RSA encrypt/decrypt
             keypair = KeyPair.keygen()
@@ -353,6 +359,10 @@ class Testing(unittest.TestCase):
             enclong = keypair.encrypt(self.quickbrownfox*100)
             dec = keypair.decrypt(enc)
             assert dec == self.quickbrownfox
+        #These should work for any defaultlib
+        foo = KeyPair.keygen(keytype=KeyPair.KEYTYPESIGN, seed=self.seed)
+        assert foo.mnemonic == self.mnemonic
+
 
     def test_keychain(self):
         """
@@ -460,6 +470,7 @@ class Testing(unittest.TestCase):
 
     def Xtest_current(self):
         self.verbose=True
+        self.test_crypto()
         self.test_keychain()
         #self.uploads = {}
         #self._storeas("libsodium", None, None)
