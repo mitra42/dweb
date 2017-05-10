@@ -263,7 +263,7 @@ class MutableBlock(CommonList):
 
 
     @classmethod
-    def new(cls, acl=None, contentacl=None, name=None, _allowunsafestore=False, content=None, verbose=False, signandstore=False, **options):
+    def new(cls, acl=None, contentacl=None, name=None, _allowunsafestore=False, content=None, signandstore=False, verbose=False, **options):
         """
         Utility function to allow creation of MB in one step
 
