@@ -121,21 +121,18 @@ class SmartDict(Transportable):
         for k in options:
             self.__setattr__(k, options[k])
 
-    def preflight(self, dd=None):
+    def preflight(self, dd):
         """
         Run before converting to data, by default strips any attributes starting with "_", and turns objects into hashes
         :return:
         """
-        if not dd:
-            dd = self.__dict__  # Note this isnt a copy, so cant make changes below
         res = {
             k: dd[k].store()._hash if isinstance(dd[k], Transportable) else dd[k]
             for k in dd
             if k[0] != '_'
         }
         res["table"] = res.get("table",self.table)  # Assumes if used table as a field, that not relying on it being the table for loading
-        if not res["table"]:
-            raise ToBeImplementedException(name="preflight table for "+self.__class__.__name__)
+        assert res["table"]
         return res
 
     def _getdata(self):
@@ -148,7 +145,7 @@ class SmartDict(Transportable):
         """
         from CryptoLib import CryptoLib
         try:
-            res = CryptoLib.dumps(self.preflight()) # Should call self.dumps below { k:self.__dict__[k] for k in self.__dict__ if k[0]!="_" })
+            res = CryptoLib.dumps(self.preflight(self.__dict__.copy())) # Should call self.dumps below { k:self.__dict__[k] for k in self.__dict__ if k[0]!="_" })
         except UnicodeDecodeError as e:
             print "Unicode error in StructuredBlock"
             print self.__dict__

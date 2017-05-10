@@ -1,18 +1,26 @@
 // Javascript library for dweb
+// The crypto uses https://github.com/jedisct1/libsodium.js but https://github.com/paixaop/node-sodium may also be suitable if we move to node
 
-var dwebserver = 'localhost';
-//var dwebserver = '192.168.1.156';
-var dwebport = '4243';
-
+//var dwebserver = 'localhost';
+const dwebserver = '192.168.1.156';
+const dwebport = '4243';
+const Dweb = {} // Note const just means it cant be assigned to a new dict, but dict can be modified
+Dweb.keychains = [];
 // Constants
-var KEYPAIRKEYTYPESIGN = 1
-var KEYPAIRKEYTYPEENCRYPT = 2
+const KEYPAIRKEYTYPESIGN = 1
+const KEYPAIRKEYTYPEENCRYPT = 2
 var KEYPAIRKEYTYPESIGNANDENCRYPT = 2    // Currently unsupported
 
 // ==== OBJECT ORIENTED JAVASCRIPT ===============
 
+// These are equivalent of python exceptions, will log and raise alert in most cases - exceptions aren't caught
+function SecurityWarning(msg, self) {
+    console.log(msg, self);
+    alert(msg);
+}
 
 //TODO document from here down
+
 
 class TransportHttp {
 
@@ -30,7 +38,10 @@ class TransportHttp {
         // options: are passed to class specific onloaded
         // Locate and return a block, based on its multihash
         if (verbose) { console.log("TransportHTTP post:", command,":hash=", hash); }
-        let url = this.url(command, hash)  + "/" + type;
+        let url = this.url(command, hash);
+        if (type) {
+            url += "/" + type;
+        }
         if (verbose) { console.log("TransportHTTP:post: url=",url); }
         if (verbose) { console.log("TransportHTTP:post: data=",data); }
         $.ajax({
@@ -54,8 +65,8 @@ class TransportHttp {
     }
 
     load(self, command, hash, path, listreturned, verbose, options) {
-        // obj being loaded
-        // optioms: are passed to class specific onloaded
+        // self is the obj being loaded (yes this is intentional ! its not Javascript's "this")
+        // options: are passed to class specific onloaded
         // Locate and return a block, based on its multihash
         verbose=true;
         if (verbose) { console.log("TransportHTTP load:",command, ":hash=", hash, "options=", options); }
@@ -68,6 +79,7 @@ class TransportHttp {
                 if (verbose) { console.log("TransportHTTP:", command, ": returning data len=", data.length); }
                 // Dont appear to need to parse JSON data, its decoded already
                 if (listreturned) {
+                    // Call chain is mb.load > onloaded > CL.fetchlist > THttp.rawlist > Thttp.load > CL|MB.onlisted > options
                     self.onlisted(hash, data, verbose, options);
                 } else {
                     self.onloaded(hash, data, verbose, options);
@@ -75,7 +87,7 @@ class TransportHttp {
             },
             error: function(xhr, status, error) {
                 console.log("TransportHTTP:", command, ": error", status, "error=",error);
-                alert("TODO Block failure status="+status+" error="+error);
+                alert("TODO Block failure status="+status+" "+command+" error="+error);
             },
         });
     }
@@ -91,11 +103,24 @@ class TransportHttp {
         // obj being loaded
         // options: are passed to class specific onloaded
         // Locate and return a block, based on its multihash
+        // Call chain is mb.load > onloaded > CL.fetchlist > THttp.rawlist > Thttp.load > CL|MB.onlisted > options
         this.load(self, "rawlist", hash, [], true, verbose, options); //TODO-PATH
     }
 
+    rawstore(self, data, verbose, options) {
+        //PY: res = self._sendGetPost(True, "rawstore", headers={"Content-Type": "application/octet-stream"}, urlargs=[], data=data, verbose=verbose)
+        this.post(self, "rawstore", null, null, data, verbose, options) // Returns immediately
+    }
+
+    rawreverse() { console.log("Undefined function TransportHTTP.rawreverse"); }
+    rawadd() { console.log("Undefined function TransportHTTP.rawstore"); }
+
+
     url(command, hash) {
-        var url = this.baseurl + command + "/" + hash;
+        var url = this.baseurl + command;
+        if (hash) {
+            url += "/" + hash;
+        }
         return url;
     }
 }
@@ -117,16 +142,25 @@ class Transportable {
     _setdata(value) {
         this._data = value;  // Default behavior, assumes opaque bytes, and not a dict - note subclassed in SmartDict
     }
-    //UNDEFINED FUNCTIONS in PYTHON: store, dirty, fetch, file, url
-    store() { alert("Undefined function Transportable.store"); }
+
+    store(verbose, options) {    // Python has a "data" parameter to override this._data but probably not needed
+        if (verbose) { console.log("Transportable.store");}
+        let data = this._getdata();
+        if (verbose) { console.log("Transportable.store data=",data);}
+        this._hash = CryptoLib.Curlhash(data); //store the hash since the HTTP is async, "onposted" should check the hash returned
+        options.checkhash = true;   // Make sure check hash in store
+        transport.rawstore(this, data, verbose, options);  // Returns immediately BEFORE storing
+        if (verbose) { console.log("Transportable.store hash=", this._hash); }
+        return this;
+    }
 
     dirty() {   // Flag as dirty so needs uploading - subclasses may delete other, now invalid, info like signatures
         this._hash = null;
     }
 
-    fetch() { alert("Undefined function Transportable.fetch"); } // Replaced by load
+    fetch() { console.log("Undefined function Transportable.fetch"); } // Replaced by load
 
-    load(verbose, options) {    // Asynchronous equic of fetch, has to specify what to do via options
+    load(verbose, options) {    // Asynchronous equiv of fetch, has to specify what to do via options
         if (verbose) { console.log("Transportable.load hash=",this._hash,"options=",options); }
         if (this._needsfetch) { // Only load if need to
             transport.rawfetch(this, this._hash, verbose, options);
@@ -135,8 +169,8 @@ class Transportable {
         // Block fetched in the background - dont assume loaded here, see onloaded
     }
 
-    file() { alert("Undefined function Transportable.file"); }
-    url() { alert("Undefined function Transportable.url"); }
+    file() { console.log("Undefined function Transportable.file"); }
+    url() { console.log("Undefined function Transportable.url"); }
 
     // ==== UI method =====
 
@@ -157,12 +191,18 @@ class Transportable {
         }
     }
 
+    checkhash(data, hash, path, verbose, options) { // Called by storeto
+            if (data != this._hash) {
+                console.log("ERROR Hash returned ",data,"doesnt match hash expected",this._hash);
+            }
+            delete options.checkhash;
+    }
+
     storeto(data, hash, path, verbose, options) {
         // Can be called to check if options have instructions what to do with data
         // Its perfectly legitimate to call this, and nothing gets done with the data
         if (verbose) { console.log("storeto: options=", options); }
         for (let k in options) {
-            console.log("XXX156",k,typeof this[k],options[k]);
             if (["path"].includes(k)) {   //TODO-STORETO implement these as functions instead of hardcoded in onloaded or onlisted
                 console.log("XXX-TODO - option",k,"not implemented on",this.constructor.name);
                 //alert("UNIMPLEMENTED "+this.constructor.name+"."+k);
@@ -181,7 +221,8 @@ class SmartDict extends Transportable {
         // data = json string or dict
         // Note this does not set fields (with _setproperties) unlike Python version which sets it in _data.setter
     }
-    __setattr__(name, value) {
+    __setattr__(name, value) { // Call chain is ... onloaded or constructor > _setdata > _setproperties > __setattr__
+        // Subclass this to catch any field (other than _data) which has its own setter
         //TODO Need a javascript equivalent way of transforming date
         // if (name[0] != "_") {
         //    if "date" in name and isinstance(value,basestring):
@@ -190,15 +231,43 @@ class SmartDict extends Transportable {
         //TODO - instead of calling "setter" automatically, assuming that __setattr__ in each class does so.
         this[name] = value; //TODO: Python-Javascript: In Python can assume will get methods of property e.g. _data, in javascript need to be explicit here, or in caller.
     }
-    _setproperties(dict) { // < _setdata < constructor or onloaded
-        for (let prop in dict) {
+    _setproperties(dict) { // Call chain is ... onloaded or constructor > _setdata > _setproperties > __setattr__
+        for (var prop in dict) {
             this.__setattr__(prop, dict[prop]);
         }
     }
-    preflight() { alert("Undefined function SmartDict.preflight"); }    // Should be being called on outgoing _data
-    _getdata() { alert("Undefined function SmartDict._getdata"); }    // Should be being called on outgoing _data includes dumps and encoding etc
+    preflight(dd) { // Called on outgoing dictionary of outgoing data prior to sending - note order of subclassing can be significant
+        let res = {};
+        for (var i in dd) {
+            if (i.indexOf('_') !== 0) { // Ignore any attributes starting _
+                if (dd[i] instanceof Transportable) {
+                    res[i] = dd[i].store(false, null)._hash  // store(verbose, options) - this will set hash, then store obj in background
+                } else {
+                    res[i] = dd[i];
+                }
+            }
+        }
+        // Note table is a object attribute in JS, so copied above (in Python its a class attribute that needs copying
+        return res
+    }
 
-    _setdata(value) {   // Note SmartDict expects value to be a dictionary, which should be the case since the HTTP requester interprets as JSON
+    _getdata() {
+        let dd = {}
+        for (var i in this) {
+            dd[i] = this[i];    // This *should* copy just the attributes, need to check dosnt copy functions (it might)
+        }
+        let res = CryptoLib.dumps(this.preflight(dd));
+        if (this._acl) { //Need to encrypt
+            encdata = this._acl.encrypt(res, True)  // data, b64
+            dic = { "encrypted": encdata, "acl": this._acl._publichash, "table": this.table}
+            res = CryptoLib.dumps(dic);
+        }
+        return res
+    }    // Should be being called on outgoing _data includes dumps and encoding etc
+
+    _setdata(value) {
+        // Note SmartDict expects value to be a dictionary, which should be the case since the HTTP requester interprets as JSON
+        // Call chain is ... onloaded or constructor > _setdata > _setproperties > __setattr__
         if (value) {    // Skip if no data
             if (typeof value === 'string') {    // Assume it must be JSON
                 value = JSON.parse(value);
@@ -310,8 +379,8 @@ class Block extends Transportable {
         this.storeto(data, hash, null, verbose, options) // TODO storeto handle img, or other non-HTML as reqd
     }
 
-    size() { alert("Undefined function Block.size"); }
-    content() { alert("Undefined function Block.content"); }
+    size() { console.log("Undefined function Block.size"); }
+    content() { console.log("Undefined function Block.content"); }
 
 }
 
@@ -324,10 +393,11 @@ class StructuredBlock extends SmartDict {
         this._date = null;  // Updated in _earliestdate when loaded
         this.table = "sb";  // Note this is cls.table on python but need to separate from dictionary
     }
-    store() { alert("Undefined function StructuredBlock.store"); }
+    store(verbose, options) { console.log("Undefined function StructuredBlock.store"); }
 
-    __setattr__(name, value) {  // Called by _setproperties < _setdata < constructor or onloaded.
-        //catch equivalent of getters and setters here
+    __setattr__(name, value) {
+        // Call chain is ... onloaded or constructor > _setdata > _setproperties > __setattr__
+        // catch equivalent of getters and setters here
         let verbose = false;
         if (name === "links") {  // Assume its a SB TODO make dependent on which table
             let links = value;
@@ -379,12 +449,12 @@ class StructuredBlock extends SmartDict {
         return null;    // If not found
     }
 
-    content() { alert("Undefined function StructuredBlock.content"); }
-    file() { alert("Undefined function StructuredBlock.file"); }
-    size() { alert("Undefined function StructuredBlock.size"); }
-    path() { alert("Undefined function StructuredBlock.path"); }   // Done in onloaded, asynchronous recursion.
-    sign() { alert("Undefined function StructuredBlock.sign"); }
-    verify() { alert("Undefined function StructuredBlock.verify"); }
+    content() { console.log("Undefined function StructuredBlock.content"); }
+    file() { console.log("Undefined function StructuredBlock.file"); }
+    size() { console.log("Undefined function StructuredBlock.size"); }
+    path() { console.log("Undefined function StructuredBlock.path"); }   // Done in onloaded, asynchronous recursion.
+    sign() { console.log("Undefined function StructuredBlock.sign"); }
+    verify() { console.log("Undefined function StructuredBlock.verify"); }
 
 
     earliestdate() {    // Set the _date field to the earliest date of any signature or null if not found
@@ -422,8 +492,8 @@ class Signature extends SmartDict {
         //    s.date = dateutil.parser.parse(s.date)
     }
     //TODO need to be able to verify signatures
-    sign() { alert("Undefined function Signature.sign"); }
-    verify() { alert("Undefined function Signature.verify"); }
+    sign() { console.log("Undefined function Signature.sign"); }
+    verify() { console.log("Undefined function Signature.verify"); }
 }
 
 // ######### Parallel development to MutableBlock.py ########
@@ -433,20 +503,54 @@ class CommonList extends SmartDict {
     constructor(hash, data, master, keypair, keygen, mnemonic, verbose) {
         // data = json string, or dict
         //TODO implmenent mnemonic, keypair, keygen
-        if (keypair) { console.log("ERR CommonList.constructor called with unsupported keypair"); }
-        if (keygen) { console.log("ERR CommonList.constructor called with unsupported keygen"); }
         super(hash, data, verbose);
         this._master = master;
         this._list = new Array();   // Array of signatures
-        this.keypair = keypair;
         if (keygen || mnemonic) {
-            this.keypair = KeyPair.keygen(KEYPAIRKEYTYPESIGN, mnemonic, null, verbose); //TODO - implement KeyPair and keygen
+            this.keypair = KeyPair.keygen(KEYPAIRKEYTYPESIGN, mnemonic, null, verbose);
+        } else {
+            this._setkeypair(keypair, verbose);
         }
         if (!this._master) { this._publichash = hash; }
     }
-    _setkeypair() { alert("Undefined function CommonList._setkeypair"); }
-    preflight() { alert("Undefined function CommonList.preflight"); }   // For storing data
-    fetch() { alert("Undefined function CommonList.fetch"); }   // Split into load and onloaded
+    __setattr__(name, value) {
+        // Call chain is ... onloaded or constructor > _setdata > _setproperties > __setattr__
+        // catch equivalent of getters and setters here
+        let verbose = false;
+        if (name === "keypair") {
+            this._setkeypair(value, verbose);
+        } else {
+            super.__setattr__(name, value);
+        }
+    }
+
+    _setkeypair(value, verbose) {
+        // Call chain is ... onloaded or constructor > _setdata > _setproperties > __setattr__ > _setkeypair
+        if (value && ! value.isinstance(KeyPair)) {
+            value = KeyPair(value, null, verbose);
+        }
+        this.keypair = value;
+        this._master = value && value.has_private() //TODO-STORE Note there may be a race condition here if KeyPair is loading asynchronously
+    }
+
+    preflight(dd) {
+        if (dd.keypair) {
+            if (dd.master && !dd._acl && !this._allowunsafestore) {
+                SecurityWarning("Probably shouldnt be storing private key", dd);
+            }
+            dd.keypair = dd.master ? dd.keypair.privateexport() : dd.keypair.publicexport()
+        }
+        let publichash = dd._publichash // Save before preflight
+        dd = super.preflight(dd)  // Edits dd in place
+        if (dd.master) { // Only store on Master, on !Master will be None and override storing hash as _publichash
+            dd._publichash = publichash   // May be None, have to do this AFTER the super call as super filters out "_*"  #TODO-REFACTOR_PUBLICHASH
+        }
+        return dd
+    }
+
+    fetch(fetchbody, fetchlist, fetchblocks, verbose, options) {
+        console.log("Undefined function CommonList.fetch replace carefully with load");
+    }   // Split into load and onloaded
 
     load(verbose,  options) {   // Python can also fetch based on just having key
         if (this._needsfetch) { // Only load if need to
@@ -455,21 +559,27 @@ class CommonList extends SmartDict {
             // Need to fetch body and only then fetchlist since for a list the body might include the publickey whose hash is needed for the list
             transport.rawfetch(this, this._hash, verbose, options);  // TODO this is only correct if its NOT master
         } else {
-            this.onloaded(hash, null, verbose, options);    // Pass to onloaded as if loaded, and see what action reqd
+            this.onloaded(this._hash, null, verbose, options);    // Pass to onloaded as if loaded, and see what action reqd
         }
     }
 
     fetchlist(data, hash, path, verbose, options) {  // Interface chosen so callable from storeto if in options
-                transport.rawlist(this, this._hash, verbose, options);  // TODO this is only correct if its NOT master
+        // Call chain is mb.load > onloaded > CL.fetchlist > THttp.rawlist > Thttp.load > CL|MB.onlisted > options
+        transport.rawlist(this, this._hash, verbose, options);  // TODO this is only correct if its NOT master
     }
 
     onloaded(hash, data, verbose, options) { // Body loaded
-        console.log("CommonList:onloaded data len=", data.length, options)
-        this._setdata(JSON.parse(data))   // Actually calls super._setdata > _setproperties() > __setattr__
-        this.storeto(data, hash, null, verbose, options);
+        console.log("CommonList:onloaded data len=", data ? data.length : "null", options)
+        if (data) {
+            this._setdata(JSON.parse(data))   //  // Call chain is ... onloaded or constructor > _setdata > _setproperties > __setattr__
+            this.storeto(data, hash, null, verbose, options);
+        } else {
+            this.storeto(null, hash, null, verbose, options);   //TODO This data may need to be the contents?
+        }
     }
 
     onlisted(hash, lines, verbose, options) { // Body loaded
+        // Call chain is mb.load > onloaded > CL.fetchlist > THttp.rawlist > Thttp.load > CL|MB.onlisted > options
         console.log("CommonList:onlisted", hash, lines.length, options)
         //lines = JSON.parse(lines))   Should already by a list
         this._list = []
@@ -481,13 +591,13 @@ class CommonList extends SmartDict {
         }
         if (options.fetchblocks) {
             options.fetchblocks = false; // Done it here, dont do it again
-            alert("CommonList.onlisted options=fetchblocks not implemented")
+            console.log("CommonList.onlisted options=fetchblocks not implemented")
         }
         return true; // This layer handled, can do superclass stuff rather than wait for deeper loads
     }
     onposted(hash, data, verbose, options) {
         // This isn't used much yet, so for now just stores data, may be better as a struc of some kind
-        console.log("CommonList:onposted data len=", data.length, options);
+        console.log("XXX@583 CommonList:onposted data len=", data, options); //TODO-STORE check hash returned against objects hash if set
         this.storeto(data, hash, null, verbose, options) // TODO storeto handle img, or other non-HTML as reqd
     }
 
@@ -508,11 +618,25 @@ class CommonList extends SmartDict {
         sbs.sort(StructuredBlock.compare); // Could inline: sbs.sort(function(a, b) { ... }
         return sbs;
     }
-    store() { alert("Undefined function CommonList.store"); }   // For storing data
-    publicurl() { alert("Undefined function CommonList.publicurl"); }   // For access via web
-    privateurl() { alert("Undefined function CommonList.privateurl"); }   // For access via web
-    signandstore() { alert("Undefined function CommonList.signandstore"); }   // For storing data
-    add() { alert("Undefined function CommonList.add"); }   // For storing data
+    _storepublic(verbose, options) {
+        console.log("Intentionally undefined function CommonList._storepublic - should implement in subclasses");
+    }
+    store(verbose, options) {  // Based on python
+        if (verbose) { console.log("CL.store"); }
+        if (this._master && ! this._publichash) {
+            this._storepublic(verbose, );
+        }
+        if ( ! (this._master && options.dontstoremaster)) {
+            delete options.dontstoremaster;
+            super.store(verbose, options);    // Transportable.store(verbose, options)
+        }
+        return this;
+    }
+
+    publicurl() { console.log("Undefined function CommonList.publicurl"); }   // For access via web
+    privateurl() { console.log("Undefined function CommonList.privateurl"); }   // For access via web
+    signandstore() { console.log("Undefined function CommonList.signandstore"); }   // For storing data
+    add() { console.log("Undefined function CommonList.add"); }   // For storing data
 
 }
 class MutableBlock extends CommonList {
@@ -525,6 +649,7 @@ class MutableBlock extends CommonList {
     }
 
     onlisted(hash, lines, verbose, options) {
+        // Call chain is mb.load > onloaded > CL.fetchlist > THttp.rawlist > Thttp.load > CL|MB.onlisted > options
         let handled = super.onlisted(hash, lines, verbose, options);
         if (handled) {  // Should always be handled until fetchblocks implemented
             let sig = this._list[this._list.length-1];
@@ -542,7 +667,6 @@ class MutableBlock extends CommonList {
             ul.removeChild(ul.lastChild);
         }
         let blocks = this.blocks(false, verbose);
-        console.log("XXX493",blocks);
         for (let ii in blocks) {     // Signed Blocks
             let i = blocks[ii];
             let li = document.createElement("li");
@@ -554,38 +678,92 @@ class MutableBlock extends CommonList {
         transport.update(this, this._hash, type, data, verbose, options);
     }
 
-    contentacl() { alert("Undefined function MutableBlock.contentacl setter and getter"); }   // Encryption of content
-    fetch() { alert("Undefined function MutableBlock.fetch"); }   // Split into load/onload/onlisted
-    content() { alert("Undefined function MutableBlock.store"); }   // Retrieving data
-    file() { alert("Undefined function MutableBlock.store"); }   // Retrieving data
-    signandstore() { alert("Undefined function MutableBlock.signandstore"); }   // Retrieving data
-    path() { alert("Undefined function MutableBlock.path"); }   // Built into onloaded
-    new() { alert("Undefined function MutableBlock.new"); }   // Utility function for creating mb
+    _storepublic(verbose, options) {
+        console.log("Undefined function MutableBlock._storepublic");
+        //mb = new MutableBlock(keypair=this.keypair, name=this.name)
+    }
+
+    contentacl() { console.log("Undefined function MutableBlock.contentacl setter and getter"); }   // Encryption of content
+    fetch() { console.log("Undefined function MutableBlock.fetch"); }   // Split into load/onload/onlisted
+    content() { console.log("Undefined function MutableBlock.store"); }   // Retrieving data
+    file() { console.log("Undefined function MutableBlock.store"); }   // Retrieving data
+    signandstore() { console.log("Undefined function MutableBlock.signandstore"); }   // Retrieving data
+    path() { console.log("Undefined function MutableBlock.path"); }   // Built into onloaded
+    new() { console.log("Undefined function MutableBlock.new"); }   // Utility function for creating mb
 
 }
 
+class AccessControlList extends CommonList {
+    // Obviously ! This class hasnt' been implemented, currently just placeholder for notes etc
+    _storepublic(verbose, options) { // See KeyChain for example
+        console.log("Undefined function AccessControlList._storepublic");
+        //mb = new MutableBlock(keypair=this.keypair, name=this.name)
+    }
+
+}
 class KeyChain extends CommonList {
     // This class is pulled form MutableBlock.py
     // Notable changes:
 
 
     constructor(hash, data, master, keypair, keygen, mnemonic, verbose) { //Note not all these parameters are supported (yet) by CommonList.constructor
-        super(hash, data, master, keypair, keygen, mnemonic, verbose);  //TODO-WONT WORK TILL Keypair.keygen implemented
+        super(hash, data, master, keypair, keygen, mnemonic, verbose);
     }
     static new(mnemonic, keygen, name, verbose) {
-        //TODO support name - by adding to dic -
         console.log("TODO - STARTING PARTIALLY IMPLEMENTED KeyChain.new");
-        let kc = new KeyChain(null, { "name": name }, false, null, keygen, mnemonic, verbose); //TODO-WONT WORK TILL Keypair.keygen implemented
-        //kc.store()                    //TODO store not yet defined
-        //KeyChain.addkeychains(kc)
-        //kc.fetch(verbose=verbose, fetchlist=True, fetchblocks=False)    # Was fetching blocks, but now done by "keys"
+        let kc = new KeyChain(null, { "name": name }, false, null, keygen, mnemonic, verbose);
+        kc.store(verbose, {});    // Verbose, options
+        KeyChain.addkeychains(kc);
+        console.log("ENDING PARTS TESTED OF KeyChain.new")
+        kc.load(verbose, {"fetchlist": {} });    //Was fetching blocks, but now done by "keys"
+        console.log("ENDING TESTING PART OF KeyChain.new")
         //if verbose: print "Created keychain for:", kc.keypair.private.mnemonic
         //if verbose and not mnemonic: print "Record these words if you want to access again"
         //return kc
     }
 
+    keys() { console.log("Undefined property KeyChain.keys"); }
+    add() { console.log("Undefined function KeyChain.add"); }
+    encrypt() { console.log("Undefined function KeyKeyChainChain.encrypt"); }
+    decrypt() { console.log("Undefined function KeyChain.decrypt"); }
+    accesskey() { console.log("Undefined property KeyChain.accesskey"); }
+
+    static addkeychains(keychains) {
+        //Add keys I can view under to ACL
+        //param keychains:   Array of keychains
+        if (typeof keychains === "Array") {
+            Dweb.keychains = Dweb.keychains + keychains;
+        } else {
+            Dweb.keychains.push(keychains);
+        }
+    }
+
+    find() { console.log("Undefined function KeyChain.find"); }
+
+    _storepublic(verbose, options) { // Based on python CL._storepublic, but done in each class in JS
+        console.log("KeyChain._storepublic");
+        let kc = new KeyChain(null, {"name": this.name}, false, this.keypair, false, null, verbose);
+        this._publichash = kc.store(verbose, options)._hash;  //returns immediately with precalculated hash
+    }
+
+    store(verbose, options) {
+        // CommonList.store(verbose, options)
+        options.dontstoremaster = true;
+        return super.store(verbose, options)  // Stores public version and sets _publichash - never returns
+    }
+    fetch() { console.log("Intentionally undefined function MutableBlock.fetch use load/onloaded/onlisted"); }   // Split into load/onload/onlisted
+
+    _findbyclass() { console.log("Undefined function KeyChain._findbyclass"); }
+    myviewerkeys() { console.log("Undefined function KeyChain.myviewerkeys"); }
+    mymutableBlocks() { console.log("Undefined function KeyChain.mymutableBlocks"); }
+
 }
 // ==== Crypto.py - Encapsulate all the Cryptography =========
+class CryptoLib {
+    static Curlhash(data) { return "BLAKE2."+ sodium.crypto_generichash(32, data, null, 'urlsafebase64'); }
+    static dumps(obj) { return JSON.stringify(obj); }   // Uses toJSON methods on objects (equivalent of dumps methods on python)
+}
+
 class KeyPair extends SmartDict {
     // This class is (partially) pulled from Crypto.py
     constructor(hash, data, verbose) {
@@ -628,9 +806,9 @@ class KeyPair extends SmartDict {
         if (name === "key") {
             this.key_setter(value);
         } else if (name === "private") {
-            alert("Undefined function KeyPair.private.setter");
+            console.log("Undefined function KeyPair.private.setter");
         } else if (name === "public") {
-            alert("Undefined function KeyPair.public.setter");
+            console.log("Undefined function KeyPair.public.setter");
         } else {
             super.__setattr__(name, value);
         }
@@ -638,27 +816,54 @@ class KeyPair extends SmartDict {
 
     key_setter(value) {
         if (typeof value === "string") {
-            this._key = this._importkey(value); //TODO unimplemented
+            this._key = this._importkey(value);
         } else {
             this._key = value;
         }
     }
-    preflight() { alert("Undefined function KeyPair.preflight"); }
-    _importkey(value) { alert("Undefined function KeyPair._importkey"); }
-    key() { alert("Undefined function KeyPair.key"); }
-    private() { alert("Undefined function KeyPair.private"); }
-    public() { alert("Undefined function KeyPair.public"); }
-    mnemonic() { alert("Undefined function KeyPair.mnemonic"); }
-    _exportkey() { alert("Undefined function KeyPair._exportkey"); }
-    publicexport() { alert("Undefined function KeyPair.publicexport"); }
-    privateexport() { alert("Undefined function KeyPair.privateexport"); }
-    _key_has_private() { alert("Undefined function KeyPair._key_has_private"); }
-    naclprivate() { alert("Undefined function KeyPair.naclprivate"); }
-    naclpublic() { alert("Undefined function KeyPair.naclpublic"); }
-    naclpublicexport() { alert("Undefined function KeyPair.naclpublicexport"); }
-    has_private() { alert("Undefined function KeyPair.has_private"); }
-    encrypt() { alert("Undefined function KeyPair.encrypt"); }
-    decrypt() { alert("Undefined function KeyPair.decrypt"); }
+    preflight(dd) {
+        if (this._key_has_private(dd._key) && !dd._acl && !this._allowunsafestore) {
+            SecurityWarning("Probably shouldnt be storing private key",dd);
+        }
+        if (dd_key) { //Based on whether the CommonList is master, rather than if the key is (key could be master, and CL not)
+            dd.key = this._key_has_private(dd._key) ? self.privateexport : self.publicexport;
+        }
+        return super.preflight(dd)
+    }
+
+
+    _importkey(value) {
+        //First tackle standard formats created by exporting functionality on keys
+        let arr = value.split(':',2)
+        let tag = arr[0];
+        let hash = arr[0];
+        let seed = sodium.from_urlsafebase64(hash);
+        //See https://github.com/jedisct1/libsodium.js/issues/91 for issues
+
+        if (tag == "NACL PUBLIC")           { alert("Cant (yet) import Public key"+value); return null;
+        } else if (tag == "NACL PRIVATE")   { return sodium.crypto_box_seed_keypair(seed);
+        } else if (tag == "NACL SIGNING")   { return sodium.crypto_sign_seed_keypair(seed);
+        } else if (tag == "NACL VERIFY")    { alert("Cant (yet) import Verify key"+value); return null;
+        } else                              { alert("Bad key to import"+value); return null; }
+    }
+
+    publicexport() {
+        return "NACL PUBLIC:"+sodium.to_urlsafebase64(this._key.publicKey);    //TODO-STORE not sure if SigningKey uses publicKey or verifyKey
+    }
+
+    key() { console.log("Undefined function KeyPair.key"); }
+    private() { console.log("Undefined function KeyPair.private"); }
+    public() { console.log("Undefined function KeyPair.public"); }
+    mnemonic() { console.log("Undefined function KeyPair.mnemonic"); }
+    _exportkey() { console.log("Undefined function KeyPair._exportkey"); }
+    privateexport() { console.log("Undefined function KeyPair.privateexport"); }
+    _key_has_private() { console.log("Undefined function KeyPair._key_has_private"); }
+    naclprivate() { console.log("Undefined function KeyPair.naclprivate"); }
+    naclpublic() { console.log("Undefined function KeyPair.naclpublic"); }
+    naclpublicexport() { console.log("Undefined function KeyPair.naclpublicexport"); }
+    has_private() { console.log("Undefined function KeyPair.has_private"); }
+    encrypt() { console.log("Undefined function KeyPair.encrypt"); }
+    decrypt() { console.log("Undefined function KeyPair.decrypt"); }
 }
 // ==== UI related functions, not dWeb specific =========
 function togglevisnext(elem) {   // Hide the next sibling object and show the one after, or vica-versa,
@@ -675,7 +880,6 @@ function togglevisnext(elem) {   // Hide the next sibling object and show the on
 
 function dofetch(el) {
     source = el.source;
-    console.log("XXX",source);
     parent = el.parentNode;
     parent.removeChild(el); //Remove elem from parent
     source.load(true, {"objbrowser": parent});
@@ -691,6 +895,7 @@ function dwebfile(table, hash, path, options) {
     }
     if (table === "mb") {
         var mb = new MutableBlock(hash, null, false);
+        // Call chain is mb.load > onloaded > CL.fetchlist > THttp.rawlist > Thttp.load > CL|MB.onlisted > options
         mb.load(true, { "fetchlist": options}); // for dwebfile, we want to apply the optiosn to the file - which is in the content after fetchlist
     } else if (table === "sb") {
         var sb = new StructuredBlock(hash, null, verbose);
@@ -709,9 +914,32 @@ function dweblist(div, hash) {
     var mb = new MutableBlock(hash, null, false);
     options = {}
     options.fetchlist = {"elem": div };
+    // Call chain is mb.load > onloaded > CL.fetchlist > THttp.rawlist > Thttp.load > CL|MB.onlisted > options
     mb.load(true, options);
 }
 // ======== EXPERIMENTAL ZONA ==================
+
+function cryptotest() { //TODO-CRYPTO Still working on this
+    let verbose = true;
+    // First test some of the lower level functionality - create key etc
+    let qbf="The quick brown fox ran over the lazy duck";
+    let key = sodium.randombytes_buf(sodium.crypto_shorthash_KEYBYTES);
+    let shash_u64 = sodium.crypto_shorthash('test', key, 'urlsafebase64'); // urlsafebase64 is support added by mitra
+    key = null;
+    let hash_hex = sodium.crypto_generichash(32, qbf, key, 'hex'); // Try this with null as the key
+    let hash_64 = sodium.crypto_generichash(32, qbf, key, 'base64'); // Try this with null as the key
+    let hash_u64 = sodium.crypto_generichash(32, qbf, key, 'urlsafebase64'); // Try this with null as the key
+    if (verbose) { console.log("hash_hex = ",shash_u64, hash_hex, hash_64, hash_u64); }
+    if (hash_u64 != "YOanaCqfg3UsKoqlNmVG7SFwLgDyB3aToEmLCH-vOzs=") { console.log("ERR Bad blake2 hash"); }
+    let signingkey = sodium.crypto_sign_keypair();
+    if (verbose) { console.log(signingkey); }
+
+    // Set mnemonic to value that generates seed "01234567890123456789012345678901"
+    let mnemonic = "coral maze mimic half fat breeze thought champion couple muscle snack heavy gloom orchard tooth alert cram often ask hockey inform broken school cotton" // 32 byte
+    // Test sequence extracted from test.py
+    kc = KeyChain.new(mnemonic, false, "test_keychain kc", verbose);
+}
+
 
 //TODO BROWSER----
 //-data collapsable

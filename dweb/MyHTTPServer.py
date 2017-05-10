@@ -118,7 +118,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
             self.send_response(200)  # Send an ok response
             self.send_header('Content-type', res.get("Content-type","application/octet-stream"))
             data = res.get("data","")
-            if data:
+            if data or isinstance(data, (list, tuple)): # Allow empty arrays toreturn as []
                 if isinstance(data, (dict, list, tuple)):    # Turn it into JSON
                     data = CryptoLib.dumps(data)        # Need to do the CrypytoLib version since dict might hold a higher level class
                 elif hasattr(data, "dumps"):

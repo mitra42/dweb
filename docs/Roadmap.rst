@@ -50,10 +50,8 @@ This list is at a much finer lever of granularity than Roadmap above.
     * Test KeyChain.new on test page
         * Test KeyPair.keygen
             * Implement Mnemonic
-                * Fake it,
-                    * generate known mnemonic,
-                    * replace one in test.py,
-                    * may req updating some html
+                * Fake it - may req updating some html to use new mnemonic
+            * preflight on different classes
     * Embed on index and test pages
 * PEER: Peer knowledge system
     * Test on html etc

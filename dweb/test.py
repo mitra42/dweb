@@ -273,7 +273,7 @@ class Testing(unittest.TestCase):
         if isinstance(Dweb.transport, TransportLocal):
             print "Can't test_uploads on",Dweb.transport.__class__.__name__
             return
-        ext = True
+        ext = False   # True to upload larger directories (tinymce, docs)
         #Dweb.settransport(transportclass=TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         b=Block(data=self.dog); b.store(); print self.dog,b.url()
         self.uploads = {}
@@ -342,6 +342,8 @@ class Testing(unittest.TestCase):
             svpair = KeyPair.keygen(keytype=KeyPair.KEYTYPESIGN)
             svpair_key = svpair._key.encode(nacl.encoding.RawEncoder)
             svpair_encrypt = nacl.public.PrivateKey(svpair_key)
+            newkey = svpair_encrypt.encode(nacl.encoding.RawEncoder)
+            assert svpair_key != newkey, "Looks like PrivateKey didn't actually use as a seed"
             sendingbox = nacl.public.Box(svpair_encrypt, keypair._key.public_key)
             #print "sendingbox.sharedsecret=",sendingbox.shared_key()
             encmsg = sendingbox.encrypt(self.quickbrownfox)
@@ -352,6 +354,10 @@ class Testing(unittest.TestCase):
             assert res == self.quickbrownfox
             #print res
             assert sendingbox.encode(nacl.encoding.URLSafeBase64Encoder) == receivingbox.encode(nacl.encoding.URLSafeBase64Encoder)
+            seed = "01234567890123456789012345678901"
+            boxkey = nacl.public.PrivateKey(seed)
+            pe = boxkey.encode(nacl.encoding.RawEncoder)
+            assert seed == pe
         else:
             # Try RSA encrypt/decrypt
             keypair = KeyPair.keygen()
@@ -362,6 +368,7 @@ class Testing(unittest.TestCase):
         #These should work for any defaultlib
         foo = KeyPair.keygen(keytype=KeyPair.KEYTYPESIGN, seed=self.seed)
         assert foo.mnemonic == self.mnemonic
+
 
 
     def test_keychain(self):
@@ -471,7 +478,8 @@ class Testing(unittest.TestCase):
     def Xtest_current(self):
         self.verbose=True
         self.test_crypto()
-        self.test_keychain()
+        #self.test_keychain()
+
         #self.uploads = {}
         #self._storeas("libsodium", None, None)
         #self._storeas("test.html", "test_html", "text/html")

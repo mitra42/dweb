@@ -87,7 +87,9 @@ class TransportLocal(Transport):
             f.close()
             return s
         except IOError as e:
-            raise TransportFileNotFound(file=filename)
+            return []
+            #Trying commenting out error, and returning empty array
+            #raise TransportFileNotFound(file=filename)
 
     def rawlist(self, hash, verbose=False, **options):
         """

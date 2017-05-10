@@ -69,9 +69,7 @@ class CommonList(SmartDict):
         self._master = value and value.has_private()
 
 
-    def preflight(self, dd=None):   #TODO-REFACTOR make callers (store) set dd
-        if not dd:
-            dd = self.__dict__.copy()
+    def preflight(self, dd):
         master = dd["_master"]  # Use master from dd if modified
         if dd.get("keypair"):   # Based on whether the CommonList is master, rather than if the key is (key could be master, and CL not)
             if master and not dd.get("_acl") and not self._allowunsafestore:
@@ -316,9 +314,7 @@ class AccessControlList(EncryptionList):
     """
     table = "acl"
 
-    def preflight(self, dd=None):   #TODO-REFACTOR all preflight to have dd defined by caller (store)
-        if not dd:
-            dd = self.__dict__.copy()
+    def preflight(self, dd):   #TODO-REFACTOR all preflight to have dd defined by caller (store)
         if (not self._master) and isinstance(self.keypair._key, nacl.signing.SigningKey):
             dd["naclpublic"] = dd.get("naclpublic") or dd["keypair"].naclpublicexport()   # Store naclpublic for verification
         # Super has to come after above as overrights keypair, also cant put in CommonList as MB's dont have a naclpublic and are only used for signing, not encryption
@@ -489,7 +485,7 @@ class KeyChain(EncryptionList):
     @classmethod
     def addkeychains(cls, *keychains):
         """
-        Add keys I can view under to ACL
+        Add keys I can view under to ACL (note *keychains means even with single argument keychains is an array)
 
         :param keychains:   Array of keychains
         :return:

@@ -383,9 +383,7 @@ class KeyPair(SmartDict):
         nacl.signing.VerifyKey: "NACL VERIFY",
     }
 
-    def preflight(self, dd=None):
-        if not dd:
-            dd = self.__dict__.copy()
+    def preflight(self, dd):
         if self._key_has_private(dd["_key"]) and not dd.get("_acl") and not self._allowunsafestore:
             raise SecurityWarning(message="Probably shouldnt be storing private key")   # Can set KeyPair._allowunsafestore to allow this when testing
         if dd.get("_key"):   # Based on whether the CommonList is master, rather than if the key is (key could be master, and CL not)

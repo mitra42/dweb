@@ -51,6 +51,11 @@
             if (hash_u64 != "YOanaCqfg3UsKoqlNmVG7SFwLgDyB3aToEmLCH-vOzs=") { console.log("ERR Bad blake2 hash"); }
             let signingkey = sodium.crypto_sign_keypair();
             if (verbose) { console.log(signingkey); }
+            let seedstr = "01234567890123456789012345678901"
+            let seed = sodium.from_string(seedstr);
+            let boxkey = sodium.crypto_box_seed_keypair(seed);
+            //FAILS - No round trip yet: if (verbose) { console.log("XXX@57 to_string=",sodium.to_string(boxkey.privateKey)); }
+
 
             // Set mnemonic to value that generates seed "01234567890123456789012345678901"
             let mnemonic = "coral maze mimic half fat breeze thought champion couple muscle snack heavy gloom orchard tooth alert cram often ask hockey inform broken school cotton" // 32 byte
