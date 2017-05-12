@@ -120,8 +120,8 @@ class TransportHttp {
         this.post(self, "rawstore", null, null, data, verbose, options) // Returns immediately
     }
 
-    rawreverse() { console.log("Undefined function TransportHTTP.rawreverse"); }
-    rawadd() { console.log("Undefined function TransportHTTP.rawstore"); }
+    rawreverse() { console.log("XXX Undefined function TransportHTTP.rawreverse"); }
+    rawadd() { console.log("XXX Undefined function TransportHTTP.rawstore"); }
 
 
     url(command, hash) {
@@ -165,7 +165,7 @@ class Transportable {
         this._hash = null;
     }
 
-    fetch() { console.log("Undefined function Transportable.fetch"); } // Replaced by load
+    fetch() { console.log("XXX Undefined function Transportable.fetch"); } // Replaced by load
 
     load(verbose, options) {    // Asynchronous equiv of fetch, has to specify what to do via options
         if (verbose) { console.log("Transportable.load hash=",this._hash,"options=",options); }
@@ -176,8 +176,8 @@ class Transportable {
         // Block fetched in the background - dont assume loaded here, see onloaded
     }
 
-    file() { console.log("Undefined function Transportable.file"); }
-    url() { console.log("Undefined function Transportable.url"); }
+    file() { console.log("XXX Undefined function Transportable.file"); }
+    url() { console.log("XXX Undefined function Transportable.url"); }
 
     // ==== UI method =====
 
@@ -218,6 +218,15 @@ class Transportable {
                 this[k](data, hash, path, verbose, options[k]);
             }
         }
+    }
+    tell(data, hash, path, verbose, options) {
+        // Can be included in a "options" dictionary to callback { "tell": [this, methodname, { options }] }
+        // This might get refactored as understand how to use it.
+        context = {"notifier": this, "data": data, "hash": hash, "path": path}
+        notified = options[0];
+        method = options[1];
+        newoptions = options[2];
+        notified[method](context, verbose, newoptions);
     }
 }
 
@@ -387,8 +396,8 @@ class Block extends Transportable {
         this.storeto(data, hash, null, verbose, options) // TODO storeto handle img, or other non-HTML as reqd
     }
 
-    size() { console.log("Undefined function Block.size"); }
-    content() { console.log("Undefined function Block.content"); }
+    size() { console.log("XXX Undefined function Block.size"); }
+    content() { console.log("XXX Undefined function Block.content"); }
 
 }
 
@@ -401,7 +410,7 @@ class StructuredBlock extends SmartDict {
         this._date = null;  // Updated in _earliestdate when loaded
         this.table = "sb";  // Note this is cls.table on python but need to separate from dictionary
     }
-    store(verbose, options) { console.log("Undefined function StructuredBlock.store"); }
+    store(verbose, options) { console.log("XXX Undefined function StructuredBlock.store"); }
 
     __setattr__(name, value) {
         // Call chain is ... onloaded or constructor > _setdata > _setproperties > __setattr__
@@ -457,12 +466,12 @@ class StructuredBlock extends SmartDict {
         return null;    // If not found
     }
 
-    content() { console.log("Undefined function StructuredBlock.content"); }
-    file() { console.log("Undefined function StructuredBlock.file"); }
-    size() { console.log("Undefined function StructuredBlock.size"); }
-    path() { console.log("Undefined function StructuredBlock.path"); }   // Done in onloaded, asynchronous recursion.
-    sign() { console.log("Undefined function StructuredBlock.sign"); }
-    verify() { console.log("Undefined function StructuredBlock.verify"); }
+    content() { console.log("XXX Undefined function StructuredBlock.content"); }
+    file() { console.log("XXX Undefined function StructuredBlock.file"); }
+    size() { console.log("XXX Undefined function StructuredBlock.size"); }
+    path() { console.log("XXX Undefined function StructuredBlock.path"); }   // Done in onloaded, asynchronous recursion.
+    sign() { console.log("XXX Undefined function StructuredBlock.sign"); }
+    verify() { console.log("XXX Undefined function StructuredBlock.verify"); }
 
 
     earliestdate() {    // Set the _date field to the earliest date of any signature or null if not found
@@ -501,8 +510,8 @@ class Signature extends SmartDict {
         this.table = "sig"
     }
     //TODO need to be able to verify signatures
-    sign() { console.log("Undefined function Signature.sign"); }
-    verify() { console.log("Undefined function Signature.verify"); }
+    sign() { console.log("XXX Undefined function Signature.sign"); }
+    verify() { console.log("XXX Undefined function Signature.verify"); }
 }
 
 // ######### Parallel development to MutableBlock.py ########
@@ -537,11 +546,12 @@ class CommonList extends SmartDict {
 
     _setkeypair(value, verbose) {
         // Call chain is ... onloaded or constructor > _setdata > _setproperties > __setattr__ > _setkeypair
+        console.log("XXX _setkeypair:",value);
         if (value && ! (value instanceof KeyPair)) {
-            value = KeyPair(value, null, verbose);
+            value = new KeyPair(null, {"key":value}, verbose);  // Synchronous value will be decoded, not fetched
         }
         this.keypair = value;
-        this._master = value && value.has_private() //TODO-STORE Note there may be a race condition here if KeyPair is loading asynchronously
+        this._master = value && value.has_private();
     }
 
     preflight(dd) {
@@ -560,7 +570,7 @@ class CommonList extends SmartDict {
     }
 
     fetch(fetchbody, fetchlist, fetchblocks, verbose, options) {
-        console.log("Undefined function CommonList.fetch replace carefully with load");
+        console.log("XXX Undefined function CommonList.fetch replace carefully with load");
     }   // Split into load and onloaded
 
     load(verbose,  options) {   // Python can also fetch based on just having key
@@ -629,7 +639,7 @@ class CommonList extends SmartDict {
         return sbs;
     }
     _storepublic(verbose, options) {
-        console.log("Intentionally undefined function CommonList._storepublic - should implement in subclasses");
+        console.log("Intentionally XXX Undefined function CommonList._storepublic - should implement in subclasses");
     }
     store(verbose, options) {  // Based on python
         options = options || {};
@@ -644,10 +654,31 @@ class CommonList extends SmartDict {
         return this;
     }
 
-    publicurl() { console.log("Undefined function CommonList.publicurl"); }   // For access via web
-    privateurl() { console.log("Undefined function CommonList.privateurl"); }   // For access via web
-    signandstore() { console.log("Undefined function CommonList.signandstore"); }   // For storing data
-    add() { console.log("Undefined function CommonList.add"); }   // For storing data
+    publicurl() { console.log("XXX Undefined function CommonList.publicurl"); }   // For access via web
+    privateurl() { console.log("XXX Undefined function CommonList.privateurl"); }   // For access via web
+
+    signandstore(obj, verbose, options) {
+        /*
+        Sign and store a StructuredBlock on a list - via the SB's signatures - see add for doing independent of SB
+
+        :param StructuredBlock obj:
+        :param verbose:
+        :param options:
+        :return:
+        */
+        this.load(verbose, {"signandstore_onloaded": obj}); //Check its fetched but dont need to use list
+    }
+    signandstore_onloaded(unuseddata, unusedhash, unusedpath, verbose, obj) {   // After load
+        if (!this._master) {
+            //TODO-STORE - try exceptions
+            alert("ForbiddenException - Signing a new entry when not a master list");
+            //raise ForbiddenException(what="Signing a new entry when not a master list")
+        }
+        // The obj.store stores signatures as well (e.g. see StructuredBlock.store)
+        obj.sign(this, verbose).store(verbose, null);    // Returns immediately, store is asynch
+        return this;
+    }
+    add() { console.log("XXX Undefined function CommonList.add"); }   // For storing data
 
 }
 
@@ -701,12 +732,24 @@ class MutableBlock extends CommonList {
         return mb._hash;
     }
 
-    contentacl() { console.log("Undefined function MutableBlock.contentacl setter and getter"); }   // Encryption of content
-    fetch() { console.log("Undefined function MutableBlock.fetch"); }   // Split into load/onload/onlisted
-    content() { console.log("Undefined function MutableBlock.store"); }   // Retrieving data
-    file() { console.log("Undefined function MutableBlock.store"); }   // Retrieving data
-    signandstore(verbose, options) { console.log("Undefined function MutableBlock.signandstore"); }   // Retrieving data    //TODO-STORE need this
-    path() { console.log("Undefined function MutableBlock.path"); }   // Built into onloaded
+    contentacl() { console.log("XXX Undefined function MutableBlock.contentacl setter and getter"); }   // Encryption of content
+    fetch() { console.log("XXX Undefined function MutableBlock.fetch"); }   // Split into load/onload/onlisted
+    content() { console.log("XXX Undefined function MutableBlock.store"); }   // Retrieving data
+    file() { console.log("XXX Undefined function MutableBlock.store"); }   // Retrieving data
+    signandstore(verbose, options) {
+        /*
+        Sign and Store a version, or entry in MutableBlock master
+        Exceptions: SignedBlockEmptyException if neither hash nor structuredblock defined, ForbiddenException if !master
+
+        :return: self to allow chaining of functions
+        */
+        if ((!this._current._acl) && this.contentacl) {
+            this._current._acl = this.contentacl;    //Make sure SB encrypted when stored
+            this._current.dirty();   // Make sure stored again if stored unencrypted. - _hash will be used by signandstore
+        }
+        return super.signandstore(this._current, verbose, options) // ERR SignedBlockEmptyException, ForbiddenException
+    }
+    path() { console.log("XXX Undefined function MutableBlock.path"); }   // Built into onloaded
 
     static new(acl, contentacl, name, _allowunsafestore, content, signandstore, verbose, options) {
         /*
@@ -749,7 +792,7 @@ class AccessControlList extends CommonList {
         this.table = "acl";
     }
     _storepublic(verbose, options) { // See KeyChain for example
-        console.log("Undefined function AccessControlList._storepublic");
+        console.log("XXX Undefined function AccessControlList._storepublic");
         //mb = new MutableBlock(keypair=this.keypair, name=this.name)
     }
 
@@ -775,8 +818,8 @@ class KeyChain extends CommonList {
     }
     keytype() { return KEYPAIRKEYTYPESIGNANDENCRYPT; }  // Inform keygen
 
-    keys() { console.log("Undefined property KeyChain.keys"); }
-    add() { console.log("Undefined function KeyChain.add"); }
+    keys() { console.log("XXX Undefined property KeyChain.keys"); }
+    add() { console.log("XXX Undefined function KeyChain.add"); }
 
     encrypt(res, b64) {
         /*
@@ -789,8 +832,8 @@ class KeyChain extends CommonList {
         // Should be a signing key
         return this.keypair.encrypt(res, b64, this);  // data, b64, signer
     }
-    decrypt() { console.log("Undefined function KeyChain.decrypt"); }
-    accesskey() { console.log("Undefined property KeyChain.accesskey"); }
+    decrypt() { console.log("XXX Undefined function KeyChain.decrypt"); }
+    accesskey() { console.log("XXX Undefined property KeyChain.accesskey"); }
 
     static addkeychains(keychains) {
         //Add keys I can view under to ACL
@@ -802,7 +845,7 @@ class KeyChain extends CommonList {
         }
     }
 
-    find() { console.log("Undefined function KeyChain.find"); }
+    find() { console.log("XXX Undefined function KeyChain.find"); }
 
     _storepublic(verbose, options) { // Based on python CL._storepublic, but done in each class in JS
         console.log("KeyChain._storepublic");
@@ -815,11 +858,11 @@ class KeyChain extends CommonList {
         options.dontstoremaster = true;
         return super.store(verbose, options)  // Stores public version and sets _publichash - never returns
     }
-    fetch() { console.log("Intentionally undefined function MutableBlock.fetch use load/onloaded/onlisted"); }   // Split into load/onload/onlisted
+    fetch() { console.log("Intentionally XXX Undefined function MutableBlock.fetch use load/onloaded/onlisted"); }   // Split into load/onload/onlisted
 
-    _findbyclass() { console.log("Undefined function KeyChain._findbyclass"); }
-    myviewerkeys() { console.log("Undefined function KeyChain.myviewerkeys"); }
-    mymutableBlocks() { console.log("Undefined function KeyChain.mymutableBlocks"); }
+    _findbyclass() { console.log("XXX Undefined function KeyChain._findbyclass"); }
+    myviewerkeys() { console.log("XXX Undefined function KeyChain.myviewerkeys"); }
+    mymutableBlocks() { console.log("XXX Undefined function KeyChain.mymutableBlocks"); }
 
 }
 
@@ -832,6 +875,7 @@ class CryptoLib {
 class KeyPair extends SmartDict {
     // This class is (partially) pulled from Crypto.py
     constructor(hash, data, verbose) {
+        console.log("XXX KeyPair() data=",data);
         super(hash, data, verbose);    // SmartDict takes data=json or dict
         this.table = "kp";
     }
@@ -861,13 +905,14 @@ class KeyPair extends SmartDict {
         return new KeyPair(null, {"key": key}, verbose);
     }
     __setattr__(name, value) { // Superclass SmartDict to catch "setter"s
+        console.log("XXX _setattr",name,value);
         let verbose = false;
         if (name === "key") {
             this.key_setter(value);
         } else if (name === "private") {
-            console.log("Undefined function KeyPair.private.setter");
+            console.log("XXX Undefined function KeyPair.private.setter");
         } else if (name === "public") {
-            console.log("Undefined function KeyPair.public.setter");
+            console.log("XXX Undefined function KeyPair.public.setter");
         } else {
             super.__setattr__(name, value);
         }
@@ -893,6 +938,8 @@ class KeyPair extends SmartDict {
 
     _importkey(value) {
         //First tackle standard formats created by exporting functionality on keys
+        // Call route is ... data.setter > ...> key.setter > _importkey
+
         //TODO - Note fingerprint different from Python - this stores the key, change the Python
         if (typeof value === "Array") {
             for (let i in value) {
@@ -904,13 +951,14 @@ class KeyPair extends SmartDict {
             let hash = arr[0];
             let seed = sodium.from_urlsafebase64(hash);
             //See https://github.com/jedisct1/libsodium.js/issues/91 for issues
-
-            if (tag == "NACL PUBLIC")           { alert("Cant (yet) import Public key"+value);
-            } else if (tag == "NACL PRIVATE")   { alert("Cant (yet) import Private key"+value);
-            } else if (tag == "NACL SIGNING")   { alert("Cant (yet) import Signing key"+value);
-            } else if (tag == "NACL VERIFY")    { alert("Cant (yet) import Verify key"+value);
-            } else if (tag == "NACL SEED")      { alert("Cant (yet) import Seed key"+value);
-            } else                              { alert("Cant (yet) import "+value); }
+            if (!this._key) { this._key = {}}   // Only handles NACL style keys
+            if (tag == "NACL PUBLIC")           { console.log("XXX _importkey: Cant (yet) import Public key"+value);
+            } else if (tag == "NACL PRIVATE")   { console.log("XXX _importkey: Cant (yet) import Private key"+value);
+            } else if (tag == "NACL SIGNING")   { console.log("XXX _importkey: Cant (yet) import Signing key"+value);
+            } else if (tag == "NACL SEED")      { console.log("XXX _importkey: Cant (yet) import Seed key"+value);
+            } else if (tag == "NACL VERIFY")    {
+                this._key["sign"] = {"publicKey": sodium.from_urlsafebase64(hash)};
+            } else                              { console.log("XXX _importkey: Cant (yet) import "+value); }
         }
     }
 
@@ -920,12 +968,12 @@ class KeyPair extends SmartDict {
         if (this._key.sign) { res.push("NACL VERIFY:"+sodium.to_urlsafebase64(this._key.sign.publicKey)) }
     }
 
-    key() { console.log("Undefined function KeyPair.key"); }
-    private() { console.log("Undefined function KeyPair.private"); }
-    public() { console.log("Undefined function KeyPair.public"); }
-    mnemonic() { console.log("Undefined function KeyPair.mnemonic"); }
-    _exportkey() { console.log("Undefined function KeyPair._exportkey"); }
-    privateexport() { console.log("Undefined function KeyPair.privateexport"); }
+    key() { console.log("XXX Undefined function KeyPair.key"); }
+    private() { console.log("XXX Undefined function KeyPair.private"); }
+    public() { console.log("XXX Undefined function KeyPair.public"); }
+    mnemonic() { console.log("XXX Undefined function KeyPair.mnemonic"); }
+    _exportkey() { console.log("XXX Undefined function KeyPair._exportkey"); }
+    privateexport() { console.log("XXX Undefined function KeyPair.privateexport"); }
 
     static _key_has_private(key) {
         if ((key.encrypt && key.encrypt.privateKey) || (key.sign && key.sign.privateKey) || key.seed) { return true; }
@@ -935,7 +983,7 @@ class KeyPair extends SmartDict {
 
     naclprivate() { return this._key.encrypt.privateKey; }
     naclpublic() { return this._key.encrypt.publicKey; }
-    naclpublicexport() { console.log("Undefined function KeyPair.naclpublicexport"); }
+    naclpublicexport() { console.log("XXX Undefined function KeyPair.naclpublicexport"); }
 
     has_private() {
         return KeyPair._key_has_private(this._key)
@@ -957,12 +1005,9 @@ class KeyPair extends SmartDict {
         const ciphertext = sodium.crypto_box_easy(data, nonce, this.naclpublic(), signer.keypair.naclprivate(), "uint8array"); //(message, nonce, publicKey, secretKey, outputFormat)
 
         const combined = mergeTypedArraysUnsafe(nonce, ciphertext);
-        console.log("XXX@948",nonce);
-        console.log("XXX@950",ciphertext);
-        console.log("XXX@950",combined);
         return b64 ? sodium.to_urlsafebase64(nonce) : sodium.to_string(combined);
     }
-    decrypt() { console.log("Undefined function KeyPair.decrypt"); }
+    decrypt() { console.log("XXX Undefined function KeyPair.decrypt"); }
 }
 // ==== UI related functions, not dWeb specific =========
 function togglevisnext(elem) {   // Hide the next sibling object and show the one after, or vica-versa,
@@ -1015,6 +1060,7 @@ function dwebupdate(hash, type, data, options) {
 }
 
 function dweblist(div, hash) {
+    verbose = false;
     //(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose)
     var mb = new MutableBlock(hash, null, false, null, false, null, null, null, verbose, null);
     options = {}

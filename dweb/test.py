@@ -293,15 +293,16 @@ class Testing(unittest.TestCase):
         #self._storeas("mnemonic.js", None, None)
         print "INDEX.HTML at",self.uploads["index.html"]["read"]
         print "jquery-3.1.1.js",self.uploads["jquery-3.1.1.js"]["relread"]
+        print "libsodium", self.uploads["libsodium"]["relread"]+"/sodium.js"
         print "dweb.js",self.uploads["dweb.js"]["relread"]
-        #print "../tinymce/tinymce.min.js", self.uploads["../tinymce"]["relread"]+"/tinymce.min.js"
+        if ext: print "../tinymce/tinymce.min.js", self.uploads["../tinymce"]["relread"]+"/tinymce.min.js"
         print "snippet.html", self.uploads["snippet.html"]["editablehash"]
         print "cleverdog", b._hash
         print "snippet.html content", self.uploads["snippet.html"]["contenthash"]
         print "snippet.html", self.uploads["snippet.html"]["relread"]
         print "WrenchIcon.png", self.uploads["WrenchIcon.png"]["relread"]
         print "DWebArchitecture.png", self.uploads["DWebArchitecture.png"]["relread"]
-        #print "Sphinx Documentation", self.uploads["../docs/_build/html"]["relread"]
+        if ext: print "Sphinx Documentation", self.uploads["../docs/_build/html"]["relread"]
         print "test.html",self.uploads["test.html"]["relread"]
         print "objbrowser.html", self.uploads["objbrowser.html"]["relread"]
         print "TEST.HTML at",self.uploads["test.html"]["read"]

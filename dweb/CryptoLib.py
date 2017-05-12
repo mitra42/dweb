@@ -438,7 +438,8 @@ class KeyPair(SmartDict):
         return self._key
 
     def _importkey(self, value):
-        # Import a key
+        # Import a key from a string
+        # Call route is ... data.setter > ...> key.setter > _importkey
         assert isinstance(value, basestring)  # Should be exported string, maybe public or private
         # First tackle standard formats created by exporting functionality on keys
         if "-----BEGIN " in value:
@@ -638,6 +639,7 @@ class KeyPair(SmartDict):
         elif isinstance(self._key, (nacl.public.PrivateKey, nacl.signing.SigningKey)):
             assert signer, "Until PyNaCl bindings have secretbox we require a signer and have to add authentication"
             # Naclpublic comes from either one already stored on ACL or if it has a private key can be derived from that.
+            #TODO-REFACTOR-NACL use a key dict in the keypair like in the JS
             naclpublic = (signer.naclpublic and self._importkey(signer.naclpublic))  or signer.keypair.naclpublic
             assert naclpublic
             box = nacl.public.Box(self.naclprivate, naclpublic)

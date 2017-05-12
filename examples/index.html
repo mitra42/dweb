@@ -5,6 +5,7 @@
     <title>DWEB Demonstration page</title>
     <!--<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script><!-- Jquery via Google -->
     <script src="/file/sb/BLAKE2.RXiIhCFXXknh1K54zIpF53Fi2wieHY6SluWML39taS4="></script><!-- jquery-3.1.1.js-->
+    <script src="/file/sb/BLAKE2.8fTTeCloSFNMqvHxvdWBFFewU9hCGtZfiekmDtBCpsw=/sodium.js"></script><!-- libsodium/sodium.js-->
     <script src="/file/mb/BLAKE2.C0pfg39FLVAO9eCBrT76D5lHQp6XtN32vxmretoFxQE="></script><!-- dweb.js -->
     <!--<script src='/dweb/tinymce/tinymce.min.js'></script><!-- TinyMCE -->
     <!--<script src='//cloud.tinymce.com/stable/tinymce.min.js'></script><!-- TinyMCE -->
@@ -33,7 +34,7 @@
         b.load(true, {"elem": "myList.0"});      // Load block in background
         // Now of SB
         console.log("StructuredBlock=======");
-        let sb = new StructuredBlock("BLAKE2.0gUsOWiNqWGN3fmZYjhYs04_DprCn6yhh4LoeBGNN2s="); // This comes from looking in list/..hash of MB below..
+        let sb = new StructuredBlock("BLAKE2.PE5U0ifHdgpnr4768BRLD8htZIJ14XOc_sgvmUs7JPI="); // This comes from looking in list/..hash of MB below..
         sb.load(true, {"elem": "myList.1"} ); // hash of SB containing data containing "I'm a paragraph" // Load SB in background
         // Now MB
         console.log("MutableBlock=======");
