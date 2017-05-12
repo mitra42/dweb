@@ -11,6 +11,10 @@ const KEYPAIRKEYTYPESIGN = 1
 const KEYPAIRKEYTYPEENCRYPT = 2
 var KEYPAIRKEYTYPESIGNANDENCRYPT = 2    // Currently unsupported
 
+//TODO-ASYNC - sign and signandstore
+//TODO-ASYNC - simplify some nested functions with methods on classes such as MB e.g. loadandlist
+//TODO-ASYNC - search on TODO-ASYNC
+//TODO-ASYNC - fix objbrowser's path
 // ==== OBJECT ORIENTED JAVASCRIPT ===============
 
 // These are equivalent of python exceptions, will log and raise alert in most cases - exceptions aren't caught
@@ -42,9 +46,8 @@ class TransportHttp {
     static setup(ipandport, options) {
         return new TransportHttp(ipandport, options);
     }
-    post(self, command, hash, type, data, verbose, options) {
+    async_post(self, command, hash, type, data, verbose, success, error) {
         // obj being loaded
-        // options: are passed to class specific onloaded
         // Locate and return a block, based on its multihash
         if (verbose) { console.log("TransportHTTP post:", command,":hash=", hash); }
         let url = this.url(command, hash);
@@ -58,70 +61,65 @@ class TransportHttp {
             url: url,
             data: { "data": data},
             success: function(msg) {
-                if (verbose) { console.log("TransportHTTP:", command, ": returning data len=", msg.length); }
+                if (verbose) { console.log("TransportHTTP:", command, hash, ": returning data len=", msg.length); }
                 // Dont appear to need to parse JSON data, its decoded already
-                self.onposted(hash, msg, verbose, options);
+                if (success) { success(msg); }
             },
             error: function(xhr, status, error) {
-                console.log("TransportHTTP:", command, "error", status, "error=",error);
+                console.log("TransportHTTP:", command, "error", status, "error=",error, "data=", data);
                 alert("TODO post "+command+" failure status="+status+" error="+error);
+                if (error) { error(xhr, status, error);}
             },
         });
     }
 
-    update(self, hash, type, data, verbose, options) {
-        this.post(self, "update", hash, type, data, verbose, options);
+    async_update(self, hash, type, data, verbose, success, error) {
+        this.async_post(self, "update", hash, type, data, verbose, success, error);
     }
 
-    load(self, command, hash, path, listreturned, verbose, options) {
+
+    async_load(self, command, hash, verbose, success, error) {
         // self is the obj being loaded (yes this is intentional ! its not Javascript's "this")
-        // options: are passed to class specific onloaded
         // Locate and return a block, based on its multihash
-        if (verbose) { console.log("TransportHTTP load:",command, ":hash=", hash, "options=", options); }
+        // Call chain for list is mb.load > CL.fetchlist > THttp.rawlist > Thttp.load > CL|MB.fetchlist.success > callers.succes
+        if (verbose) { console.log("TransportHTTP async_load:",command, ":hash=", hash); }
         let url = this.url(command, hash);
-        if (verbose) { console.log("TransportHTTP:list: url=",url); }
+        if (verbose) { console.log("TransportHTTP:async_load: url=",url); }
         $.ajax({
             type: "GET",
             url: url,
             success: function(data) {
-                if (verbose) { console.log("TransportHTTP:", command, ": returning data len=", data.length); }
+                if (verbose) { console.log("TransportHTTP:", command, hash, ": returning data len=", data.length); }
                 // Dont appear to need to parse JSON data, its decoded already
-                if (listreturned) {
-                    // Call chain is mb.load > onloaded > CL.fetchlist > THttp.rawlist > Thttp.load > CL|MB.onlisted > options
-                    self.onlisted(hash, data, verbose, options);
-                } else {
-                    self.onloaded(hash, data, verbose, options);
-                }
+                if (success) { success(data); }
             },
             error: function(xhr, status, error) {
                 console.log("TransportHTTP:", command, ": error", status, "error=",error);
                 alert("TODO Block failure status="+status+" "+command+" error="+error);
+                if (error) { error(xhr, status, error);}
             },
         });
     }
 
-    rawfetch(self, hash, verbose, options) {    //TODO merge with transport.list
+    async_rawfetch(self, hash, verbose, success, error) {    //TODO merge with transport.list
         // Locate and return a block, based on its multihash
-        // options: are passed to class specific onloaded
-        // Locate and return a block, based on its multihash
-        this.load(self, "rawfetch", hash, [], false, verbose, options);    //TODO-PATH
+        this.async_load(self, "rawfetch", hash, verbose, success, error);
     }
 
-    rawlist(self, hash, verbose, options) {
+    async_rawlist(self, hash, verbose, success, error) {
         // obj being loaded
-        // options: are passed to class specific onloaded
         // Locate and return a block, based on its multihash
-        // Call chain is mb.load > onloaded > CL.fetchlist > THttp.rawlist > Thttp.load > CL|MB.onlisted > options
-        this.load(self, "rawlist", hash, [], true, verbose, options); //TODO-PATH
+        // Call chain is mb.load > CL.fetchlist > THttp.rawlist > Thttp.load > CL|MB.fetchlist.success > callers.success
+        this.async_load(self, "rawlist", hash, verbose, success, error);
     }
 
-    rawstore(self, data, verbose, options) {
+    async_rawstore(self, data, verbose, success, error) {
         //PY: res = self._sendGetPost(True, "rawstore", headers={"Content-Type": "application/octet-stream"}, urlargs=[], data=data, verbose=verbose)
-        this.post(self, "rawstore", null, null, data, verbose, options) // Returns immediately
+        this.async_post(self, "rawstore", null, null, data, verbose, success, error) // Returns immediately
     }
 
     rawreverse() { console.log("XXX Undefined function TransportHTTP.rawreverse"); }
-    rawadd() { console.log("XXX Undefined function TransportHTTP.rawstore"); }
+    rawadd() { console.log("XXX Undefined function TransportHTTP.rawadd"); }
 
 
     url(command, hash) {
@@ -150,15 +148,24 @@ class Transportable {
         this._data = value;  // Default behavior, assumes opaque bytes, and not a dict - note subclassed in SmartDict
     }
 
-    store(verbose, options) {    // Python has a "data" parameter to override this._data but probably not needed
-        if (verbose) { console.log("Transportable.store",this, options);}
+    async_store(verbose, success, error) {    // Python has a "data" parameter to override this._data but probably not needed
+        if (verbose) { console.log("Transportable.store",this);}
         let data = this._getdata();
         if (verbose) { console.log("Transportable.store data=",data);}
-        this._hash = CryptoLib.Curlhash(data); //store the hash since the HTTP is async, "onposted" should check the hash returned
-        options.checkhash = true;   // Make sure check hash in store
-        transport.rawstore(this, data, verbose, options);  // Returns immediately BEFORE storing
+        this._hash = CryptoLib.Curlhash(data); //store the hash since the HTTP is async
+        let self = this;
+        transport.async_rawstore(this, data, verbose,
+            function(msg) {
+                if (msg != self._hash) {
+                    console.log("ERROR Hash returned ",msg,"doesnt match hash expected",self._hash);
+                    if (error) { error(); }
+                } else {
+                    if (success) { success(msg)}
+                }
+            },
+            error); // Returns immediately BEFORE storing
         if (verbose) { console.log("Transportable.store hash=", this._hash); }
-        return this;
+        return this;    // For chaining, hash is valid, but note not yet stored
     }
 
     dirty() {   // Flag as dirty so needs uploading - subclasses may delete other, now invalid, info like signatures
@@ -167,13 +174,23 @@ class Transportable {
 
     fetch() { console.log("XXX Undefined function Transportable.fetch"); } // Replaced by load
 
-    load(verbose, options) {    // Asynchronous equiv of fetch, has to specify what to do via options
-        if (verbose) { console.log("Transportable.load hash=",this._hash,"options=",options); }
+    async_load(verbose, success, error) {
+        // Asynchronous equiv of fetch
+        // Runs success whether needs to load or not as will often load and then do something.
+        if (verbose) { console.log("Transportable.load hash=",this._hash); }
         if (this._needsfetch) { // Only load if need to
-            transport.rawfetch(this, this._hash, verbose, options);
-            this._needsfetch = false
+            let self = this;
+            transport.async_rawfetch(this, this._hash, verbose,
+                                    function(data) {
+                                        if (data) {self._setdata(data)}
+                                        if (success) { success(undefined);} //Not passing data as stored above
+                                        },
+                                    error);
+            this._needsfetch = false;    // Set false before return so not multiply fetched
+        } else {
+            if(success) { success(null); }
         }
-        // Block fetched in the background - dont assume loaded here, see onloaded
+        // Block fetched in the background - dont assume loaded here - see success for actions post-load
     }
 
     file() { console.log("XXX Undefined function Transportable.file"); }
@@ -181,48 +198,38 @@ class Transportable {
 
     // ==== UI method =====
 
-    elem(data, hash, path, verbose, el) {
-        // Called from storeto based on options
-        if (typeof el === 'string') {
-            el = document.getElementById(el);
-        }
-        if (typeof data === 'string') {
-            if (verbose) { console.log("onloaded:Storing data to element",el,encodeURI(data.substring(0,20))); }
-            el.innerHTML = data;
-        } else if (Array.isArray(data)) {
-            if (verbose) { console.log("onloaded:Storing list of len",data.length,"to element",el);}
-            this.updatelist(el, verbose);   //TODO-STORETO using updatelist not replacing
+    async_elem(el, verbose, successmethodeach, error) {
+        // Called from success methods
+        //successeach is function to apply to each element, will be passed "this" for the object being stored at the element.
+        if (this._needsfetch) {
+            let self = this;
+            this.async_load(verbose, function(msg){self.async_elem(el, verbose, successmethodeach, error)}, error);
         } else {
-            console.log("ERROR: unknown type of data to elem",typeof data, data);
-        }
-    }
-
-    checkhash(data, hash, path, verbose, options) { // Called by storeto
-            if (data != this._hash) {
-                console.log("ERROR Hash returned ",data,"doesnt match hash expected",this._hash);
+            if (typeof el === 'string') {
+                el = document.getElementById(el);
             }
-            delete options.checkhash;
-    }
-
-    storeto(data, hash, path, verbose, options) {
-        // Can be called to check if options have instructions what to do with data
-        // Its perfectly legitimate to call this, and nothing gets done with the data
-        if (verbose) { console.log("storeto: options=", options); }
-        for (let k in options) {
-            if (["path"].includes(k)) {   //TODO-STORETO implement these as functions instead of hardcoded in onloaded or onlisted
-                console.log("ERROR-TODO - option",k,"not implemented on",this.constructor.name);
-                //alert("UNIMPLEMENTED "+this.constructor.name+"."+k);
-                //1/0;
+            let data = this.content(verbose);
+            if (typeof data === 'string') {
+                if (verbose) { console.log("elem:Storing data to element",el,encodeURI(data.substring(0,20))); }
+                el.innerHTML = data;
+                if (successmethodeach) {
+                    let methodname = successmethodeach.shift();
+                    //if (verbose) console.log("async_elem",methodname, successmethodeach);
+                    this[methodname](...successmethodeach); // Spreads successmethod into args, like *args in python
+                }
+            } else if (Array.isArray(data)) {
+                if (verbose) { console.log("elem:Storing list of len",data.length,"to element",el);}
+                this.async_updatelist(el, verbose, successmethodeach, error);  //Note cant do success on updatelist as multi-thread //TODO using updatelist not replacing
             } else {
-                // Calls elem, objbrowser and soon fetchblocks - all with standard interface
-                this[k](data, hash, path, verbose, options[k]);
+                console.log("ERROR: unknown type of data to elem",typeof data, data);
             }
         }
     }
-    tell(data, hash, path, verbose, options) {
-        // Can be included in a "options" dictionary to callback { "tell": [this, methodname, { options }] }
-        // This might get refactored as understand how to use it.
-        context = {"notifier": this, "data": data, "hash": hash, "path": path}
+
+    tell(data, hash, verbose, options) {  //TODO change fingerprint, wont take some of these args
+        // Can be included in a successfunction to callback
+        // This might get refactored as understand how to use it - currently unused (comment here if that changes)
+        context = {"notifier": this, "data": data, "hash": hash}
         notified = options[0];
         method = options[1];
         newoptions = options[2];
@@ -236,7 +243,7 @@ class SmartDict extends Transportable {
         super(hash, data); // _hash is _hash of SB, not of data - will call _setdata (which usually set fields), -note does not fetch the has, but sets _needsfetch
         this._setproperties(options);   // Note this will override any properties set with data
     }
-    __setattr__(name, value) { // Call chain is ... onloaded or constructor > _setdata > _setproperties > __setattr__
+    __setattr__(name, value) { // Call chain is ... success or constructor > _setdata > _setproperties > __setattr__
         // Subclass this to catch any field (other than _data) which has its own setter
         //TODO Need a javascript equivalent way of transforming date
         // if (name[0] != "_") {
@@ -258,7 +265,7 @@ class SmartDict extends Transportable {
         for (var i in dd) {
             if (i.indexOf('_') !== 0) { // Ignore any attributes starting _
                 if (dd[i] instanceof Transportable) {
-                    res[i] = dd[i].store(false, null)._hash  // store(verbose, options) - this will set hash, then store obj in background
+                    res[i] = dd[i].async_store(false, null, null)._hash  // store(verbose, success, error) - will set hash, then store obj in background
                 } else {
                     res[i] = dd[i];
                 }
@@ -284,7 +291,7 @@ class SmartDict extends Transportable {
 
     _setdata(value) {
         // Note SmartDict expects value to be a dictionary, which should be the case since the HTTP requester interprets as JSON
-        // Call chain is ... onloaded or constructor > _setdata > _setproperties > __setattr__
+        // Call chain is ...  or constructor > _setdata > _setproperties > __setattr__
         if (value) {    // Skip if no data
             if (typeof value === 'string') {    // Assume it must be JSON
                 value = JSON.parse(value);
@@ -295,7 +302,7 @@ class SmartDict extends Transportable {
         }
     }
 
-    objbrowser(data, hash, path, verbose, ul) {
+    objbrowser(hash, path, ul, verbose) {
         let hashpath = path ? [hash, path].join("/") : hash;
     //OBSdwebobj(ul, hashpath) {    //TODO - note this is under dev works on SB and MB, needs to work on KeyChain, AccessControlList etc
         // ul is either the id of the element, or the element itself.
@@ -348,13 +355,13 @@ class SmartDict extends Transportable {
                         //TODO make this a loop
                         if (Array.isArray(this[prop])) {
                             for (let l1 in this[prop]) {
-                                this[prop][l1].objbrowser(null, hash, (path ? path + "/":"")+this[prop][l1].name , verbose, ul3);
+                                this[prop][l1].objbrowser(hash, (path ? path + "/":"")+this[prop][l1].name, ul3, verbose);
                             }
                         } else {
                             if (this[prop]._hash) {
-                                this[prop].objbrowser(null, this[prop]._hash, null, verbose, ul3)
+                                this[prop].objbrowser(this[prop]._hash, null, ul3, verbose)
                             } else {
-                                this[prop].objbrowser(null, hash, path, verbose, ul3);
+                                this[prop].objbrowser(hash, path, ul3, verbose);
                             }
                         }
                     } else {    // Any other field
@@ -365,7 +372,7 @@ class SmartDict extends Transportable {
                             // Group of fields where display then add behavior or something
                             var spanval = document.createElement('span');
                             if (prop === "_needsfetch") {
-                                li2.setAttribute('onclick','dofetch(this.parentNode.parentNode);');
+                                li2.setAttribute('onclick','async_objbrowserfetch(this.parentNode.parentNode);');
                             }
                         }
                         spanval.appendChild(document.createTextNode(this[prop]));
@@ -387,17 +394,11 @@ class Block extends Transportable {
         super(hash, data);
         this.table = 'b';
     }
-
-    onloaded(hash, data, verbose, options) {
-        // Called after block succeeds, can pass options through
-        // copies at Block, MutableBlock
-        if (verbose) { console.log("Block:onloaded",options); }
-        this._data = data;
-        this.storeto(data, hash, null, verbose, options) // TODO storeto handle img, or other non-HTML as reqd
-    }
-
     size() { console.log("XXX Undefined function Block.size"); }
-    content() { console.log("XXX Undefined function Block.content"); }
+    content() {
+        console.assert(!this._needsfetch,"Block should be loaded first as content is sync");
+        return this._data;
+    }
 
 }
 
@@ -410,10 +411,10 @@ class StructuredBlock extends SmartDict {
         this._date = null;  // Updated in _earliestdate when loaded
         this.table = "sb";  // Note this is cls.table on python but need to separate from dictionary
     }
-    store(verbose, options) { console.log("XXX Undefined function StructuredBlock.store"); }
+    async_store(verbose) { console.log("XXX Undefined function StructuredBlock.store"); }
 
     __setattr__(name, value) {
-        // Call chain is ... onloaded or constructor > _setdata > _setproperties > __setattr__
+        // Call chain is ...  or constructor > _setdata > _setproperties > __setattr__
         // catch equivalent of getters and setters here
         let verbose = false;
         if (name === "links") {  // Assume its a SB TODO make dependent on which table
@@ -428,25 +429,26 @@ class StructuredBlock extends SmartDict {
         }
     }
 
-    onloaded(hash, data, verbose, options) {  // Equivalent of _setdata in Python
-        console.log("StructuredBlock:onloaded data len=", data.length, options)
-        this._setdata(JSON.parse(data))   // Actually calls super, and calls _setproperties()
-        //this._data = data;
-
-        let sb = this;
-        let pathstr = options.path && options.path.join('/');
-        if (verbose && options.path) { console.log("sb.onloaded walking path",pathstr);}
-        while (options.path && options.path.length && this.links.length ) { // Have a path and can do it on sb
-            let next = options["path"].shift(); // Takes first element of path, leaves path as rest
-            console.log("StructuredBlock:onloaded next path=",next);
-            sb = sb.link(next);   //TODO handle error of not found
-        }
-        // At this point sb points as far down the path as we could go without loading.
-        if (options.path && options.path.length) {  // We still have path to explore, but no links on loaded sb
-                sb.load(verbose, options);  // passes shorter path and any dom arg load and to its onloaded
-        } else {  // Walked to end of path, can handle
-                console.log("StructuredBlock.onloaded storing len=",sb.data && sb.data.length);
-                this.storeto(sb.data, hash, pathstr, verbose, options);  // See if options say to store in a DIV for example
+    async_path(patharr, verbose, successmethod, error) {
+        // We cant use a function here, since the closure means it would apply to the object calling this, not the object loaded.
+        // successmethod is an array [ nameofmethod, args... ]
+        // Warning - may change the signature of this as discover how its used.
+        if (verbose) { console.log("sb.async_path",patharr, successmethod, "links=",this.links); }
+        if (patharr && patharr.length && this.links.length ) { // Have a path and can do next bit of it on this sb
+            let next = patharr.shift(); // Takes first element of patharr, leaves patharr as rest
+            if (verbose) { console.log("StructuredBlock:path next=",next); }
+            let obj = this.link(next);   //TODO handle error if not found
+            obj.async_load(verbose, function(msg) { obj.async_path(patharr, verbose, successmethod, error); }, error);
+        } else if (patharr && patharr.length) {
+            console.log("ERR Can't follow path",patharr);
+            if (error) error(undefined);
+        } else {  // Reached end of path, can apply success
+            //if (success) { success(undefined); } //note this wont work as success defined on different object as "this"
+            if (successmethod) {
+                let methodname = successmethod.shift();
+                if (verbose) { console.log("async_path success:",methodname, successmethod); }
+                this[methodname](...successmethod); // Spreads successmethod into args, like *args in python
+            }
         }
     }
 
@@ -466,11 +468,24 @@ class StructuredBlock extends SmartDict {
         return null;    // If not found
     }
 
-    content() { console.log("XXX Undefined function StructuredBlock.content"); }
+    content(verbose) {
+        console.assert(!this._needsfetch, "Must load before call content")
+        if (this.data) { return this.data; }
+        if (this.links) {
+            res = ""
+            for (i in this.links) {
+                l = this.links[i];
+                res = res + l.content(verbose)  //Each link is a SB
+            }
+            return res;
+        }
+        console.log("ERR - object has no content, not even empty data");
+        //Not supporting hash/fetch as async
+        //(this.hash and Dweb.transport.rawfetch(hash = self.hash, verbose=verbose, **options)) or # Hash must point to raw data, not another SB
+    }
     file() { console.log("XXX Undefined function StructuredBlock.file"); }
     size() { console.log("XXX Undefined function StructuredBlock.size"); }
-    path() { console.log("XXX Undefined function StructuredBlock.path"); }   // Done in onloaded, asynchronous recursion.
-    sign(commonlist, verbose, options) {    // Returns immediately REFACTOR-ASYNC rename so clear
+    sign(commonlist, verbose, options) {    // Returns immediately,  rename so clear  TODO-ASYNC
         /*
         Add a signature to a StructuredBlock
         Note if the SB has a _acl field it will be encrypted first, then the hash of the encrypted block used for signing.
@@ -478,13 +493,13 @@ class StructuredBlock extends SmartDict {
         :param CommonList commonlist:   List its going on - has a ACL with a private key
         :return: self
         */
-        console.log("XXX Undefined function StructuredBlock.sign");
+        console.log("XXX Undefined function StructuredBlock.sign",this._hash,this.name);
      /*   if (! this._hash) {
             self.store(verbose, { "sign_onposted": commonlist}) ;  // Sets _hash which is needed for signatures #TODO-EFFICIENCY only store if not stored
         }
         return this; // For chaining
     }
-    sign_onposted(unuseddata, unusedhash, unusedpath, verbose, commonlist) {  //TODO-REFACTOR-ONLOADED
+    sign_onposted(unuseddata, unusedhash, unusedpath, verbose, commonlist) {  //TODO-ASYNC
         this._signatures.append(Signature.sign(commonlist=commonlist, hash=self._hash, verbose=verbose))    XXX
     */
     }
@@ -528,14 +543,14 @@ class Signature extends SmartDict {
         this.table = "sig"
     }
     //TODO need to be able to verify signatures
-     static sign(commonlist, hash, verbose) {
+     static sign(commonlist, hash, verbose) { //TODO-ASYNC
         console.log("XXX@530 implement");
         date = datetime.now();
         console.log("XXX@532 implement");
         signature = CryptoLib.signature(commonlist.keypair, date, hash)
         console.log("XXX@532 implement - check if _publichash is function or field" );
         if (!commonlist._publichash) {
-            commonlist.store(verbose);
+            commonlist.async_store(verbose, null, null);    //TODO-ASYNC
         }
         console.log("XXX@534 may need to happen in background - caller needs to be async");
         return new Signature(null, {"date": date, "signature": signature, "signedby": commonlist._publichash})
@@ -558,13 +573,13 @@ class CommonList extends SmartDict {
         } else {
             this._setkeypair(keypair, verbose);
         }
-        this._master = master;  // Note this must be AFTER _setkeypair since that sets based on keypair found and _storepublic for example wants to force !master
+        this._master = master;  // Note this must be AFTER _setkeypair since that sets based on keypair found and _async_storepublic for example wants to force !master
         if (!this._master) { this._publichash = hash; }
     }
     keytype() { return KEYPAIRKEYTYPESIGN; }
 
     __setattr__(name, value) {
-        // Call chain is ... onloaded or constructor > _setdata > _setproperties > __setattr__
+        // Call chain is ...  or constructor > _setdata > _setproperties > __setattr__
         // catch equivalent of getters and setters here
         let verbose = false;
         if (name === "keypair") {
@@ -575,8 +590,7 @@ class CommonList extends SmartDict {
     }
 
     _setkeypair(value, verbose) {
-        // Call chain is ... onloaded or constructor > _setdata > _setproperties > __setattr__ > _setkeypair
-        console.log("XXX _setkeypair:",value);
+        // Call chain is ...  or constructor > _setdata > _setproperties > __setattr__ > _setkeypair
         if (value && ! (value instanceof KeyPair)) {
             value = new KeyPair(null, {"key":value}, verbose);  // Synchronous value will be decoded, not fetched
         }
@@ -601,54 +615,43 @@ class CommonList extends SmartDict {
 
     fetch(fetchbody, fetchlist, fetchblocks, verbose, options) {
         console.log("XXX Undefined function CommonList.fetch replace carefully with load");
-    }   // Split into load and onloaded
+    }
 
-    load(verbose,  options) {   // Python can also fetch based on just having key
+    async_load(verbose, success, error) {   // Python can also fetch based on just having key
         if (this._needsfetch) { // Only load if need to
-            if (verbose) { console.log("CommonList.load:",this._hash,options)}
+            if (verbose) { console.log("CommonList.load:",this._hash)}
             this._needsfetch = false
             // Need to fetch body and only then fetchlist since for a list the body might include the publickey whose hash is needed for the list
-            transport.rawfetch(this, this._hash, verbose, options);  // TODO this is only correct if its NOT master
+            let self = this;
+            transport.async_rawfetch(this, this._hash, verbose,
+                                    function(data) {
+                                        if (data) {self._setdata(JSON.parse(data))}
+                                        if (success) { success(undefined);}
+                                        },
+                                    error);
         } else {
-            this.onloaded(this._hash, null, verbose, options);    // Pass to onloaded as if loaded, and see what action reqd
+            if (success) {success(undefined);} // Pass to success as if loaded, and see what action reqd
         }
     }
 
-    fetchlist(data, hash, path, verbose, options) {  // Interface chosen so callable from storeto if in options
-        // Call chain is mb.load > onloaded > CL.fetchlist > THttp.rawlist > Thttp.load > CL|MB.onlisted > options
-        transport.rawlist(this, this._hash, verbose, options);  // TODO this is only correct if its NOT master
-    }
-
-    onloaded(hash, data, verbose, options) { // Body loaded
-        console.log("CommonList:onloaded data len=", data ? data.length : "null", options)
-        if (data) {
-            this._setdata(JSON.parse(data))   //  // Call chain is ... onloaded or constructor > _setdata > _setproperties > __setattr__
-            this.storeto(data, hash, null, verbose, options);
-        } else {
-            this.storeto(null, hash, null, verbose, options);   //TODO This data may need to be the contents?
-        }
-    }
-
-    onlisted(hash, lines, verbose, options) { // Body loaded
-        // Call chain is mb.load > onloaded > CL.fetchlist > THttp.rawlist > Thttp.load > CL|MB.onlisted > options
-        console.log("CommonList:onlisted", hash, lines.length, options)
-        //lines = JSON.parse(lines))   Should already by a list
-        this._list = []
-        for (let i in lines) {
-            //TODO verify signature
-            //if CryptoLib.verify(s):
-            let s = new Signature(null, lines[i], verbose);        // Signature ::= {date, hash, privatekey etc }
-            this._list.push(s)
-        }
-        if (options.fetchblocks) {
-            options.fetchblocks = false; // Done it here, dont do it again
-            console.log("CommonList.onlisted options=fetchblocks not implemented")
-        }
-        return true; // This layer handled, can do superclass stuff rather than wait for deeper loads
-    }
-    onposted(hash, data, verbose, options) {
-        // onposted isn't used much. Currently returns the hash of data stored, but might be better as a struc
-        this.storeto(data, hash, null, verbose, options) // TODO storeto handle img, or other non-HTML as reqd
+    async_fetchlist(verbose, success, error) {
+        // Load a list, note it does not load the individual items, just the Signatures. To do that, provide a "success" to loop over htem afterwards.
+        // Call chain is mb.load > CL.fetchlist > THttp.rawlist > Thttp.load > CL|MB.fetchlist.success > callers.success
+        let self = this;
+        transport.async_rawlist(this, this._hash, verbose,
+            function(lines) {
+                //lines = JSON.parse(lines))   Should already by a list
+                console.log("CommonList:async_fetchlist.success", self._hash, lines.length);
+                self._list = []
+                for (let i in lines) {
+                    //TODO verify signature
+                    //if CryptoLib.verify(s):
+                    let s = new Signature(null, lines[i], verbose);        // Signature ::= {date, hash, privatekey etc }
+                    self._list.push(s);
+                }
+                if (success) {success(undefined);}
+            },
+            error);
     }
 
     blocks(fetchblocks, verbose) {
@@ -668,18 +671,18 @@ class CommonList extends SmartDict {
         sbs.sort(StructuredBlock.compare); // Could inline: sbs.sort(function(a, b) { ... }
         return sbs;
     }
-    _storepublic(verbose, options) {
-        console.log("Intentionally XXX Undefined function CommonList._storepublic - should implement in subclasses");
+    _async_storepublic(verbose, success, error) {
+        console.log("Intentionally XXX Undefined function CommonList._async_storepublic - should implement in subclasses");
     }
-    store(verbose, options) {  // Based on python
-        options = options || {};
-        if (verbose) { console.log("CL.store", this, "options=", options); }
+    async_store(verbose, success, error) {  // Based on python
+        if (verbose) { console.log("CL.store", this); }
         if (this._master && ! this._publichash) {
-            this._storepublic(verbose, );
+            this._async_storepublic(verbose, success, error); //Stores asynchronously, but hash set immediately
         }
-        if ( ! (this._master && options.dontstoremaster)) {
-            delete options.dontstoremaster;
-            super.store(verbose, options);    // Transportable.store(verbose, options)
+        if ( ! (this._master && this.dontstoremaster)) {
+            super.async_store(verbose, success, error);    // Transportable.store(verbose)
+        } else {
+            if (success) { success(null); }
         }
         return this;
     }
@@ -687,16 +690,15 @@ class CommonList extends SmartDict {
     publicurl() { console.log("XXX Undefined function CommonList.publicurl"); }   // For access via web
     privateurl() { console.log("XXX Undefined function CommonList.privateurl"); }   // For access via web
 
-    signandstore(obj, verbose, options) {
+    async_signandstore(obj, verbose, success, error) {   //TODO-ASYNC-SIGN
         /*
         Sign and store a StructuredBlock on a list - via the SB's signatures - see add for doing independent of SB
 
         :param StructuredBlock obj:
         :param verbose:
-        :param options:
         :return:
         */
-        this.load(verbose, {"signandstore_onloaded": obj}); //Check its fetched but dont need to use list
+        this.async_load(verbose, {"signandstore_onloaded": obj}, success, error); //Check its fetched but dont need to use list
     }
     signandstore_onloaded(unuseddata, unusedhash, unusedpath, verbose, obj) {   // After load
         if (!this._master) {
@@ -705,7 +707,7 @@ class CommonList extends SmartDict {
             //raise ForbiddenException(what="Signing a new entry when not a master list")
         }
         // The obj.store stores signatures as well (e.g. see StructuredBlock.store)
-        obj.sign(this, verbose).store(verbose, null);    // Returns immediately, store is asynch
+        obj.sign(this, verbose).async_store(verbose, null, null);    // Returns immediately, store is asynch    //TODO-ASYNC-SIGN pass success & error
         return this;
     }
     add() { console.log("XXX Undefined function CommonList.add"); }   // For storing data
@@ -724,20 +726,30 @@ class MutableBlock extends CommonList {
         this.table = "mb"
     }
 
-    onlisted(hash, lines, verbose, options) {
-        // Call chain is mb.load > onloaded > CL.fetchlist > THttp.rawlist > Thttp.load > CL|MB.onlisted > options
-        let handled = super.onlisted(hash, lines, verbose, options);
-        if (handled) {  // Should always be handled until fetchblocks implemented
-            let sig = this._list[this._list.length-1];
-            this._current = new StructuredBlock(sig.hash, null, verbose);
-            if (options.path && options.path.length) {  //TODO-PATH unclear if want a path or a list - start with a list
-                this._current.load(verbose, options);
-            } else { // elem, objbrowser etc are done on the leaf, not the intermediaries
-                this.storeto(lines, hash, null, verbose, options);
-            }
+    async_elem(el, verbose, successmethodeach, error) {
+        if (this._needsfetch) {
+            let self = this;
+            this.async_load(verbose, function(msg){self.async_elem(el, verbose, successmethodeach, error);}, null);
+        } else {
+            // this._current should be setup, it might not be loaded, but async_elem can load it
+            this._current.async_elem(el, verbose, successmethodeach, error);    // Typically _current will be a SB
         }
     }
-    updatelist(ul, verbose) {
+    async_fetchlist(verbose, success, error) {  // Check callers of fetchlist and how pass parameters
+        // Call chain is mb.load > MB.fetchlist > THttp.rawlist > Thttp.list > MB.fetchlist.success > caller's success
+        let self = this;
+        super.async_fetchlist(verbose,
+            function(unused) {
+                // Called after CL.async_fetchlist has unpacked data into Signatures in _list
+                let sig = self._list[self._list.length-1];  // Get most recent
+                self._current = new StructuredBlock(sig.hash, null, verbose);   // Store in _current
+                if (success) { success(undefined);}  // Note success is applied to the MB, not to the content, and the content might not have been loaded.
+            },
+            error)
+    }
+    async_updatelist(ul, verbose, successmethodeach, error) {
+        // You can't pass "success" to updatelist as it spawns multiple threads
+        //successmethodeach is method to apply to each element, see the path() function for definition
         while (ul.hasChildNodes()) {
             ul.removeChild(ul.lastChild);
         }
@@ -746,27 +758,31 @@ class MutableBlock extends CommonList {
             let i = blocks[ii];
             let li = document.createElement("li");
             ul.appendChild(li);
-            i.load(verbose, { "elem": li });
+            i.async_load(verbose,
+                function(msg) { i.async_elem(li, verbose, successmethodeach, error); },
+                error);
         }
     }
-    update(type, data, verbose, options) {  // Send new data for this item to dWeb
-        transport.update(this, this._hash, type, data, verbose, options);
+    async_update(type, data, verbose, success, error) {  // Send new data for this item to dWeb
+        transport.async_update(this, this._hash, type, data, verbose, success, error);
     }
-    _storepublic(verbose, options) {
-        // options are fields of MB, not things to do after store()
+    _async_storepublic(verbose, success, error) {
+        // Note that this returns immediately after setting hash, so caller may not need to wait for success
         //(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose, options)
-        let opt2 = options || {}
-        opt2.name = this.name;
-        let mb = new MutableBlock(null, null, false, this.keypair, false, null, null, null, verbose, opt2);
-        mb.store(verbose, null);    // Returns immediately but sets _hash first
+        let mb = new MutableBlock(null, null, false, this.keypair, false, null, null, null, verbose, {"name": this.name});
+        mb.async_store(verbose, success, error);    // Returns immediately but sets _hash first
         return mb._hash;
     }
 
     contentacl() { console.log("XXX Undefined function MutableBlock.contentacl setter and getter"); }   // Encryption of content
-    fetch() { console.log("XXX Undefined function MutableBlock.fetch"); }   // Split into load/onload/onlisted
-    content() { console.log("XXX Undefined function MutableBlock.store"); }   // Retrieving data
+    fetch() { console.log("XXX Undefined function MutableBlock.fetch"); }   // Split into load/onload
+    content() {
+        console.assert(!this._needsfetch, "Content is asynchronous, must load first");
+        return this._current.content();
+    }
+
     file() { console.log("XXX Undefined function MutableBlock.store"); }   // Retrieving data
-    signandstore(verbose, options) {
+    signandstore(verbose, options) {    //TODO-ASYNC
         /*
         Sign and Store a version, or entry in MutableBlock master
         Exceptions: SignedBlockEmptyException if neither hash nor structuredblock defined, ForbiddenException if !master
@@ -777,11 +793,18 @@ class MutableBlock extends CommonList {
             this._current._acl = this.contentacl;    //Make sure SB encrypted when stored
             this._current.dirty();   // Make sure stored again if stored unencrypted. - _hash will be used by signandstore
         }
-        return super.signandstore(this._current, verbose, options) // ERR SignedBlockEmptyException, ForbiddenException
+        return super.signandstore(this._current, verbose, options) // ERR SignedBlockEmptyException, ForbiddenException //TODO-ASYNC
     }
-    path() { console.log("XXX Undefined function MutableBlock.path"); }   // Built into onloaded
+    async_path(patharr, verbose, successmethod, error) {
+        if (verbose) { console.log("mb.async_path",patharr,successmethod); }
+        //sb.async_path(patharr, verbose, successmethod, error) {
+        let curr = this._current;
+        curr.async_load(verbose,
+            function(msg) { curr.async_path(patharr, verbose, successmethod, error);},
+            error);
+    }
 
-    static new(acl, contentacl, name, _allowunsafestore, content, signandstore, verbose, options) {
+    static async_new(acl, contentacl, name, _allowunsafestore, content, signandstore, verbose, success, error) {
         /*
         Utility function to allow creation of MB in one step
         :param acl:             Set to an AccessControlList or KeyChain if storing encrypted (normal)
@@ -795,23 +818,26 @@ class MutableBlock extends CommonList {
         :return:
         */
         // See test.py.test_mutableblock for canonical testing of python version of this
-        if (verbose) { console.log("MutableBlock.new: Creating MutableBlock", name); }
+        if (verbose) { console.log("MutableBlock.async_new: Creating MutableBlock", name); }
         // (hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose)
-        let opt2 = options || {};
-        opt2.name = name;
-        let mblockm = new MutableBlock(null, null, true, null, true, null, null, contentacl, verbose, opt2); // (name=name  // Create a new block with a new key
+        let mblockm = new MutableBlock(null, null, true, null, true, null, null, contentacl, verbose, {"name": name}); // (name=name  // Create a new block with a new key
         mblockm._acl = acl;              //Secure it
         mblockm._current.data = content;  //Preload with data in _current.data
         mblockm._allowunsafestore = _allowunsafestore;
         if (_allowunsafestore) {
             mblockm.keypair._allowunsafestore = true;
         }
-        mblockm.store(verbose, options);
-        if (signandstore && content) {
-            mblockm.signandstore(verbose, options); //Sign it - this publishes it
-        }
-        if (verbose) { console.log("Created MutableBlock hash=", mblockm._hash); }
-        return mblockm
+        mblockm.async_store(verbose,
+               function(msg) { //success
+                    if (signandstore && content) {
+                        mblockm.signandstore(verbose, null, error); //Sign it - this publishes it
+                    }
+                    if (verbose) { console.log("Created MutableBlock hash=", mblockm._hash); }
+                    if (success) { success(msg); }
+               },
+               error
+            );
+        return mblockm  // Returns prior to signandstore with hash set
     }
 
 }
@@ -821,8 +847,8 @@ class AccessControlList extends CommonList {
     constructor() {
         this.table = "acl";
     }
-    _storepublic(verbose, options) { // See KeyChain for example
-        console.log("XXX Undefined function AccessControlList._storepublic");
+    _async_storepublic(verbose, success, error) { // See KeyChain for example
+        console.log("XXX Undefined function AccessControlList._async_storepublic");
         //mb = new MutableBlock(keypair=this.keypair, name=this.name)
     }
 
@@ -837,11 +863,14 @@ class KeyChain extends CommonList {
         super(hash, data, master, keypair, keygen, mnemonic, verbose);
         this.table = "kc";
     }
-    static new(mnemonic, keygen, name, verbose) {
+    static async_new(mnemonic, keygen, name, verbose, success, error) {
         let kc = new KeyChain(null, { "name": name }, false, null, keygen, mnemonic, verbose);
-        kc.store(verbose, {});    // Verbose, options
+        kc.async_store(verbose, null, error);
+        // Dont need to wait on store to load and fetchlist
         KeyChain.addkeychains(kc);
-        kc.load(verbose, {"fetchlist": {} });    //Was fetching blocks, but now done by "keys"
+        kc.async_load(verbose,
+            function(msg) { kc.async_fetchlist(verbose, success, error)},
+            error);    //Was fetching blocks, but now done by "keys"
         //if verbose: print "Created keychain for:", kc.keypair.private.mnemonic
         //if verbose and not mnemonic: print "Record these words if you want to access again"
         return kc
@@ -877,18 +906,18 @@ class KeyChain extends CommonList {
 
     find() { console.log("XXX Undefined function KeyChain.find"); }
 
-    _storepublic(verbose, options) { // Based on python CL._storepublic, but done in each class in JS
-        console.log("KeyChain._storepublic");
+    _async_storepublic(verbose, success, error) { // Based on python CL._storepublic, but done in each class in JS
+        console.log("KeyChain._async_storepublic");
         let kc = new KeyChain(null, {"name": this.name}, false, this.keypair, false, null, verbose);
-        this._publichash = kc.store(verbose, options)._hash;  //returns immediately with precalculated hash
+        this._publichash = kc.async_store(verbose, success, error)._hash;  //returns immediately with precalculated hash
     }
 
-    store(verbose, options) {
-        // CommonList.store(verbose, options)
-        options.dontstoremaster = true;
-        return super.store(verbose, options)  // Stores public version and sets _publichash - never returns
+    async_store(verbose, success, error) {
+        // CommonList.store(verbose, success, error)
+        this.dontstoremaster = true;
+        return super.async_store(verbose, success, error)  // Stores public version and sets _publichash - never returns
     }
-    fetch() { console.log("Intentionally XXX Undefined function MutableBlock.fetch use load/onloaded/onlisted"); }   // Split into load/onload/onlisted
+    fetch() { console.log("Intentionally XXX Undefined function MutableBlock.fetch use load/success"); }   // Split into load/onload
 
     _findbyclass() { console.log("XXX Undefined function KeyChain._findbyclass"); }
     myviewerkeys() { console.log("XXX Undefined function KeyChain.myviewerkeys"); }
@@ -905,7 +934,6 @@ class CryptoLib {
 class KeyPair extends SmartDict {
     // This class is (partially) pulled from Crypto.py
     constructor(hash, data, verbose) {
-        console.log("XXX KeyPair() data=",data);
         super(hash, data, verbose);    // SmartDict takes data=json or dict
         this.table = "kp";
     }
@@ -935,7 +963,6 @@ class KeyPair extends SmartDict {
         return new KeyPair(null, {"key": key}, verbose);
     }
     __setattr__(name, value) { // Superclass SmartDict to catch "setter"s
-        console.log("XXX _setattr",name,value);
         let verbose = false;
         if (name === "key") {
             this.key_setter(value);
@@ -960,7 +987,7 @@ class KeyPair extends SmartDict {
             SecurityWarning("Probably shouldnt be storing private key",dd);
         }
         if (dd_key) { //Based on whether the CommonList is master, rather than if the key is (key could be master, and CL not)
-            dd.key = this._key_has_private(dd._key) ? self.privateexport : self.publicexport;
+            dd.key = this._key_has_private(dd._key) ? this.privateexport : this.publicexport;
         }
         return super.preflight(dd)
     }
@@ -1052,53 +1079,76 @@ function togglevisnext(elem) {   // Hide the next sibling object and show the on
     }
 }
 
-function dofetch(el) {
+function async_objbrowserfetch(el) {
+    verbose = false;
     source = el.source;
     parent = el.parentNode;
     parent.removeChild(el); //Remove elem from parent
-    source.load(true, {"objbrowser": parent});
+    source.async_load(true, function(msg) { source.objbrowser(source._hash, null, parent, false );}, null);
 }
 
 // ==== NON OBJECT ORIENTED FUNCTIONS ==============
 
-function dwebfile(table, hash, path, options) {
+function async_dwebfile(table, hash, path, successmethod, error) {
     // Simple utility function to load into a hash without dealing with individual objects
-    // options are what to do with data, not fields for MB
-    let verbose = false;
+    // successmethod - see "path()" for definition.
+    let verbose = true;
     if (path && (path.length > 0)) {
-        options.path = path.split('/');
+        path = path.split('/');
     }
+    if (verbose) { console.log("async_dwebfile",table,hash,path,successmethod);}
     if (table === "mb") {
-        //(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose, options)
+        //(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose)
         var mb = new MutableBlock(hash, null, false, null, false, null, null, null, verbose, null);
-        // Call chain is mb.load > onloaded > CL.fetchlist > THttp.rawlist > Thttp.load > CL|MB.onlisted > options
-        mb.load(true, { "fetchlist": options}); // for dwebfile, we want to apply the optiosn to the file - which is in the content after fetchlist
+        // Call chain is mb.load > CL.fetchlist > THttp.rawlist > Thttp.load > MB.fetchlist.success > caller.success
+        // for dwebfile:mb, we want to apply the success function to the file - which is in the content after fetchlist
+        mb.async_load(verbose,
+            function(msg) { mb.async_fetchlist(verbose, function(msg) { mb.async_path(path, verbose, successmethod, error);}, error); }, // Note success is applied once after list is fetched, content isn't loaded before that.
+            error);
     } else if (table === "sb") {
         var sb = new StructuredBlock(hash, null, verbose);
-        sb.load(true, options);
+        sb.async_load(verbose, function(msg) {sb.async_path(path, verbose, successmethod, error);}, error);
     } else {
         alert("dwebfile called with invalid table="+table);
     }
 }
 
-function dwebupdate(hash, type, data, options) {
-    // Options refer to what to do with data, not fields on mb
+function async_dwebupdate(hash, type, data, successmethod, error) {
     verbose = false;
-    //(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose, options)
+    //(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose)
     mbm = new MutableBlock(hash, null, true, null, false, null, null, null, verbose, null);
-    mbm.update(type, data, true, options);  //TODO failing as result is HTML but treated as Javascript - can intercept post
+    mbm.async_update( type, data, verbose,
+        function(msg){
+            if (successmethod) {
+                let methodname = successmethod.shift();
+                //if (verbose) console.log("async_elem",methodname, successmethod);
+                mbm[methodname](...successmethod); // Spreads successmethod into args, like *args in python
+            }
+        },
+        error);
 }
 
-function dweblist(div, hash) {
+function async_dweblist(div, hash, verbose, success, successmethodeach, error) {
+    //Retrieve a list, and create <li> elements of div to hold it.
+    //success, if present, is run after list retrieved, asynchronous with elements retrieved
+    //successeach, is run on each object in the list.
     verbose = false;
     //(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose)
     var mb = new MutableBlock(hash, null, false, null, false, null, null, null, verbose, null);
-    options = {}
-    options.fetchlist = {"elem": div };
-    // Call chain is mb.load > onloaded > CL.fetchlist > THttp.rawlist > Thttp.load > CL|MB.onlisted > options
-    mb.load(true, options);
+    // Call chain is mb.load > CL.fetchlist > THttp.rawlist > Thttp.load > MB.fetchlist.success
+    mb.async_load(true,
+        function(msg) {
+            mb.async_fetchlist(null,
+                               function(self) {
+                                    mb.async_elem(div, verbose, successmethodeach, error); // async_elem loads the block
+                                    if (success) {success(null);}    // Note success will fire async with list elements being loaded
+                               },
+                               error)
+        },
+        error);
 }
 // ======== EXPERIMENTAL ZONA ==================
 
 //TODO BROWSER----
 //-data collapsable
+

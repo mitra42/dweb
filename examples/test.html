@@ -6,7 +6,7 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script><!-- Jquery via Google -->
     <!--<script src="/file/sb/SHA3256B64URL.BDCbn_l9rrlCdVkB9o6qozSP84HBCGors5dBLxdyro8="></script><!-- jquery-3.1.1.js-->
     <script src="/file/mb/BLAKE2.C0pfg39FLVAO9eCBrT76D5lHQp6XtN32vxmretoFxQE="></script><!-- dweb.js -->
-    <script src="/file/sb/BLAKE2.8fTTeCloSFNMqvHxvdWBFFewU9hCGtZfiekmDtBCpsw=/sodium.js"></script><!-- libsodium/sodium.js-->
+    <script src="/file/sb/BLAKE2.o2MS3vLprUwCMK8PDcx27A1SdW4OX-V37beCKS_c4tw=/sodium.js"></script><!-- libsodium/sodium.js-->
     <!--<script src="/file/sb/BLAKE2.ZxsegoRtOLB_KH5GEpOTpZE-WRVcxln8Kpv0SllhqLc=/index.js"></script><!-- bip39/index.js-->
     <!--<script src="/file/sb/BLAKE2.1PW-n24xBzjT-VBp4EMEZAyCar0EafZiYuBey0Ldr4o=/mnemonic.js"></script><!-- mnemonic.js/mnemonic.js-->
 
@@ -19,24 +19,32 @@
         mb2hash = "BLAKE2.nBWNoMyOJdhm-wrx0URYo7Utw3jG8J3boEBUcXvATVU="; // Hash reported for docs/_build/html
         sbhash="BLAKE2.spTuo7yuSJEQyYy3rUFV2G0SCDxhkZEHhQQttozxWtQ=" // This is teh hash field from any line of list/..mbhash..
         function working() {
-            verbose=false;
+            let verbose=false;
             console.log("StructuredBlock=======");
             let sb = new StructuredBlock(sbhash);
-            sb.load(true, {"path": ["langs","readme.md"], "elem": "myList.0"} );
+            sb.async_load(true,
+                function(msg) { sb.async_path(["langs","readme.md"], verbose,  [ "async_elem", "myList.0", verbose, null, null ], null); },
+                null);
             console.log("MutableBlock=======");
             <!-- also works with /file/mb/.....=/langs/readme.md -->
             let mb = new MutableBlock(mbhash, null, false, null, false, null, null, null, verbose, null);
-            mb.load(true,  { "fetchlist": {"path": ["langs","readme.md"], "elem": "myList.1"}} );
+            mb.async_load(true,   //TODO this should be a method of mb.
+                function(msg) {mb. async_fetchlist(verbose,
+                                    function(msg) { mb.async_path(["langs","readme.md"], verbose, ["async_elem", "myList.1", verbose, null, null], null); },
+                                    null); },
+                null);
             <!-- Now test path using dwebfile -->
-            dwebfile("sb", sbhash, "langs/readme.md", {  "elem": "myList.2"});
+            async_dwebfile("sb", sbhash, "langs/readme.md", ["async_elem", "myList.2", verbose, null, null], null);
             <!-- Now test path using dwebfile -->
-            dwebfile("mb", mbhash, "langs/readme.md", {  "elem": "myList.3"});
+            async_dwebfile("mb", mbhash, "langs/readme.md", ["async_elem", "myList.3", verbose, null, null], null);
+            console.log("XXX@31 end testing");
         }
         function browser() {
+            let verbose = true;
             let sb = new StructuredBlock(sbhash);
-            //sb.load(true, {"path": ["langs"], "objbrowser": "ObjBrowser"} ); //,"readme.md"
+            //sb.load(verbose, {"path": ["langs"], "objbrowser": "ObjBrowser"} ); //,"readme.md"
             let mb = new MutableBlock(mb2hash, null, false, null, false, null, null, null, verbose, null);
-            mb.load(true, true, true, false, {"path": ['_static'], "objbrowser": "ObjBrowser"} ); //,"readme.md"
+            mb.load(verbose, function(msg) { mb.async_path(['_static'], verbose, [ "objbrowser", "ObjBrowser"], null); }, null);  //,"readme.md"
         }
         function cryptotest() { //TODO-CRYPTO Still working on this
             // First test some of the lower level functionality - create key etc
@@ -60,11 +68,11 @@
             // Set mnemonic to value that generates seed "01234567890123456789012345678901"
             let mnemonic = "coral maze mimic half fat breeze thought champion couple muscle snack heavy gloom orchard tooth alert cram often ask hockey inform broken school cotton" // 32 byte
             // Test sequence extracted from test.py
-            kc = KeyChain.new(mnemonic, false, "test_keychain kc", verbose);
+            kc = KeyChain.async_new(mnemonic, false, "test_keychain kc", verbose, null, null);
 
             console.log("STARTING UNTESTED");
-            verbose = true;
-            mblockm = MutableBlock.new(kc, null, "test_keychain mblockm", true, qbf, true, verbose, null); //acl, contentacl, name, _allowunsafestore, content, signandstore, verbose, options
+            //verbose = true;
+            mblockm = MutableBlock.async_new(kc, null, "test_keychain mblockm", true, qbf, true, verbose, null, null); //acl, contentacl, name, _allowunsafestore, content, signandstore, verbose, options
             console.log("END TESTING");
             //mbmhash = mblockm._hash
             //kc.add(mblockm, verbose=self.verbose)   # Sign and store on KC's list

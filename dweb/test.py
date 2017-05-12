@@ -307,6 +307,7 @@ class Testing(unittest.TestCase):
         print "objbrowser.html", self.uploads["objbrowser.html"]["relread"]
         print "TEST.HTML at",self.uploads["test.html"]["read"]
         print "or OBJECTBROWSER.HTML at", self.uploads["objbrowser.html"]["read"]
+        print "libsodium", self.uploads["libsodium"]["relread"]+"/sodium.js"
         print "dweb.js",self.uploads["dweb.js"]["relread"]
         if ext: print "mbhash Tinymce", self.uploads["../tinymce"]["publichash"]
         if ext: print "mb2hash Sphinx docs", self.uploads["../docs/_build/html"]["publichash"]
