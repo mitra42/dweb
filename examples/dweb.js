@@ -470,7 +470,25 @@ class StructuredBlock extends SmartDict {
     file() { console.log("XXX Undefined function StructuredBlock.file"); }
     size() { console.log("XXX Undefined function StructuredBlock.size"); }
     path() { console.log("XXX Undefined function StructuredBlock.path"); }   // Done in onloaded, asynchronous recursion.
-    sign() { console.log("XXX Undefined function StructuredBlock.sign"); }
+    sign(commonlist, verbose, options) {    // Returns immediately REFACTOR-ASYNC rename so clear
+        /*
+        Add a signature to a StructuredBlock
+        Note if the SB has a _acl field it will be encrypted first, then the hash of the encrypted block used for signing.
+
+        :param CommonList commonlist:   List its going on - has a ACL with a private key
+        :return: self
+        */
+        console.log("XXX Undefined function StructuredBlock.sign");
+     /*   if (! this._hash) {
+            self.store(verbose, { "sign_onposted": commonlist}) ;  // Sets _hash which is needed for signatures #TODO-EFFICIENCY only store if not stored
+        }
+        return this; // For chaining
+    }
+    sign_onposted(unuseddata, unusedhash, unusedpath, verbose, commonlist) {  //TODO-REFACTOR-ONLOADED
+        this._signatures.append(Signature.sign(commonlist=commonlist, hash=self._hash, verbose=verbose))    XXX
+    */
+    }
+
     verify() { console.log("XXX Undefined function StructuredBlock.verify"); }
 
 
@@ -510,7 +528,19 @@ class Signature extends SmartDict {
         this.table = "sig"
     }
     //TODO need to be able to verify signatures
-    sign() { console.log("XXX Undefined function Signature.sign"); }
+     static sign(commonlist, hash, verbose) {
+        console.log("XXX@530 implement");
+        date = datetime.now();
+        console.log("XXX@532 implement");
+        signature = CryptoLib.signature(commonlist.keypair, date, hash)
+        console.log("XXX@532 implement - check if _publichash is function or field" );
+        if (!commonlist._publichash) {
+            commonlist.store(verbose);
+        }
+        console.log("XXX@534 may need to happen in background - caller needs to be async");
+        return new Signature(null, {"date": date, "signature": signature, "signedby": commonlist._publichash})
+    }
+
     verify() { console.log("XXX Undefined function Signature.verify"); }
 }
 
