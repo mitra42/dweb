@@ -653,7 +653,13 @@ class CommonList extends SmartDict {
             },
             error);
     }
-
+    async_loadandfetchlist(verbose, success, error) {
+        // Utility function to simplify nested functions
+        let self=this;
+        this.async_load(verbose,
+            function(msg) { self.async_fetchlist(verbose, success, error) },
+            error);
+    }
     blocks(fetchblocks, verbose) {
         let results = {};   // Dictionary of { SHA... : StructuredBlock(hash=SHA... _signatures:[Signature*] ] ) }
         for (let i in this._list) {
@@ -868,9 +874,7 @@ class KeyChain extends CommonList {
         kc.async_store(verbose, null, error);
         // Dont need to wait on store to load and fetchlist
         KeyChain.addkeychains(kc);
-        kc.async_load(verbose,
-            function(msg) { kc.async_fetchlist(verbose, success, error)},
-            error);    //Was fetching blocks, but now done by "keys"
+        kc.async_loadandfetchlist(verbose, success, error);  //Was fetching blocks, but now done by "keys"
         //if verbose: print "Created keychain for:", kc.keypair.private.mnemonic
         //if verbose and not mnemonic: print "Record these words if you want to access again"
         return kc
@@ -1102,9 +1106,8 @@ function async_dwebfile(table, hash, path, successmethod, error) {
         var mb = new MutableBlock(hash, null, false, null, false, null, null, null, verbose, null);
         // Call chain is mb.load > CL.fetchlist > THttp.rawlist > Thttp.load > MB.fetchlist.success > caller.success
         // for dwebfile:mb, we want to apply the success function to the file - which is in the content after fetchlist
-        mb.async_load(verbose,
-            function(msg) { mb.async_fetchlist(verbose, function(msg) { mb.async_path(path, verbose, successmethod, error);}, error); }, // Note success is applied once after list is fetched, content isn't loaded before that.
-            error);
+        mb.async_loadandfetchlist(verbose, function(msg) { mb.async_path(path, verbose, successmethod, error);}, error);
+        // Note success is applied once after list is fetched, content isn't loaded before that.
     } else if (table === "sb") {
         var sb = new StructuredBlock(hash, null, verbose);
         sb.async_load(verbose, function(msg) {sb.async_path(path, verbose, successmethod, error);}, error);
@@ -1136,14 +1139,10 @@ function async_dweblist(div, hash, verbose, success, successmethodeach, error) {
     //(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose)
     var mb = new MutableBlock(hash, null, false, null, false, null, null, null, verbose, null);
     // Call chain is mb.load > CL.fetchlist > THttp.rawlist > Thttp.load > MB.fetchlist.success
-    mb.async_load(true,
+    mb.async_loadandfetchlist(verbose,
         function(msg) {
-            mb.async_fetchlist(null,
-                               function(self) {
-                                    mb.async_elem(div, verbose, successmethodeach, error); // async_elem loads the block
-                                    if (success) {success(null);}    // Note success will fire async with list elements being loaded
-                               },
-                               error)
+            mb.async_elem(div, verbose, successmethodeach, error); // async_elem loads the block
+            if (success) {success(null);}    // Note success will fire async with list elements being loaded
         },
         error);
 }

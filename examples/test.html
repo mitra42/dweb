@@ -28,10 +28,8 @@
             console.log("MutableBlock=======");
             <!-- also works with /file/mb/.....=/langs/readme.md -->
             let mb = new MutableBlock(mbhash, null, false, null, false, null, null, null, verbose, null);
-            mb.async_load(true,   //TODO this should be a method of mb.
-                function(msg) {mb. async_fetchlist(verbose,
-                                    function(msg) { mb.async_path(["langs","readme.md"], verbose, ["async_elem", "myList.1", verbose, null, null], null); },
-                                    null); },
+            mb.async_loadandfetchlist(verbose,
+                function(msg) { mb.async_path(["langs","readme.md"], verbose, ["async_elem", "myList.1", verbose, null, null], null); },
                 null);
             <!-- Now test path using dwebfile -->
             async_dwebfile("sb", sbhash, "langs/readme.md", ["async_elem", "myList.2", verbose, null, null], null);
