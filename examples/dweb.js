@@ -11,8 +11,7 @@ const KEYPAIRKEYTYPESIGN = 1
 const KEYPAIRKEYTYPEENCRYPT = 2
 var KEYPAIRKEYTYPESIGNANDENCRYPT = 2    // Currently unsupported
 
-//TODO-ASYNC - sign and signandstore
-//TODO-ASYNC - simplify some nested functions with methods on classes such as MB e.g. loadandlist
+//TODO-ASYNC-SIGN - sign and signandstore
 //TODO-ASYNC - search on TODO-ASYNC
 //TODO-ASYNC - fix objbrowser's path
 // ==== OBJECT ORIENTED JAVASCRIPT ===============
@@ -35,16 +34,56 @@ function mergeTypedArraysUnsafe(a, b) { // Take care of inability to concatenate
 //TODO document from here down
 
 
-class TransportHttp {
+class Transport {
+    setup() { console.log("XXX Undefined function Transport.setup"); }
+    _lettertoclass() { console.log("XXX Undefined function Transport._lettertoclass"); }
+    info() { console.log("XXX Undefined function Transport.info"); }
+    async_rawfetch() { console.log("XXX Undefined function Transport.rawfetch"); }
+    async_fetch() { console.log("XXX Undefined function Transport.fetch"); }
+    async_rawlist() { console.log("XXX Undefined function Transport.rawlist"); }
+    async_list() { console.log("XXX Undefined function Transport.list"); }
+    async_rawreverse() { console.log("XXX Undefined function Transport.rawreverse"); }
+    async_reverse() { console.log("XXX Undefined function Transport.reverse"); }
+    async_rawstore() { console.log("XXX Undefined function Transport.rawstore"); }
+    async_store() { console.log("XXX Undefined function Transport.store"); }
+    async_rawadd(hash, date, signature, signedby, verbose) { console.log("XXX Undefined function Transport.rawadd"); }
 
-    constructor(ipandport, options) {
-        this.ipandport = ipandport;
-        this.options = options; // Dictionary of options, currently unused
-        this.baseurl = "http://" + ipandport[0] + ":" + ipandport[1] + "/";
+    async_add(hash, date, signature, signedby, obj, verbose, success, error) {
+        if (obj && !hash) hash = obj._hash;
+        return this.async_rawadd(hash, date, signature, signedby, verbose, success, error);
     }
 
-    static setup(ipandport, options) {
-        return new TransportHttp(ipandport, options);
+    static _add_value(hash, date, signature, signedby, verbose) {
+        let store = {"hash": hash, "date": date, "signature": signature, "signedby": signedby}
+        return CryptoLib.dumps(store);
+    }
+}
+class TransportHttpBase extends Transport {
+    constructor(ipandport, verbose, options) {
+        this.ipandport = ipandport;
+        this.baseurl = "http://" + ipandport[0] + ":" + ipandport[1] + "/";
+    }
+    async_load(self, command, hash, verbose, success, error) {
+        // self is the obj being loaded (yes this is intentional ! its not Javascript's "this")
+        // Locate and return a block, based on its multihash
+        // Call chain for list is mb.load > CL.fetchlist > THttp.rawlist > Thttp.load > CL|MB.fetchlist.success > callers.succes
+        if (verbose) { console.log("TransportHTTP async_load:",command, ":hash=", hash); }
+        let url = this.url(command, hash);
+        if (verbose) { console.log("TransportHTTP:async_load: url=",url); }
+        $.ajax({
+            type: "GET",
+            url: url,
+            success: function(data) {
+                if (verbose) { console.log("TransportHTTP:", command, hash, ": returning data len=", data.length); }
+                // Dont appear to need to parse JSON data, its decoded already
+                if (success) { success(data); }
+            },
+            error: function(xhr, status, error) {
+                console.log("TransportHTTP:", command, ": error", status, "error=",error);
+                alert("TODO Block failure status="+status+" "+command+" error="+error);
+                if (error) { error(xhr, status, error);}
+            },
+        });
     }
     async_post(self, command, hash, type, data, verbose, success, error) {
         // obj being loaded
@@ -72,55 +111,7 @@ class TransportHttp {
             },
         });
     }
-
-    async_update(self, hash, type, data, verbose, success, error) {
-        this.async_post(self, "update", hash, type, data, verbose, success, error);
-    }
-
-
-    async_load(self, command, hash, verbose, success, error) {
-        // self is the obj being loaded (yes this is intentional ! its not Javascript's "this")
-        // Locate and return a block, based on its multihash
-        // Call chain for list is mb.load > CL.fetchlist > THttp.rawlist > Thttp.load > CL|MB.fetchlist.success > callers.succes
-        if (verbose) { console.log("TransportHTTP async_load:",command, ":hash=", hash); }
-        let url = this.url(command, hash);
-        if (verbose) { console.log("TransportHTTP:async_load: url=",url); }
-        $.ajax({
-            type: "GET",
-            url: url,
-            success: function(data) {
-                if (verbose) { console.log("TransportHTTP:", command, hash, ": returning data len=", data.length); }
-                // Dont appear to need to parse JSON data, its decoded already
-                if (success) { success(data); }
-            },
-            error: function(xhr, status, error) {
-                console.log("TransportHTTP:", command, ": error", status, "error=",error);
-                alert("TODO Block failure status="+status+" "+command+" error="+error);
-                if (error) { error(xhr, status, error);}
-            },
-        });
-    }
-
-    async_rawfetch(self, hash, verbose, success, error) {    //TODO merge with transport.list
-        // Locate and return a block, based on its multihash
-        this.async_load(self, "rawfetch", hash, verbose, success, error);
-    }
-
-    async_rawlist(self, hash, verbose, success, error) {
-        // obj being loaded
-        // Locate and return a block, based on its multihash
-        // Call chain is mb.load > CL.fetchlist > THttp.rawlist > Thttp.load > CL|MB.fetchlist.success > callers.success
-        this.async_load(self, "rawlist", hash, verbose, success, error);
-    }
-
-    async_rawstore(self, data, verbose, success, error) {
-        //PY: res = self._sendGetPost(True, "rawstore", headers={"Content-Type": "application/octet-stream"}, urlargs=[], data=data, verbose=verbose)
-        this.async_post(self, "rawstore", null, null, data, verbose, success, error) // Returns immediately
-    }
-
-    rawreverse() { console.log("XXX Undefined function TransportHTTP.rawreverse"); }
-    rawadd() { console.log("XXX Undefined function TransportHTTP.rawadd"); }
-
+    info() { console.log("XXX Undefined function Transport.info"); }
 
     url(command, hash) {
         var url = this.baseurl + command;
@@ -128,6 +119,46 @@ class TransportHttp {
             url += "/" + hash;
         }
         return url;
+    }
+
+}
+class TransportHttp extends TransportHttpBase {
+
+    constructor(ipandport, verbose, options) {
+        super(ipandport, options);
+        this.options = options; // Dictionary of options, currently unused
+    }
+
+    static setup(ipandport, options) {
+        let verbose = false;    //TODO check if should be in args
+        return new TransportHttp(ipandport, verbose, options);
+    }
+    async_rawfetch(self, hash, verbose, success, error) {    //TODO merge with transport.list
+        // Locate and return a block, based on its multihash
+        this.async_load(self, "rawfetch", hash, verbose, success, error);
+    }
+    async_rawlist(self, hash, verbose, success, error) {
+        // obj being loaded
+        // Locate and return a block, based on its multihash
+        // Call chain is mb.load > CL.fetchlist > THttp.rawlist > Thttp.load > CL|MB.fetchlist.success > callers.success
+        this.async_load(self, "rawlist", hash, verbose, success, error);
+    }
+    rawreverse() { console.log("XXX Undefined function TransportHTTP.rawreverse"); }
+
+    async_rawstore(self, data, verbose, success, error) {
+        //PY: res = self._sendGetPost(True, "rawstore", headers={"Content-Type": "application/octet-stream"}, urlargs=[], data=data, verbose=verbose)
+        this.async_post(self, "rawstore", null, null, data, verbose, success, error) // Returns immediately
+    }
+
+    async_rawadd(self, hash, date, signature, signedby, verbose, success, error) {
+        if (verbose) console.log("rawadd", hash, date, signature, signedby);
+        let value = Transport._add_value( hash, date, signature, signedby, verbose)+ "\n"
+        //async_post(self, command, hash, type, data, verbose, success, error)
+        this.async_post(self, "rawadd", null, "application/json", value, verbose, success, error); // Returns immediately
+    }
+
+    async_update(self, hash, type, data, verbose, success, error) {
+        this.async_post(self, "update", hash, type, data, verbose, success, error);
     }
 }
 
@@ -149,9 +180,9 @@ class Transportable {
     }
 
     async_store(verbose, success, error) {    // Python has a "data" parameter to override this._data but probably not needed
-        if (verbose) { console.log("Transportable.store",this);}
+        if (verbose) console.log("Transportable.store", this);
         let data = this._getdata();
-        if (verbose) { console.log("Transportable.store data=",data);}
+        if (verbose) console.log("Transportable.store data=", data);
         this._hash = CryptoLib.Curlhash(data); //store the hash since the HTTP is async
         let self = this;
         transport.async_rawstore(this, data, verbose,
@@ -411,7 +442,21 @@ class StructuredBlock extends SmartDict {
         this._date = null;  // Updated in _earliestdate when loaded
         this.table = "sb";  // Note this is cls.table on python but need to separate from dictionary
     }
-    async_store(verbose) { console.log("XXX Undefined function StructuredBlock.store"); }
+    async_store(verbose, success, error) {
+        /*
+         Store content if not already stored (note it must have been stored prior to signing)
+         Store any signatures in the Transport layer
+         */
+        if (!this._hash) {
+            super.async_store(verbose, success, error);    //Sets self._hash doesnt store if hasnt changed
+        }
+        for (let i in this._signatures) {
+            s = this._signatures[i];
+            //PY makes copy of s, but this is because the json procedure damages the object which doesnt happen in Crypto.dumps in JS
+            transport.async_add(this._hash, s.date, s.signature, s.signedby, null, verbose, success, error);
+        }
+        return this; // For chaining
+    }
 
     __setattr__(name, value) {
         // Call chain is ...  or constructor > _setdata > _setproperties > __setattr__
@@ -485,29 +530,24 @@ class StructuredBlock extends SmartDict {
     }
     file() { console.log("XXX Undefined function StructuredBlock.file"); }
     size() { console.log("XXX Undefined function StructuredBlock.size"); }
-    sign(commonlist, verbose, options) {    // Returns immediately,  rename so clear  TODO-ASYNC
+
+    sign(commonlist, verbose) {
         /*
-        Add a signature to a StructuredBlock
-        Note if the SB has a _acl field it will be encrypted first, then the hash of the encrypted block used for signing.
-
-        :param CommonList commonlist:   List its going on - has a ACL with a private key
-        :return: self
-        */
-        console.log("XXX Undefined function StructuredBlock.sign",this._hash,this.name);
-     /*   if (! this._hash) {
-            self.store(verbose, { "sign_onposted": commonlist}) ;  // Sets _hash which is needed for signatures #TODO-EFFICIENCY only store if not stored
+         Add a signature to a StructuredBlock
+         Note if the SB has a _acl field it will be encrypted first, then the hash of the encrypted block used for signing.
+         :param CommonList commonlist:   List its going on - has a ACL with a private key
+         :return: self
+         */
+        if (!this._hash) {
+            this.async_store(verbose);  // Sets _hash which is needed for signatures    //TODO-ASYNC not going to work as makes sign async
         }
-        return this; // For chaining
+        this._signatures.push(Signature.sign(commonlist, this._hash, verbose));
+        return this  // For chaining
     }
-    sign_onposted(unuseddata, unusedhash, unusedpath, verbose, commonlist) {  //TODO-ASYNC
-        this._signatures.append(Signature.sign(commonlist=commonlist, hash=self._hash, verbose=verbose))    XXX
-    */
-    }
-
     verify() { console.log("XXX Undefined function StructuredBlock.verify"); }
 
 
-    earliestdate() {    // Set the _date field to the earliest date of any signature or null if not found
+    earliestdate(){    // Set the _date field to the earliest date of any signature or null if not found
         if (!this._signatures) {
             this._date = null;
         } else {
@@ -540,19 +580,15 @@ class Signature extends SmartDict {
         //TODO turn s.date into java date
         //if isinstance(s.date, basestring):
         //    s.date = dateutil.parser.parse(s.date)
-        this.table = "sig"
+        this.table = "sig";
     }
     //TODO need to be able to verify signatures
-     static sign(commonlist, hash, verbose) { //TODO-ASYNC
-        console.log("XXX@530 implement");
-        date = datetime.now();
-        console.log("XXX@532 implement");
-        signature = CryptoLib.signature(commonlist.keypair, date, hash)
-        console.log("XXX@532 implement - check if _publichash is function or field" );
-        if (!commonlist._publichash) {
-            commonlist.async_store(verbose, null, null);    //TODO-ASYNC
-        }
-        console.log("XXX@534 may need to happen in background - caller needs to be async");
+     static sign(commonlist, hash, verbose) {
+        date = datetime.now();  //TODO-DATE //TODO-ASYNC
+        signature = CryptoLib.signature(commonlist.keypair, date, hash);
+        console.assert(commonlist._publichash, "CL should have been stored before call to Signature.sign"); // If encounter this, make sure caller stores CL first
+        //Python does: if (!commonlist._publichash) commonlist.async_store(verbose, null, null)
+        // But this would require making this async.
         return new Signature(null, {"date": date, "signature": signature, "signedby": commonlist._publichash})
     }
 
@@ -567,7 +603,7 @@ class CommonList extends SmartDict {
         //TODO implmenent mnemonic, keypair, keygen
         //console.log("CL(", data, master, options,")");
         super(hash, data, verbose, options);
-        this._list = new Array();   // Array of signatures
+        this._list = [];   // Array of signatures
         if (keygen || mnemonic) {
             this.keypair = KeyPair.keygen(this.keytype(), mnemonic, null, verbose);
         } else {
@@ -669,7 +705,7 @@ class CommonList extends SmartDict {
             }
             results[s.hash]._signatures.push(s);
         }
-        let sbs = new Array();      // [ StructuredBlock* ]
+        let sbs = [];      // [ StructuredBlock* ]
         for (let k in results) {
             sbs.push(results[k]);      // Array of StructuredBlock
         }
@@ -696,25 +732,24 @@ class CommonList extends SmartDict {
     publicurl() { console.log("XXX Undefined function CommonList.publicurl"); }   // For access via web
     privateurl() { console.log("XXX Undefined function CommonList.privateurl"); }   // For access via web
 
-    async_signandstore(obj, verbose, success, error) {   //TODO-ASYNC-SIGN
+    async_signandstore(obj, verbose, success, error) {
         /*
         Sign and store a StructuredBlock on a list - via the SB's signatures - see add for doing independent of SB
 
         :param StructuredBlock obj:
         :param verbose:
+        :param options:
         :return:
         */
-        this.async_load(verbose, {"signandstore_onloaded": obj}, success, error); //Check its fetched but dont need to use list
-    }
-    signandstore_onloaded(unuseddata, unusedhash, unusedpath, verbose, obj) {   // After load
-        if (!this._master) {
-            //TODO-STORE - try exceptions
-            alert("ForbiddenException - Signing a new entry when not a master list");
-            //raise ForbiddenException(what="Signing a new entry when not a master list")
-        }
-        // The obj.store stores signatures as well (e.g. see StructuredBlock.store)
-        obj.sign(this, verbose).async_store(verbose, null, null);    // Returns immediately, store is asynch    //TODO-ASYNC-SIGN pass success & error
-        return this;
+        self = this;
+        this.async_load(verbose,
+            function(msg) {
+                console.assert(self._master, "ForbiddenException: Signing a new entry when not a master list");
+                // The obj.store stores signatures as well (e.g. see StructuredBlock.store)
+                obj.sign(self, verbose).async_store(verbose, success, error);
+            },
+            error);
+        return this; // For chaining
     }
     add() { console.log("XXX Undefined function CommonList.add"); }   // For storing data
 
@@ -788,7 +823,7 @@ class MutableBlock extends CommonList {
     }
 
     file() { console.log("XXX Undefined function MutableBlock.store"); }   // Retrieving data
-    signandstore(verbose, options) {    //TODO-ASYNC
+    async_signandstore(verbose, success, error) {
         /*
         Sign and Store a version, or entry in MutableBlock master
         Exceptions: SignedBlockEmptyException if neither hash nor structuredblock defined, ForbiddenException if !master
@@ -799,7 +834,7 @@ class MutableBlock extends CommonList {
             this._current._acl = this.contentacl;    //Make sure SB encrypted when stored
             this._current.dirty();   // Make sure stored again if stored unencrypted. - _hash will be used by signandstore
         }
-        return super.signandstore(this._current, verbose, options) // ERR SignedBlockEmptyException, ForbiddenException //TODO-ASYNC
+        return super.async_signandstore(this._current, verbose, success, error) // ERR SignedBlockEmptyException, ForbiddenException
     }
     async_path(patharr, verbose, successmethod, error) {
         if (verbose) { console.log("mb.async_path",patharr,successmethod); }
@@ -836,21 +871,23 @@ class MutableBlock extends CommonList {
         mblockm.async_store(verbose,
                function(msg) { //success
                     if (signandstore && content) {
-                        mblockm.signandstore(verbose, null, error); //Sign it - this publishes it
+                        mblockm.async_signandstore(verbose, null, error); //Sign it - this publishes it
                     }
                     if (verbose) { console.log("Created MutableBlock hash=", mblockm._hash); }
-                    if (success) { success(msg); }
+                    if (success) { success(msg); }  // So success here so done even when "if" above is false
                },
                error
             );
-        return mblockm  // Returns prior to signandstore with hash set
+        return mblockm  // Returns prior to async_signandstore with hash set
     }
 
 }
 
 class AccessControlList extends CommonList {
     // Obviously ! This class hasnt' been implemented, currently just placeholder for notes etc
-    constructor() {
+
+    constructor(hash, data, master, keypair, keygen, mnemonic, verbose, options) {
+        super(hash, data, master, keypair, keygen, mnemonic, verbose, options);
         this.table = "acl";
     }
     _async_storepublic(verbose, success, error) { // See KeyChain for example
@@ -932,7 +969,20 @@ class KeyChain extends CommonList {
 // ==== Crypto.py - Encapsulate all the Cryptography =========
 class CryptoLib {
     static Curlhash(data) { return "BLAKE2."+ sodium.crypto_generichash(32, data, null, 'urlsafebase64'); }
+    static signature(keypair, date, hash) {
+        console.log("XXX Undefined function CryptoLib.signature"); //TODO-ASYNC-SIGN
+        return "XYZZY TODO-ASYNC-SIGN undefined function signature";
+    }
+    static verify() { console.log("XXX Undefined function CryptoLib.verify"); }
+    static b64dec() { console.log("XXX Undefined function CryptoLib.b64dec"); }
+    static b64enc() { console.log("XXX Undefined function CryptoLib.b64enc"); }
+
     static dumps(obj) { return JSON.stringify(obj); }   // Uses toJSON methods on objects (equivalent of dumps methods on python)
+
+    static decryptdata() { console.log("XXX Undefined function CryptoLib.decryptdata"); }
+    static randomkey() { console.log("XXX Undefined function CryptoLib.randomkey"); }
+    static sym_encrypt() { console.log("XXX Undefined function CryptoLib.sym_encrypt"); }
+    static sym_decrypt() { console.log("XXX Undefined function CryptoLib.sym_decrypt"); }
 }
 
 class KeyPair extends SmartDict {
