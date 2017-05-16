@@ -156,7 +156,7 @@ class Transportable {
         let self = this;
         transport.async_rawstore(this, data, verbose,
             function(msg) {
-                if (msg != self._hash) {
+                if (msg !== self._hash) {
                     console.log("ERROR Hash returned ",msg,"doesnt match hash expected",self._hash);
                     if (error) { error(); }
                 } else {
