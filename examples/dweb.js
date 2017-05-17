@@ -4,12 +4,12 @@
 //var dwebserver = 'localhost';
 const dwebserver = '192.168.1.156';
 const dwebport = '4243';
-const Dweb = {} // Note const just means it cant be assigned to a new dict, but dict can be modified
+const Dweb = {}; // Note const just means it cant be assigned to a new dict, but dict can be modified
 Dweb.keychains = [];
 // Constants
-const KEYPAIRKEYTYPESIGN = 1
-const KEYPAIRKEYTYPEENCRYPT = 2
-var KEYPAIRKEYTYPESIGNANDENCRYPT = 2    // Currently unsupported
+const KEYPAIRKEYTYPESIGN = 1;
+const KEYPAIRKEYTYPEENCRYPT = 2;
+const KEYPAIRKEYTYPESIGNANDENCRYPT = 3;
 
 //TODO-ASYNC-SIGN - sign and signandstore
 //TODO-ASYNC - search on TODO-ASYNC
@@ -26,7 +26,7 @@ function SecurityWarning(msg, self) {
 
 function mergeTypedArraysUnsafe(a, b) { // Take care of inability to concatenate typed arrays
     //http://stackoverflow.com/questions/14071463/how-can-i-merge-typedarrays-in-javascript also has a safe version
-    var c = new a.constructor(a.length + b.length);
+    const c = new a.constructor(a.length + b.length);
     c.set(a);
     c.set(b, a.length);
     return c;
@@ -35,17 +35,23 @@ function mergeTypedArraysUnsafe(a, b) { // Take care of inability to concatenate
 
 
 class Transport {
+    //noinspection JSUnusedLocalSymbols
+    constructor(verbose, options) { }
     setup() { console.log("XXX Undefined function Transport.setup"); }
     _lettertoclass() { console.log("XXX Undefined function Transport._lettertoclass"); }
     info() { console.log("XXX Undefined function Transport.info"); }
     async_rawfetch() { console.log("XXX Undefined function Transport.rawfetch"); }
+    //noinspection JSUnusedGlobalSymbols
     async_fetch() { console.log("XXX Undefined function Transport.fetch"); }
     async_rawlist() { console.log("XXX Undefined function Transport.rawlist"); }
     async_list() { console.log("XXX Undefined function Transport.list"); }
+    //noinspection JSUnusedGlobalSymbols
     async_rawreverse() { console.log("XXX Undefined function Transport.rawreverse"); }
+    //noinspection JSUnusedGlobalSymbols
     async_reverse() { console.log("XXX Undefined function Transport.reverse"); }
     async_rawstore() { console.log("XXX Undefined function Transport.rawstore"); }
     async_store() { console.log("XXX Undefined function Transport.store"); }
+    //noinspection JSUnusedLocalSymbols
     async_rawadd(hash, date, signature, signedby, verbose) { console.log("XXX Undefined function Transport.rawadd"); }
 
     async_add(hash, date, signature, signedby, obj, verbose, success, error) {
@@ -54,17 +60,17 @@ class Transport {
     }
 
     static _add_value(hash, date, signature, signedby, verbose) {
-        let store = {"hash": hash, "date": date, "signature": signature, "signedby": signedby}
+        let store = {"hash": hash, "date": date, "signature": signature, "signedby": signedby};
         return CryptoLib.dumps(store);
     }
 }
 class TransportHttpBase extends Transport {
     constructor(ipandport, verbose, options) {
+        super(verbose, options);
         this.ipandport = ipandport;
         this.baseurl = "http://" + ipandport[0] + ":" + ipandport[1] + "/";
     }
-    async_load(self, command, hash, verbose, success, error) {
-        // self is the obj being loaded (yes this is intentional ! its not Javascript's "this")
+    async_load(command, hash, verbose, success, error) {
         // Locate and return a block, based on its multihash
         // Call chain for list is mb.load > CL.fetchlist > THttp.rawlist > Thttp.load > CL|MB.fetchlist.success > callers.succes
         if (verbose) { console.log("TransportHTTP async_load:",command, ":hash=", hash); }
@@ -85,8 +91,7 @@ class TransportHttpBase extends Transport {
             },
         });
     }
-    async_post(self, command, hash, type, data, verbose, success, error) {
-        // obj being loaded
+    async_post(command, hash, type, data, verbose, success, error) {
         // Locate and return a block, based on its multihash
         if (verbose) { console.log("TransportHTTP post:", command,":hash=", hash); }
         let url = this.url(command, hash);
@@ -114,7 +119,7 @@ class TransportHttpBase extends Transport {
     info() { console.log("XXX Undefined function Transport.info"); }
 
     url(command, hash) {
-        var url = this.baseurl + command;
+        let url = this.baseurl + command;
         if (hash) {
             url += "/" + hash;
         }
@@ -135,34 +140,34 @@ class TransportHttp extends TransportHttpBase {
     }
     async_rawfetch(self, hash, verbose, success, error) {    //TODO merge with transport.list
         // Locate and return a block, based on its multihash
-        this.async_load(self, "rawfetch", hash, verbose, success, error);
+        this.async_load("rawfetch", hash, verbose, success, error);
     }
     async_rawlist(self, hash, verbose, success, error) {
         // obj being loaded
         // Locate and return a block, based on its multihash
         // Call chain is mb.load > CL.fetchlist > THttp.rawlist > Thttp.load > CL|MB.fetchlist.success > callers.success
-        this.async_load(self, "rawlist", hash, verbose, success, error);
+        this.async_load("rawlist", hash, verbose, success, error);
     }
     rawreverse() { console.log("XXX Undefined function TransportHTTP.rawreverse"); }
 
     async_rawstore(self, data, verbose, success, error) {
         //PY: res = self._sendGetPost(True, "rawstore", headers={"Content-Type": "application/octet-stream"}, urlargs=[], data=data, verbose=verbose)
-        this.async_post(self, "rawstore", null, null, data, verbose, success, error) // Returns immediately
+        this.async_post("rawstore", null, null, data, verbose, success, error) // Returns immediately
     }
 
     async_rawadd(self, hash, date, signature, signedby, verbose, success, error) {
         if (verbose) console.log("rawadd", hash, date, signature, signedby);
-        let value = Transport._add_value( hash, date, signature, signedby, verbose)+ "\n"
+        let value = Transport._add_value( hash, date, signature, signedby, verbose)+ "\n";
         //async_post(self, command, hash, type, data, verbose, success, error)
-        this.async_post(self, "rawadd", null, "application/json", value, verbose, success, error); // Returns immediately
+        this.async_post("rawadd", null, "application/json", value, verbose, success, error); // Returns immediately
     }
 
     async_update(self, hash, type, data, verbose, success, error) {
-        this.async_post(self, "update", hash, type, data, verbose, success, error);
+        this.async_post("update", hash, type, data, verbose, success, error);
     }
 }
 
-var transport = TransportHttp.setup([dwebserver, dwebport], {});
+const transport = TransportHttp.setup([dwebserver, dwebport], {});
 
 // ######### Parallel development to CommonBlock.py ########
 
@@ -177,6 +182,9 @@ class Transportable {
 
     _setdata(value) {
         this._data = value;  // Default behavior, assumes opaque bytes, and not a dict - note subclassed in SmartDict
+    }
+    _getdata() {
+        return this._data;  // Default behavior - opaque bytes
     }
 
     async_store(verbose, success, error) {    // Python has a "data" parameter to override this._data but probably not needed
@@ -226,6 +234,8 @@ class Transportable {
 
     file() { console.log("XXX Undefined function Transportable.file"); }
     url() { console.log("XXX Undefined function Transportable.url"); }
+    content() { console.log("Intentionally undefined function Transportable.content - superclass should define"); }
+    async_updatelist() { console.log("Intentionally undefined function Transportable.async_updatelist - meaningless except on CL"); }
 
     // ==== UI method =====
 
@@ -257,13 +267,14 @@ class Transportable {
         }
     }
 
+    //noinspection JSUnusedGlobalSymbols
     tell(data, hash, verbose, options) {  //TODO change fingerprint, wont take some of these args
         // Can be included in a successfunction to callback
         // This might get refactored as understand how to use it - currently unused (comment here if that changes)
-        context = {"notifier": this, "data": data, "hash": hash}
-        notified = options[0];
-        method = options[1];
-        newoptions = options[2];
+        let context = {"notifier": this, "data": data, "hash": hash};
+        let notified = options[0];
+        let method = options[1];
+        let newoptions = options[2];
         notified[method](context, verbose, newoptions);
     }
 }
@@ -286,14 +297,15 @@ class SmartDict extends Transportable {
     }
     _setproperties(dict) { // Call chain is ... onloaded or constructor > _setdata > _setproperties > __setattr__
         if (dict) { // Ignore dict if null
-            for (var prop in dict) {
+            for (let prop in dict) {
+                //noinspection JSUnfilteredForInLoop
                 this.__setattr__(prop, dict[prop]);
             }
         }
     }
     preflight(dd) { // Called on outgoing dictionary of outgoing data prior to sending - note order of subclassing can be significant
         let res = {};
-        for (var i in dd) {
+        for (let i in dd) {
             if (i.indexOf('_') !== 0) { // Ignore any attributes starting _
                 if (dd[i] instanceof Transportable) {
                     res[i] = dd[i].async_store(false, null, null)._hash  // store(verbose, success, error) - will set hash, then store obj in background
@@ -307,14 +319,15 @@ class SmartDict extends Transportable {
     }
 
     _getdata() {
-        let dd = {}
-        for (var i in this) {
-            dd[i] = this[i];    // This *should* copy just the attributes, need to check dosnt copy functions (it might)
+        let dd = {};
+        for (let i in this) {
+            //noinspection JSUnfilteredForInLoop
+            dd[i] = this[i];    // This just copies the attributes not functions
         }
         let res = CryptoLib.dumps(this.preflight(dd));
         if (this._acl) { //Need to encrypt
-            let encdata = this._acl.encrypt(res, true)  // data, b64
-            let dic = { "encrypted": encdata, "acl": this._acl._publichash, "table": this.table}
+            let encdata = this._acl.encrypt(res, true);  // data, b64
+            let dic = { "encrypted": encdata, "acl": this._acl._publichash, "table": this.table};
             res = CryptoLib.dumps(dic);
         }
         return res
@@ -349,7 +362,7 @@ class SmartDict extends Transportable {
         //li.innerHTML = "<B>StructuredBlock:</B>" + hashpath;
         let t1 = document.createTextNode(this.constructor.name+": "+hashpath);
         let sp1 = document.createElement('span');
-        sp1.className = "classname" // Confusing!, sets the className of the span to "classname" as it holds a className
+        sp1.className = "classname"; // Confusing!, sets the className of the span to "classname" as it holds a className
         sp1.appendChild(t1);
         li.appendChild(sp1);
 
@@ -357,24 +370,30 @@ class SmartDict extends Transportable {
         let ul2 = document.createElement("ul");
         ul2.className="props";
         li.appendChild(ul2);
+        //noinspection JSUnfilteredForInLoop
         for (let prop in this) {
+            //noinspection JSUnfilteredForInLoop
             if (this[prop]) {
+                //noinspection JSUnfilteredForInLoop
                 let text = this[prop].toString();
                 if (text !== "" && prop !== "_hash") {    // Skip empty values; _hash (as shown above);
                     let li2 = document.createElement("li");
                     li2.className='prop';
                     ul2.appendChild(li2);
                     //li2.innerHTML = "Field1"+prop;
-                    let fieldname = document.createTextNode(prop)
+                    //noinspection JSUnfilteredForInLoop
+                    let fieldname = document.createTextNode(prop);
                     let spanname = document.createElement('span');
                     spanname.appendChild(fieldname);
                     spanname.className='propname';
                     //TODO - handle Links by nested list
                     li2.appendChild(spanname);
                     //if ((prop == "links") || (prop == "_list")) {  //StructuredBlock
+                    //noinspection JSUnfilteredForInLoop
                     if ( ["links", "_list", "_signatures", "_current"].includes(prop) ) { //<span>...</span><ul proplinks>**</ul>
+                        let spanval;
                         spanval = document.createElement('span');
-                        spanval.appendChild(document.createTextNode("..."))
+                        spanval.appendChild(document.createTextNode("..."));
                         li2.appendChild(spanval);
                         let ul3 = document.createElement("ul");
                         ul3.className = "proplinks";
@@ -384,28 +403,39 @@ class SmartDict extends Transportable {
 
                         li2.appendChild(ul3);
                         //TODO make this a loop
+                        //noinspection JSUnfilteredForInLoop
                         if (Array.isArray(this[prop])) {
+                            //noinspection JSUnfilteredForInLoop
                             for (let l1 in this[prop]) {
+                                //noinspection JSUnfilteredForInLoop,JSUnfilteredForInLoop,JSUnfilteredForInLoop,JSUnfilteredForInLoop
                                 this[prop][l1].objbrowser(hash, (path ? path + "/":"")+this[prop][l1].name, ul3, verbose);
                             }
                         } else {
+                            //noinspection JSUnfilteredForInLoop
                             if (this[prop]._hash) {
+                                //noinspection JSUnfilteredForInLoop,JSUnfilteredForInLoop
                                 this[prop].objbrowser(this[prop]._hash, null, ul3, verbose)
                             } else {
+                                //noinspection JSUnfilteredForInLoop
                                 this[prop].objbrowser(hash, path, ul3, verbose);
                             }
                         }
                     } else {    // Any other field
+                        let spanval;
                         if (prop === "hash") {
-                            var spanval = document.createElement('a');
+                            //noinspection ES6ConvertVarToLetConst
+                            spanval = document.createElement('a');
+                            //noinspection JSUnfilteredForInLoop
                             spanval.setAttribute('href','/file/b/'+this[prop]+"?contenttype="+this["Content-type"]);
                         } else {
                             // Group of fields where display then add behavior or something
-                            var spanval = document.createElement('span');
+                            //noinspection ES6ConvertVarToLetConst
+                            spanval = document.createElement('span');
                             if (prop === "_needsfetch") {
                                 li2.setAttribute('onclick','async_objbrowserfetch(this.parentNode.parentNode);');
                             }
                         }
+                        //noinspection JSUnfilteredForInLoop
                         spanval.appendChild(document.createTextNode(this[prop]));
                         spanval.className='propval';
                         li2.appendChild(spanval);
@@ -438,7 +468,7 @@ class Block extends Transportable {
 class StructuredBlock extends SmartDict {
     constructor(hash, data, verbose) {
         super(hash, data, verbose); // _hash is _hash of SB, not of data
-        this._signatures = new Array()
+        this._signatures = [];
         this._date = null;  // Updated in _earliestdate when loaded
         this.table = "sb";  // Note this is cls.table on python but need to separate from dictionary
     }
@@ -451,7 +481,7 @@ class StructuredBlock extends SmartDict {
             super.async_store(verbose, success, error);    //Sets self._hash doesnt store if hasnt changed
         }
         for (let i in this._signatures) {
-            s = this._signatures[i];
+            let s = this._signatures[i];
             //PY makes copy of s, but this is because the json procedure damages the object which doesnt happen in Crypto.dumps in JS
             transport.async_add(this._hash, s.date, s.signature, s.signedby, null, verbose, success, error);
         }
@@ -465,8 +495,7 @@ class StructuredBlock extends SmartDict {
         if (name === "links") {  // Assume its a SB TODO make dependent on which table
             let links = value;
             for (let len = links.length, i=0; i<len; i++) {
-                let sb = new StructuredBlock(null, links[i], verbose);
-                links[i] = sb;
+                links[i] = new StructuredBlock(null, links[i], verbose);
             }
             this[name] = links;
         } else {
@@ -499,7 +528,7 @@ class StructuredBlock extends SmartDict {
 
     dirty() {
         super.dirty();
-        this._signatures = Signatures([]);
+        this._signatures = [];
     }
 
     link(name) {    // Note python version allows call by number as well as name
@@ -514,12 +543,13 @@ class StructuredBlock extends SmartDict {
     }
 
     content(verbose) {
-        console.assert(!this._needsfetch, "Must load before call content")
+        console.assert(!this._needsfetch, "Must load before call content");
         if (this.data) { return this.data; }
         if (this.links) {
-            res = ""
-            for (i in this.links) {
-                l = this.links[i];
+            let res = "";
+            for (let i in this.links) {
+                //noinspection JSUnfilteredForInLoop
+                let l = this.links[i];
                 res = res + l.content(verbose)  //Each link is a SB
             }
             return res;
@@ -584,8 +614,8 @@ class Signature extends SmartDict {
     }
     //TODO need to be able to verify signatures
      static sign(commonlist, hash, verbose) {
-        date = datetime.now();  //TODO-DATE //TODO-ASYNC
-        signature = CryptoLib.signature(commonlist.keypair, date, hash);
+        let date = datetime.now();  //TODO-DATE //TODO-ASYNC
+        let signature = CryptoLib.signature(commonlist.keypair, date, hash);
         console.assert(commonlist._publichash, "CL should have been stored before call to Signature.sign"); // If encounter this, make sure caller stores CL first
         //Python does: if (!commonlist._publichash) commonlist.async_store(verbose, null, null)
         // But this would require making this async.
@@ -636,27 +666,27 @@ class CommonList extends SmartDict {
 
     preflight(dd) {
         if (dd.keypair) {
-            if (dd.master && !dd._acl && !this._allowunsafestore) {
+            if (dd._master && !dd._acl && !this._allowunsafestore) {
                 SecurityWarning("Probably shouldnt be storing private key", dd);
             }
-            dd.keypair = dd.master ? dd.keypair.privateexport() : dd.keypair.publicexport();
+            dd.keypair = dd._master ? dd.keypair.privateexport() : dd.keypair.publicexport();
         }
-        let publichash = dd._publichash // Save before preflight
-        dd = super.preflight(dd)  // Edits dd in place
-        if (dd.master) { // Only store on Master, on !Master will be None and override storing hash as _publichash
-            dd._publichash = publichash   // May be None, have to do this AFTER the super call as super filters out "_*"  #TODO-REFACTOR_PUBLICHASH
+        let publichash = dd._publichash; // Save before preflight
+        dd = super.preflight(dd);  // Edits dd in place
+        if (dd._master) { // Only store on Master, on !Master will be None and override storing hash as _publichash
+            dd._publichash = publichash;   // May be None, have to do this AFTER the super call as super filters out "_*"  #TODO-REFACTOR_PUBLICHASH
         }
-        return dd
+        return dd;
     }
 
-    fetch(fetchbody, fetchlist, fetchblocks, verbose, options) {
+    fetch() {
         console.log("XXX Undefined function CommonList.fetch replace carefully with load");
     }
 
     async_load(verbose, success, error) {   // Python can also fetch based on just having key
         if (this._needsfetch) { // Only load if need to
             if (verbose) { console.log("CommonList.load:",this._hash)}
-            this._needsfetch = false
+            this._needsfetch = false;
             // Need to fetch body and only then fetchlist since for a list the body might include the publickey whose hash is needed for the list
             let self = this;
             transport.async_rawfetch(this, this._hash, verbose,
@@ -678,10 +708,11 @@ class CommonList extends SmartDict {
             function(lines) {
                 //lines = JSON.parse(lines))   Should already by a list
                 console.log("CommonList:async_fetchlist.success", self._hash, lines.length);
-                self._list = []
+                self._list = [];
                 for (let i in lines) {
                     //TODO verify signature
                     //if CryptoLib.verify(s):
+                    //noinspection JSUnfilteredForInLoop
                     let s = new Signature(null, lines[i], verbose);        // Signature ::= {date, hash, privatekey etc }
                     self._list.push(s);
                 }
@@ -696,7 +727,7 @@ class CommonList extends SmartDict {
             function(msg) { self.async_fetchlist(verbose, success, error) },
             error);
     }
-    blocks(fetchblocks, verbose) {
+    blocks(verbose) {
         let results = {};   // Dictionary of { SHA... : StructuredBlock(hash=SHA... _signatures:[Signature*] ] ) }
         for (let i in this._list) {
             let s = this._list[i];
@@ -713,7 +744,7 @@ class CommonList extends SmartDict {
         sbs.sort(StructuredBlock.compare); // Could inline: sbs.sort(function(a, b) { ... }
         return sbs;
     }
-    _async_storepublic(verbose, success, error) {
+    _async_storepublic() { //verbose,success, error
         console.log("Intentionally XXX Undefined function CommonList._async_storepublic - should implement in subclasses");
     }
     async_store(verbose, success, error) {  // Based on python
@@ -741,7 +772,7 @@ class CommonList extends SmartDict {
         :param options:
         :return:
         */
-        self = this;
+        let self = this;
         this.async_load(verbose,
             function(msg) {
                 console.assert(self._master, "ForbiddenException: Signing a new entry when not a master list");
@@ -794,8 +825,9 @@ class MutableBlock extends CommonList {
         while (ul.hasChildNodes()) {
             ul.removeChild(ul.lastChild);
         }
-        let blocks = this.blocks(false, verbose);
+        let blocks = this.blocks(verbose);
         for (let ii in blocks) {     // Signed Blocks
+            //noinspection JSUnfilteredForInLoop
             let i = blocks[ii];
             let li = document.createElement("li");
             ul.appendChild(li);
@@ -938,7 +970,7 @@ class KeyChain extends CommonList {
     static addkeychains(keychains) {
         //Add keys I can view under to ACL
         //param keychains:   Array of keychains
-        if (typeof keychains === "Array") {
+        if (typeof keychains === "object") {    // Should be array not dict
             Dweb.keychains = Dweb.keychains + keychains;
         } else {
             Dweb.keychains.push(keychains);
@@ -997,7 +1029,7 @@ class KeyPair extends SmartDict {
         if (verbose) { console.log("Generating keypair"); }
         if (mnemonic) {
             //TODO Mnemonic libraries are either non-BIP39 or have node dependencies - need to rewrite one of them
-            if (mnemonic == "coral maze mimic half fat breeze thought champion couple muscle snack heavy gloom orchard tooth alert cram often ask hockey inform broken school cotton") { // 32 byte
+            if (mnemonic === "coral maze mimic half fat breeze thought champion couple muscle snack heavy gloom orchard tooth alert cram often ask hockey inform broken school cotton") { // 32 byte
                 seed = "01234567890123456789012345678901";
                 console.log("Faking mnemonic encoding for now")
             } else {
@@ -1040,7 +1072,7 @@ class KeyPair extends SmartDict {
         if (this._key_has_private(dd._key) && !dd._acl && !this._allowunsafestore) {
             SecurityWarning("Probably shouldnt be storing private key",dd);
         }
-        if (dd_key) { //Based on whether the CommonList is master, rather than if the key is (key could be master, and CL not)
+        if (dd.key) { //Based on whether the CommonList is master, rather than if the key is (key could be master, and CL not)
             dd.key = this._key_has_private(dd._key) ? this.privateexport : this.publicexport;
         }
         return super.preflight(dd)
@@ -1052,22 +1084,23 @@ class KeyPair extends SmartDict {
         // Call route is ... data.setter > ...> key.setter > _importkey
 
         //TODO - Note fingerprint different from Python - this stores the key, change the Python
-        if (typeof value === "Array") {
+        if (typeof value === "object") {    // Should be array, not dict
             for (let i in value) {
-                this._importkey(value);
+                //noinspection JSUnfilteredForInLoop
+                this._importkey(value[i]);
             }
         } else {
-            let arr = value.split(':',2)
+            let arr = value.split(':',2);
             let tag = arr[0];
             let hash = arr[0];
             let seed = sodium.from_urlsafebase64(hash);
             //See https://github.com/jedisct1/libsodium.js/issues/91 for issues
             if (!this._key) { this._key = {}}   // Only handles NACL style keys
-            if (tag == "NACL PUBLIC")           { console.log("XXX _importkey: Cant (yet) import Public key"+value);
-            } else if (tag == "NACL PRIVATE")   { console.log("XXX _importkey: Cant (yet) import Private key"+value);
-            } else if (tag == "NACL SIGNING")   { console.log("XXX _importkey: Cant (yet) import Signing key"+value);
-            } else if (tag == "NACL SEED")      { console.log("XXX _importkey: Cant (yet) import Seed key"+value);
-            } else if (tag == "NACL VERIFY")    {
+            if (tag === "NACL PUBLIC")           { console.log("XXX _importkey: Cant (yet) import Public key"+value);
+            } else if (tag === "NACL PRIVATE")   { console.log("XXX _importkey: Cant (yet) import Private key"+value);
+            } else if (tag === "NACL SIGNING")   { console.log("XXX _importkey: Cant (yet) import Signing key"+value);
+            } else if (tag === "NACL SEED")      { console.log("XXX _importkey: Cant (yet) import Seed key"+value);
+            } else if (tag === "NACL VERIFY")    {
                 this._key["sign"] = {"publicKey": sodium.from_urlsafebase64(hash)};
             } else                              { console.log("XXX _importkey: Cant (yet) import "+value); }
         }
@@ -1080,8 +1113,8 @@ class KeyPair extends SmartDict {
     }
 
     key() { console.log("XXX Undefined function KeyPair.key"); }
-    private() { console.log("XXX Undefined function KeyPair.private"); }
-    public() { console.log("XXX Undefined function KeyPair.public"); }
+    private() { console.log("XXX Undefined function KeyPair.private"); }    //TODO private is a reserved word in JS
+    public() { console.log("XXX Undefined function KeyPair.public"); }  //TODO public is a reserved word in JS
     mnemonic() { console.log("XXX Undefined function KeyPair.mnemonic"); }
     _exportkey() { console.log("XXX Undefined function KeyPair._exportkey"); }
     privateexport() { console.log("XXX Undefined function KeyPair.privateexport"); }
@@ -1121,9 +1154,10 @@ class KeyPair extends SmartDict {
     decrypt() { console.log("XXX Undefined function KeyPair.decrypt"); }
 }
 // ==== UI related functions, not dWeb specific =========
+//noinspection JSUnusedGlobalSymbols
 function togglevisnext(elem) {   // Hide the next sibling object and show the one after, or vica-versa,
-    el1 = elem.nextSibling;
-    el2 = el1.nextSibling;
+    let el1 = elem.nextSibling;
+    let el2 = el1.nextSibling;
     if (el1.style.display === "none") {
         el1.style.display = "";
         el2.style.display = "none";
@@ -1133,10 +1167,11 @@ function togglevisnext(elem) {   // Hide the next sibling object and show the on
     }
 }
 
+//noinspection JSUnusedGlobalSymbols
 function async_objbrowserfetch(el) {
     verbose = false;
-    source = el.source;
-    parent = el.parentNode;
+    let source = el.source;
+    let parent = el.parentNode;
     parent.removeChild(el); //Remove elem from parent
     source.async_load(true, function(msg) { source.objbrowser(source._hash, null, parent, false );}, null);
 }
@@ -1153,13 +1188,13 @@ function async_dwebfile(table, hash, path, successmethod, error) {
     if (verbose) { console.log("async_dwebfile",table,hash,path,successmethod);}
     if (table === "mb") {
         //(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose)
-        var mb = new MutableBlock(hash, null, false, null, false, null, null, null, verbose, null);
+        const mb = new MutableBlock(hash, null, false, null, false, null, null, null, verbose, null);
         // Call chain is mb.load > CL.fetchlist > THttp.rawlist > Thttp.load > MB.fetchlist.success > caller.success
         // for dwebfile:mb, we want to apply the success function to the file - which is in the content after fetchlist
         mb.async_loadandfetchlist(verbose, function(msg) { mb.async_path(path, verbose, successmethod, error);}, error);
         // Note success is applied once after list is fetched, content isn't loaded before that.
     } else if (table === "sb") {
-        var sb = new StructuredBlock(hash, null, verbose);
+        const sb = new StructuredBlock(hash, null, verbose);
         sb.async_load(verbose, function(msg) {sb.async_path(path, verbose, successmethod, error);}, error);
     } else {
         alert("dwebfile called with invalid table="+table);
@@ -1169,7 +1204,7 @@ function async_dwebfile(table, hash, path, successmethod, error) {
 function async_dwebupdate(hash, type, data, successmethod, error) {
     verbose = false;
     //(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose)
-    mbm = new MutableBlock(hash, null, true, null, false, null, null, null, verbose, null);
+    let mbm = new MutableBlock(hash, null, true, null, false, null, null, null, verbose, null);
     mbm.async_update( type, data, verbose,
         function(msg){
             if (successmethod) {
@@ -1187,7 +1222,7 @@ function async_dweblist(div, hash, verbose, success, successmethodeach, error) {
     //successeach, is run on each object in the list.
     verbose = false;
     //(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose)
-    var mb = new MutableBlock(hash, null, false, null, false, null, null, null, verbose, null);
+    const mb = new MutableBlock(hash, null, false, null, false, null, null, null, verbose, null);
     // Call chain is mb.load > CL.fetchlist > THttp.rawlist > Thttp.load > MB.fetchlist.success
     mb.async_loadandfetchlist(verbose,
         function(msg) {
