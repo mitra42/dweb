@@ -29,7 +29,7 @@ Storage Layer roadmap
 Integration Layer Roadmap
 =========================
 * [✔] Test.py a series of tests
-* [ ] HTTP gateway - respond to URLs at higher levels than just Transport
+* [✔] HTTP gateway - respond to URLs at higher levels than just Transport
 * [✔] JavascriptHTTP library - simple JS library to use HTTP transport (quickly enables app dev against gateway)
 * [~] Javascript library - providing full functionality against any active transport layers
 * [ ] Browser plugin -
@@ -48,11 +48,8 @@ This list is at a much finer lever of granularity than Roadmap above.
 * CRYPTO: Implement on JS
     * KeyChain.new
     * Test KeyChain.new on test page
-        * Test KeyPair.keygen
-            * Implement Mnemonic
-                * Fake it - may req updating some html to use new mnemonic
-            * preflight on different classes
     * Embed on index and test pages
+* CRYPTO Implement Mnemonic (Current status fake's it - may req updating some html to use new mnemonic)
 * PEER: Peer knowledge system
     * Test on html etc
     * Move peer into Javascript
