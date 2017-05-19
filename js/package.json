@@ -1,0 +1,15 @@
+{
+  "name": "dweb-js",
+  "version": "0.0.1",
+  "description": "Javascript library for Decentralized Web project",
+  "main": "sandbox.js",
+  "scripts": {
+    "bundle": "browserify ./dweb.js >bundled.js"
+  },
+  "keywords": [],
+  "license": "MIT",
+  "devDependencies": {
+    "browserify": "^14.0.0"
+  },
+  "dependencies": {}
+}
