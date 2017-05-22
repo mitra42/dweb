@@ -1,7 +1,29 @@
-const $ = require('jQuery');    // Only used for $.ajax, could probably clone that
+//const $ = require('jquery');    // Only used for $.ajax, could probably clone that
 const Transport = require('./Transport.js');
 
-class TransportHttpBase extends Transport {
+// See https://stackoverflow.com/questions/8638820/jquery-ajax-in-node-js/8916217#8916217
+// This is to simulate browser style Ajax from inside Node
+// Node has a http method, but would need wrapping
+/* Doesnt work - fails in jsdom
+var $ = require('jquery'),
+    XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
+
+$.support.cors = true;
+$.ajaxSettings.xhr = function() {
+    return new XMLHttpRequest();
+};
+*/
+/*
+// end of code from https://stackoverflow.com/questions/8638820/jquery-ajax-in-node-js/8916217#8916217
+var $ = require('djax'), XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
+$.ajaxSettings.xhr = function() {
+    return new XMLHttpRequest();
+};
+console.log($);
+*/
+var rq = require('request');
+
+class TransportHTTPBase extends Transport {
     constructor(ipandport, verbose, options) {
         super(verbose, options);
         this.ipandport = ipandport;
@@ -13,6 +35,7 @@ class TransportHttpBase extends Transport {
         if (verbose) { console.log("TransportHTTP async_load:",command, ":hash=", hash); }
         let url = this.url(command, hash);
         if (verbose) { console.log("TransportHTTP:async_load: url=",url); }
+        /*
         $.ajax({
             type: "GET",
             url: url,
@@ -27,6 +50,15 @@ class TransportHttpBase extends Transport {
                 if (error) { error(xhr, status, error);}
             },
         });
+        */
+        //See: https://github.com/request/request
+        rq(url, function(error, response, data) {
+            console.log('error:', error); // Print the error if one occurred
+            if (verbose) { console.log("TransportHTTP X:", command, hash, ": returning data len=", data.length); }
+            //TODO handle errors
+            if (success) { success(data);};
+        });
+
     }
     async_post(command, hash, type, data, verbose, success, error) {
         // Locate and return a block, based on its multihash
@@ -64,3 +96,4 @@ class TransportHttpBase extends Transport {
     }
 
 }
+exports = module.exports = TransportHTTPBase;

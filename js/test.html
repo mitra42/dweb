@@ -1,0 +1,96 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!--suppress HtmlUnknownTarget -->
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>DWEB Test page</title>
+    <!--suppress JSUnresolvedLibraryURL -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js" type="text/javascript"></script><!-- Jquery via Google -->
+    <!--<script src="/file/sb/SHA3256B64URL.BDCbn_l9rrlCdVkB9o6qozSP84HBCGors5dBLxdyro8=" type="text/javascript"></script><!-- jquery-3.1.1.js-->
+    <script src="/file/mb/BLAKE2.C0pfg39FLVAO9eCBrT76D5lHQp6XtN32vxmretoFxQE=" type="text/javascript"></script><Dweb.jsb.js -->
+    <script src="/file/sb/BLAKE2.o2MS3vLprUwCMK8PDcx27A1SdW4OX-V37beCKS_c4tw=/sodium.js" type="text/javascript"></script><!-- libsodium/sodium.js-->
+    <!--<script src="/file/sb/BLAKE2.ZxsegoRtOLB_KH5GEpOTpZE-WRVcxln8Kpv0SllhqLc=/index.js" type="text/javascript"></script><!-- bip39/index.js-->
+    <!--<script src="/file/sb/BLAKE2.1PW-n24xBzjT-VBp4EMEZAyCar0EafZiYuBey0Ldr4o=/mnemonic.js" type="text/javascript"></script><!-- mnemonic.js/mnemonic.js-->
+
+    <script type="text/javascript">
+        // This is my current testing script first of block
+    </script>
+    <script type="text/javascript">
+        // This is a script that previously worked
+        mbhash = "BLAKE2.dfMoOqTdXvqKhoZo7HPvD5raBXfgH7chXsN2PElizs8=";  // Hash reported out at tinymce.html
+        mb2hash = "BLAKE2.nBWNoMyOJdhm-wrx0URYo7Utw3jG8J3boEBUcXvATVU="; // Hash reported for docs/_build/html
+        sbhash="BLAKE2.spTuo7yuSJEQyYy3rUFV2G0SCDxhkZEHhQQttozxWtQ="; // This is teh hash field from any line of list/..mbhash..
+        function working() {
+            let verbose=false;
+            console.log("StructuredBlock=======");
+            let sb = new StructuredBlock(sbhash);
+            sb.async_load(true,
+                function(msg) { sb.async_path(["langs","readme.md"], verbose,  [ "async_elem", "myList.0", verbose, null, null ], null); },
+                null);
+            console.log("MutableBlock=======");
+            <!-- also works with /file/mb/.....=/langs/readme.md -->
+            let mb = new MutableBlock(mbhash, null, false, null, false, null, null, null, verbose, null);
+            mb.async_loadandfetchlist(verbose,
+                function(msg) { mb.async_path(["langs","readme.md"], verbose, ["async_elem", "myList.1", verbose, null, null], null); },
+                null);
+            <!-- Now test path using dwebfile -->
+            Dweb.async_dwebfile("sb", sbhash, "langs/readme.md", ["async_elem", "myList.2", verbose, null, null], null);
+            <!-- Now test path using dwebfile -->
+            Dweb.async_dwebfile("mb", mbhash, "langs/readme.md", ["async_elem", "myList.3", verbose, null, null], null);
+            console.log("XXX@31 end testing");
+        }
+        function browser() {
+            let verbose = true;
+            let sb = new StructuredBlock(sbhash);
+            //sb.load(verbose, {"path": ["langs"], "objbrowser": "ObjBrowser"} ); //,"readme.md"
+            let mb = new MutableBlock(mb2hash, null, false, null, false, null, null, null, verbose, null);
+            mb.load(verbose, function(msg) { mb.async_path(['_static'], verbose, [ "objbrowser", "ObjBrowser"], null); }, null);  //,"readme.md"
+        }
+        function cryptotest() { //TODO-CRYPTO Still working on this
+            // First test some of the lower level functionality - create key etc
+            let verbose = false; // Set to true below while testing
+            let qbf="The quick brown fox ran over the lazy duck";
+            let key = sodium.randombytes_buf(sodium.crypto_shorthash_KEYBYTES);
+            let shash_u64 = sodium.crypto_shorthash('test', key, 'urlsafebase64'); // urlsafebase64 is support added by mitra
+            key = null;
+            let hash_hex = sodium.crypto_generichash(32, qbf, key, 'hex'); // Try this with null as the key
+            let hash_64 = sodium.crypto_generichash(32, qbf, key, 'base64'); // Try this with null as the key
+            let hash_u64 = sodium.crypto_generichash(32, qbf, key, 'urlsafebase64'); // Try this with null as the key
+            if (verbose) { console.log("hash_hex = ",shash_u64, hash_hex, hash_64, hash_u64); }
+            if (hash_u64 !== "YOanaCqfg3UsKoqlNmVG7SFwLgDyB3aToEmLCH-vOzs=") { console.log("ERR Bad blake2 hash"); }
+            let signingkey = sodium.crypto_sign_keypair();
+            if (verbose) { console.log(signingkey); }
+            let seedstr = "01234567890123456789012345678901";
+            let seed = sodium.from_string(seedstr);
+            let boxkey = sodium.crypto_box_seed_keypair(seed);
+            //FAILS - No round trip yet: if (verbose) { console.log("XXX@57 to_string=",sodium.to_string(boxkey.privateKey)); }
+
+            // Set mnemonic to value that generates seed "01234567890123456789012345678901"
+            let mnemonic = "coral maze mimic half fat breeze thought champion couple muscle snack heavy gloom orchard tooth alert cram often ask hockey inform broken school cotton"; // 32 byte
+            // Test sequence extracted from test.py
+            let kc = KeyChain.async_new(mnemonic, false, "test_keychain kc", verbose, null, null);
+
+            console.log("STARTING UNTESTED");
+            //verbose = true;
+            let mblockm = MutableBlock.async_new(kc, null, "test_keychain mblockm", true, qbf, true, verbose, null, null); //acl, contentacl, name, _allowunsafestore, content, signandstore, verbose, options
+            console.log("END TESTING");
+            //mbmhash = mblockm._hash
+            //kc.add(mblockm, verbose=self.verbose)   # Sign and store on KC's list
+        }
+    </script>
+</head>
+<body>
+<h4>Each line of this list should be replaced by a line starting "This is where language"</h4>
+<ul>
+    <li id="myList.0">Failed to load sb via StructuredBlock</li>
+    <li id="myList.1">Failed to load mb via MutableBlock</li>
+    <li id="myList.2">Failed to load sb via dwebfile</li>
+    <li id="myList.3">Failed to load mb via dwebfile</li>
+</ul>
+<h4>Encryption testing</h4>
+
+<script type="text/javascript">
+    //working(); // Can comment this line out when debugging
+    //browser();
+    cryptotest();
+</script>

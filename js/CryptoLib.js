@@ -19,5 +19,5 @@ class CryptoLib {
     static sym_decrypt() { console.log("XXX Undefined function CryptoLib.sym_decrypt"); }
 }
 
-exports = module.exports = CryptoLib
+exports = module.exports = CryptoLib;
 

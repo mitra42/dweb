@@ -30,3 +30,4 @@ class Transport {
         return CryptoLib.dumps(store);
     }
 }
+exports = module.exports = Transport;

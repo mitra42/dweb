@@ -4,7 +4,7 @@
   "description": "Javascript library for Decentralized Web project",
   "main": "sandbox.js",
   "scripts": {
-    "bundle": "browserify ./dweb.js >bundled.js"
+    "bundle": "browserify ./test.js >bundled.js"
   },
   "keywords": [],
   "license": "MIT",

@@ -1,8 +1,8 @@
 // Javascript library for dweb
 // The crypto uses https://github.com/jedisct1/libsodium.js but https://github.com/paixaop/node-sodium may also be suitable if we move to node
 
-//var dwebserver = 'localhost';
-const dwebserver = '192.168.1.156';
+var dwebserver = 'localhost';
+//const dwebserver = '192.168.1.156';
 const dwebport = '4243';
 const Dweb = {}; // Note const just means it cant be assigned to a new dict, but dict can be modified
 Dweb.keychains = [];
