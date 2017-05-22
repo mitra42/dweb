@@ -82,7 +82,9 @@ class Transportable {
             }
             let data = this.content(verbose);
             if (typeof data === 'string') {
-                if (verbose) { console.log("elem:Storing data to element",el,encodeURI(data.substring(0,20))); }
+                if (verbose) {
+                    console.log("elem:Storing data to element", el, encodeURI(data.substring(0, 20)));
+                }
                 el.innerHTML = data;
                 if (successmethodeach) {
                     let methodname = successmethodeach.shift();
@@ -90,12 +92,15 @@ class Transportable {
                     this[methodname](...successmethodeach); // Spreads successmethod into args, like *args in python
                 }
             } else if (Array.isArray(data)) {
-                if (verbose) { console.log("elem:Storing list of len",data.length,"to element",el);}
+                if (verbose) {
+                    console.log("elem:Storing list of len", data.length, "to element", el);
+                }
                 this.async_updatelist(el, verbose, successmethodeach, error);  //Note cant do success on updatelist as multi-thread //TODO using updatelist not replacing
             } else {
-                console.log("ERROR: unknown type of data to elem",typeof data, data);
+                console.log("ERROR: unknown type of data to elem", typeof data, data);
             }
         }
+        if (verbose) console.log("EL set to", el.textContent);
     }
 
     //noinspection JSUnusedGlobalSymbols

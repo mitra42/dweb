@@ -1,4 +1,6 @@
 const sodium = require("libsodium-wrappers");
+//const sodium = require("/Users/mitra/git/mitra_libsodium.js/dist/modules/libsodium-wrappers.js");
+//Uncomment to debug, check urlsafe occurs: console.log("XXX@keypair:2",sodium)
 const SmartDict = require("./SmartDict");
 const Dweb = require("./Dweb");
 
@@ -133,7 +135,7 @@ class KeyPair extends SmartDict {
         const nonce = sodium.randombytes_buf(sodium.crypto_box_NONCEBYTES);
         const ciphertext = sodium.crypto_box_easy(data, nonce, this.naclpublic(), signer.keypair.naclprivate(), "uint8array"); //(message, nonce, publicKey, secretKey, outputFormat)
 
-        const combined = Dweb.mergeTypedArraysUnsafe(nonce, ciphertext);
+        const combined = Dweb.utils.mergeTypedArraysUnsafe(nonce, ciphertext);
         return b64 ? sodium.to_urlsafebase64(nonce) : sodium.to_string(combined);
     }
     decrypt() { console.log("XXX Undefined function KeyPair.decrypt"); }

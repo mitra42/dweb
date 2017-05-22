@@ -84,6 +84,7 @@ class CommonList extends SmartDict {
         let self = this;
         Dweb.transport.async_rawlist(this, this._hash, verbose,
             function(lines) {
+                //console.log("async_fetchlist:",lines[0]); // Should be a full line, not just "[" which suggests unparsed.
                 //lines = JSON.parse(lines))   Should already by a list
                 console.log("CommonList:async_fetchlist.success", self._hash, lines.length);
                 self._list = [];

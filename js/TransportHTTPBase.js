@@ -1,27 +1,9 @@
 //const $ = require('jquery');    // Only used for $.ajax, could probably clone that
 const Transport = require('./Transport.js');
 
-// See https://stackoverflow.com/questions/8638820/jquery-ajax-in-node-js/8916217#8916217
-// This is to simulate browser style Ajax from inside Node
-// Node has a http method, but would need wrapping
-/* Doesnt work - fails in jsdom
-var $ = require('jquery'),
-    XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
+var request = require('request');
 
-$.support.cors = true;
-$.ajaxSettings.xhr = function() {
-    return new XMLHttpRequest();
-};
-*/
-/*
-// end of code from https://stackoverflow.com/questions/8638820/jquery-ajax-in-node-js/8916217#8916217
-var $ = require('djax'), XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
-$.ajaxSettings.xhr = function() {
-    return new XMLHttpRequest();
-};
-console.log($);
-*/
-var rq = require('request');
+var isNode=new Function("try {return this===global;}catch(e){return false;}");
 
 class TransportHTTPBase extends Transport {
     constructor(ipandport, verbose, options) {
@@ -52,11 +34,20 @@ class TransportHTTPBase extends Transport {
         });
         */
         //See: https://github.com/request/request
-        rq(url, function(error, response, data) {
-            console.log('error:', error); // Print the error if one occurred
-            if (verbose) { console.log("TransportHTTP X:", command, hash, ": returning data len=", data.length); }
+        request(url, function(errorres, response, data) {
+            if (verbose) { console.log("TransportHTTP X:", command, hash, ": returning data len=", data && data.length ); }
             //TODO handle errors
-            if (success) { success(data);};
+            if (errorres) {
+                console.log("TransportHTTP:", command, ": error", status, "error=",error);
+                console.log('fullerror:', errorres); // Print the error if one occurred //TODO extract useful data to display
+                if (error) error(undefined, undefined, undefined);
+            } else {
+                if (response["headers"]['content-type'] === "text/json") {
+                    data = JSON.parse(data);
+                }
+                if (success) success(data);
+            }
+
         });
 
     }
@@ -69,6 +60,7 @@ class TransportHTTPBase extends Transport {
         }
         if (verbose) { console.log("TransportHTTP:post: url=",url); }
         if (verbose) { console.log("TransportHTTP:post: data=",data); }
+        /*
         $.ajax({
             type: "POST",
             url: url,
@@ -83,6 +75,23 @@ class TransportHTTPBase extends Transport {
                 alert("TODO post "+command+" failure status="+status+" error="+error);
                 if (error) { error(xhr, status, error);}
             },
+        });
+        */
+        //https://github.com/request/request
+        request.post({"url": url, "headers": {"Content-Type": "application/octet-stream"}, "body":data}, function(errorres, response, data) {
+            if (verbose) { console.log("TransportHTTP post:", command, hash, ": returning data len=", data && data.length ); }
+            //TODO handle errors
+            if (errorres) {
+                console.log("TransportHTTP:", command, ": error", errorres, "error=",error);
+                console.log('fullerror:', errorres); // Print the error if one occurred //TODO extract useful data to display
+                if (error) error(undefined, undefined, undefined);
+            } else {
+                if (response["headers"]['content-type'] === "text/json") {
+                    data = JSON.parse(data);
+                }
+                if (success) success(data);
+            }
+
         });
     }
     info() { console.log("XXX Undefined function Transport.info"); }
