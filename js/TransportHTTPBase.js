@@ -1,8 +1,8 @@
 const Transport = require('./Transport.js');
 
-var request = require('request');
+const request = require('request');
 
-var isNode=new Function("try {return this===global;}catch(e){return false;}");
+const isNode=new Function("try {return this===global;}catch(e){return false;}");
 
 class TransportHTTPBase extends Transport {
     constructor(ipandport, verbose, options) {

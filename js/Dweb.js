@@ -32,8 +32,8 @@ exports.utils.SecurityWarning = function(msg, self) {
 };
 
 exports.utils.ToBeImplementedException = function(...args) {
-    console.log(...args);
-    alert(msg);
+    console.assert(false, ...args);
+    //alert(msg);
 };
 
 // Utility functions

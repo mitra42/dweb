@@ -8,7 +8,7 @@ const sodium = require("libsodium-wrappers");
 
 const jsdom = require("jsdom");
 const { JSDOM } = jsdom;
-htmlfake = '<!DOCTYPE html><ul><li id="myList.0">Failed to load sb via StructuredBlock</li><li id="myList.1">Failed to load mb via MutableBlock</li><li id="myList.2">Failed to load sb via dwebfile</li><li id="myList.3">Failed to load mb via dwebfile</li></ul>'
+htmlfake = '<!DOCTYPE html><ul><li id="myList.0">Failed to load sb via StructuredBlock</li><li id="myList.1">Failed to load mb via MutableBlock</li><li id="myList.2">Failed to load sb via dwebfile</li><li id="myList.3">Failed to load mb via dwebfile</li></ul>';
 const dom = new JSDOM(htmlfake);
 //console.log("XXX@8",dom.window.document.getElementById("myList.0").textContent); // Before loading = "Failed to load sb via StructuredBlock"
 document = dom.window.document;   // Note in JS can't see "document" like can in python
@@ -63,14 +63,24 @@ function cryptotest() { //TODO-CRYPTO Still working on this
     // Set mnemonic to value that generates seed "01234567890123456789012345678901"
     let mnemonic = "coral maze mimic half fat breeze thought champion couple muscle snack heavy gloom orchard tooth alert cram often ask hockey inform broken school cotton"; // 32 byte
     // Test sequence extracted from test.py
+    if (verbose) { console.log("KEYCHAIN 0 - create"); }
     let kc = KeyChain.async_new(mnemonic, false, "test_keychain kc", verbose, null, null);
-
-    console.log("STARTING UNTESTED");
+    if (verbose) { console.log("KEYCHAIN 1 - add MB to KC"); }
     //verbose = true;
     let mblockm = MutableBlock.async_new(kc, null, "test_keychain mblockm", true, qbf, true, verbose, null, null); //acl, contentacl, name, _allowunsafestore, content, signandstore, verbose, options
     let mbmhash = mblockm._hash;
-    kc.async_add(mblockm, verbose, null, null)   //Sign and store on KC's list (returns immediately with Sig)
+    kc.async_add(mblockm, verbose, null, null);   //Sign and store on KC's list (returns immediately with Sig)
+    if (verbose) { console.log("KEYCHAIN 2 - add viewerkeypair to it"); }
+    let vkpname="test_keychain viewerkeypair";
+    /*
+    viewerkeypair = KeyPair(name=vkpname, key=self.keyfromfile("test_viewer1"+self.keytail, private=True, keytype=KeyPair.KEYTYPEENCRYPT))
+    viewerkeypair._acl = kc
+    viewerkeypair.store(verbose=self.verbose) # Defaults to store private=False
+    kc.add(viewerkeypair, verbose=self.verbose)
+    */
     console.log("END TESTING");
+
+
 }
 
 //previouslyworking();

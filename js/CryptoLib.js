@@ -1,4 +1,5 @@
 const sodium = require("libsodium-wrappers");
+const Dweb = require("./Dweb");
 
 // ==== Crypto.py - Encapsulate all the Cryptography =========
 class CryptoLib {
@@ -21,7 +22,7 @@ class CryptoLib {
         /*
         Pair of verify(), signs date and data using public key function.
 
-        :param keypair: Key that be used for signture
+        :param keypair: Key that be used for signature
         :param date: Date that signing (usually now)
         :return: signature that can be verified with verify
         COPIED FROM PYTHON 2017-05-23 excluding RSA and WordHashKey support
@@ -29,13 +30,12 @@ class CryptoLib {
         let signable = CryptoLib._signable(date, hash); // A string we can sign
         if (keypair._key.sign.privateKey) {
             //if (keypair._key instanceof nacl.signing.SigningKey):
-            let sig = sodium.crypto_sign(signable, keypair._key.sign.privateKey, "urlsafebase64")
-            //Can implement and uncomment next line if seeing problems veriying things that should verify ok - tests immediate verification
+            return sodium.crypto_sign(signable, keypair._key.sign.privateKey, "urlsafebase64");
+            //Can implement and uncomment next line if seeing problems verifying things that should verify ok - tests immediate verification
             //keypair._key.verify_key.verify(signable, nacl.encoding.URLSafeBase64Encoder.decode(sig))
-            return sig;
         } else {
             //console.log("XXX@CryptoLib.signature write test for this key", keypair._key)
-            ToBeImplementedException("signature for key =",keypair._key);
+            Dweb.utils.ToBeImplementedException("signature for key =",keypair._key);
         }
     }
     static verify() { console.assert(false, "XXX Undefined function CryptoLib.verify"); }
