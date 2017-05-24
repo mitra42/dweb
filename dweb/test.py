@@ -20,7 +20,8 @@ from TransportDist_Peer import TransportDistPeer, Peer, ServerPeer
 from CommonBlock import Transportable
 from Block import Block
 from StructuredBlock import StructuredBlock
-from MutableBlock import CommonList, MutableBlock, AccessControlList, KeyChain
+from CommonList import CommonList
+from MutableBlock import MutableBlock, AccessControlList, KeyChain
 from File import File, Dir
 from Dweb import Dweb
 from ServerHTTP import DwebHTTPRequestHandler

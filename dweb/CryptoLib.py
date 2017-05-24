@@ -164,7 +164,7 @@ class CryptoLib(object):
         :param hash: Unsigned to check against sig
         :return:
         """
-        from MutableBlock import CommonList
+        from CommonList import CommonList
         cl = CommonList(hash=sig.signedby).fetch(fetchlist=False)
         # Dont know what kind of list - e.g. MutableBlock or AccessControlList but dont care as only use keys
         keypair = cl.keypair    # Sideeffect of loading from dweb
