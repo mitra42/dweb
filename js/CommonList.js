@@ -8,7 +8,7 @@ const Dweb = require("./Dweb");
 class CommonList extends SmartDict {
     constructor(hash, data, master, keypair, keygen, mnemonic, verbose, options) {
         // data = json string, or dict
-        //TODO implmenent mnemonic, keypair, keygen
+        //TODO implenent mnemonic, keypair, keygen
         //console.log("CL(", data, master, options,")");
         super(hash, data, verbose, options);
         this._list = [];   // Array of signatures

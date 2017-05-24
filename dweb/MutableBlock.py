@@ -232,7 +232,7 @@ class AccessControlList(EncryptionList):
                     pass    # Ignore if cant decode maybe other keys will work
         raise AuthenticationException(message="ACL.decrypt: No valid keys found")
 
-class KeyChain(EncryptionList): //TODO move to own file
+class KeyChain(EncryptionList): #TODO move to own file
     """
     A class to hold a list of encrypted Private keys. Control of Privatekey of this gives access to all of the items pointed at.
 

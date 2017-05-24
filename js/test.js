@@ -1,7 +1,9 @@
 const Dweb = require('./Dweb.js');
+//TODO Move all these into Dweb.StructuredBlock etc
 const StructuredBlock = require('./StructuredBlock.js');
 const MutableBlock = require('./MutableBlock.js');
 const KeyChain = require('./KeyChain.js');
+const KeyPair = require('./KeyPair.js');
 const sodium = require("libsodium-wrappers");
 //const sodium = require("/Users/mitra/git/mitra_libsodium.js/dist/modules/libsodium-wrappers.js");
 //Uncomment to debug, check urlsafe occurs: console.log("XXX@keypair:2",sodium)
@@ -41,6 +43,7 @@ function previouslyworking() {        // This was previously working in examples
     console.log("END testing previouslyworking()");
 }
 
+
 function cryptotest() { //TODO-CRYPTO Still working on this
     // First test some of the lower level functionality - create key etc
     let verbose = false; // Set to true below while testing
@@ -72,12 +75,15 @@ function cryptotest() { //TODO-CRYPTO Still working on this
     kc.async_add(mblockm, verbose, null, null);   //Sign and store on KC's list (returns immediately with Sig)
     if (verbose) { console.log("KEYCHAIN 2 - add viewerkeypair to it"); }
     let vkpname="test_keychain viewerkeypair";
-    /*
-    viewerkeypair = KeyPair(name=vkpname, key=self.keyfromfile("test_viewer1"+self.keytail, private=True, keytype=KeyPair.KEYTYPEENCRYPT))
-    viewerkeypair._acl = kc
-    viewerkeypair.store(verbose=self.verbose) # Defaults to store private=False
-    kc.add(viewerkeypair, verbose=self.verbose)
-    */
+    //let keypair = KeyPair.keygen(Dweb.KEYPAIRKEYTYPEENCRYPT);    // TODO type getting moved to Dweb.KeyPair.KEYTYPE.ENCRYPT
+    //let keypairexport = true ? keypair.privateexport() : keypair.publicexport()
+    //console.log("keypairexport=",keypairexport);
+    let keypairexport = "NACL SEED:w71YvVCR7Kk_lrgU2J1aGL4JMMAHnoUtyeHbqkIi2Bk="; // So same result each time
+    //key = "NACL PRIVATE:c7dm7hjSK6VN-J8g3qhqpVgGCKeiUxCLh-4vezLrZEU=" // "test_viewer1_nacl.nacl"   private master
+    let viewerkeypair = new KeyPair(null, {"name": vkpname, "key": keypairexport}, verbose);
+    viewerkeypair._acl = kc;
+    viewerkeypair.async_store(verbose); // Defaults to store private=True (which we want)
+    kc.async_add(viewerkeypair, verbose, null, null);
     console.log("END TESTING");
 
 

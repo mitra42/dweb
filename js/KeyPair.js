@@ -22,18 +22,7 @@ class KeyPair extends SmartDict {
                 console.log("MNEMONIC STILL TO BE IMPLEMENTED");    //TODO-mnemonic
             }
         }
-        let key = {};
-        console.assert(sodium.crypto_box_SEEDBYTES === sodium.crypto_sign_SEEDBYTES, "KeyPair.keygen assuming seed lengths same");
-        key.seed = seed || sodium.randombytes_buf(sodium.crypto_box_SEEDBYTES);
-        if (keytype === Dweb.KEYPAIRKEYTYPESIGN || keytype === Dweb.KEYPAIRKEYTYPESIGNANDENCRYPT) {
-            key.sign = sodium.crypto_sign_seed_keypair(key.seed); // Object { publicKey: Uint8Array[32], privateKey: Uint8Array[64], keyType: "ed25519" }
-        }
-        if (keytype === Dweb.KEYPAIRKEYTYPEENCRYPT || keytype === Dweb.KEYPAIRKEYTYPESIGNANDENCRYPT) {
-            key.encrypt = sodium.crypto_box_seed_keypair(key.seed); // Object { publicKey: Uint8Array[32], privateKey: Uint8Array[64] } <<maybe other keyType
-            // note this doesnt have the keyType field
-            //console.log("XXX write this into KeyPair.js line 32", key.encrypt);
-        }
-        if (verbose) { console.log("key generated:",key); }
+        let key = KeyPair._keyfromseed(seed || sodium.randombytes_buf(sodium.crypto_box_SEEDBYTES), keytype, verbose);
         return new KeyPair(null, {"key": key}, verbose);
     }
     __setattr__(name, value) { // Superclass SmartDict to catch "setter"s
@@ -57,13 +46,30 @@ class KeyPair extends SmartDict {
         }
     }
     preflight(dd) {
-        if (this._key_has_private(dd._key) && !dd._acl && !this._allowunsafestore) {
+        if (KeyPair._key_has_private(dd._key) && !dd._acl && !this._allowunsafestore) {
             Dweb.SecurityWarning("Probably shouldnt be storing private key",dd);
         }
         if (dd.key) { //Based on whether the CommonList is master, rather than if the key is (key could be master, and CL not)
-            dd.key = this._key_has_private(dd._key) ? this.privateexport : this.publicexport;
+            dd.key = KeyPair._key_has_private(dd._key) ? this.privateexport : this.publicexport;
         }
         return super.preflight(dd)
+    }
+
+    static _keyfromseed(seed, keytype, verbose) {
+        let key = {};
+        //console.assert(sodium.crypto_box_SEEDBYTES === sodium.crypto_sign_SEEDBYTES, "KeyPair.keygen assuming seed lengths same");
+        console.assert(sodium.crypto_box_SEEDBYTES === seed.length, "Seed should be", sodium.crypto_box_SEEDBYTES, "but is", seed.length);
+        key.seed = seed;
+        if (keytype === Dweb.KEYPAIRKEYTYPESIGN || keytype === Dweb.KEYPAIRKEYTYPESIGNANDENCRYPT) {
+            key.sign = sodium.crypto_sign_seed_keypair(key.seed); // Object { publicKey: Uint8Array[32], privateKey: Uint8Array[64], keyType: "ed25519" }
+        }
+        if (keytype === Dweb.KEYPAIRKEYTYPEENCRYPT || keytype === Dweb.KEYPAIRKEYTYPESIGNANDENCRYPT) {
+            key.encrypt = sodium.crypto_box_seed_keypair(key.seed); // Object { publicKey: Uint8Array[32], privateKey: Uint8Array[64] } <<maybe other keyType
+            // note this doesnt have the keyType field
+            //console.log("XXX write this into KeyPair.js line 32", key.encrypt);
+        }
+        if (verbose) { console.log("key generated:",key); }
+        return key;
     }
 
 
@@ -80,17 +86,16 @@ class KeyPair extends SmartDict {
         } else {
             let arr = value.split(':',2);
             let tag = arr[0];
-            let hash = arr[0];
-            let seed = sodium.from_urlsafebase64(hash);
+            let hash = arr[1];
+            let hasharr = sodium.from_urlsafebase64(hash);
             //See https://github.com/jedisct1/libsodium.js/issues/91 for issues
             if (!this._key) { this._key = {}}   // Only handles NACL style keys
-            if (tag === "NACL PUBLIC")           { console.log("XXX _importkey: Cant (yet) import Public key"+value);
-            } else if (tag === "NACL PRIVATE")   { console.log("XXX _importkey: Cant (yet) import Private key"+value);
-            } else if (tag === "NACL SIGNING")   { console.log("XXX _importkey: Cant (yet) import Signing key"+value);
-            } else if (tag === "NACL SEED")      { console.log("XXX _importkey: Cant (yet) import Seed key"+value);
-            } else if (tag === "NACL VERIFY")    {
-                this._key["sign"] = {"publicKey": sodium.from_urlsafebase64(hash)};
-            } else                              { console.log("XXX _importkey: Cant (yet) import "+value); }
+            if (tag === "NACL PUBLIC")           { console.assert(false, "XXX _importkey: Cant (yet) import Public key"+value);
+            } else if (tag === "NACL PRIVATE")   { console.assert(false, "XXX _importkey: Cant (yet) import Private key"+value);
+            } else if (tag === "NACL SIGNING")   { console.assert(false, "XXX _importkey: Cant (yet) import Signing key"+value);
+            } else if (tag === "NACL SEED")      { this._key = KeyPair._keyfromseed(hasharr, Dweb.KEYPAIRKEYTYPESIGNANDENCRYPT);
+            } else if (tag === "NACL VERIFY")    { this._key["sign"] = {"publicKey": sodium.from_urlsafebase64(hasharr)};
+            } else                              { console.assert(false, "XXX _importkey: Cant (yet) import "+value); }
         }
     }
 
