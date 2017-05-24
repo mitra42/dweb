@@ -1,0 +1,15 @@
+{
+  "name": "dweb-examples",
+  "version": "0.0.1",
+  "description": "Examples for Decentralized Web project",
+  "main": "sandbox.js",
+  "scripts": {
+    "bundle": "browserify ./sandbox.js >~/temp/bundle.js"
+  },
+  "keywords": [],
+  "license": "MIT",
+  "devDependencies": {
+    "browserify": "^14.0.0"
+  },
+  "dependencies": {}
+}

@@ -4,11 +4,12 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>DWEB Object Browser</title>
+    <script type="text/javascript" src="/file/mb/BLAKE2.iYiNlcLOfxRU-coIq2foYgTN9V1J4DzPV2yTXqHUN2I="></script><!-- Dweb bundled via Dweb-->
     <!--suppress JSUnresolvedLibraryURL -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js" type="text/javascript"></script><!-- Jquery via Google -->
+    <!--<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js" type="text/javascript"></script><!-- Jquery via Google -->
     <!--<script src="/file/sb/BLAKE2.RXiIhCFXXknh1K54zIpF53Fi2wieHY6SluWML39taS4=" type="text/javascript"></script><!-- jquery-3.1.1.js-->
-    <script src="/file/sb/BLAKE2.o2MS3vLprUwCMK8PDcx27A1SdW4OX-V37beCKS_c4tw=/sodium.js" type="text/javascript"></script><!-- libsodium/sodium.js-->
-    <script src="/file/mb/BLAKE2.C0pfg39FLVAO9eCBrT76D5lHQp6XtN32vxmretoFxQE=" type="text/javascript"></script><!-- dweb.js -->
+    <!--<script src="/file/sb/BLAKE2.o2MS3vLprUwCMK8PDcx27A1SdW4OX-V37beCKS_c4tw=/sodium.js" type="text/javascript"></script><!-- libsodium/sodium.js-->
+    <!--<script src="/file/mb/BLAKE2.C0pfg39FLVAO9eCBrT76D5lHQp6XtN32vxmretoFxQE=" type="text/javascript"></script><!-- dweb.js -->
     <script  type="text/javascript">
         // This is an experimental object browser
         // Some examples to try - id's might move
@@ -17,9 +18,9 @@
         sbhash="BLAKE2.spTuo7yuSJEQyYy3rUFV2G0SCDxhkZEHhQQttozxWtQ="; // This is teh hash field from any line of list/..mbhash..
 
         function browser(hash) {
-            //let obj = new StructuredBlock(hash);
+            //let obj = new Dweb.StructuredBlock(hash);
             let verbose=true;
-            let obj = new MutableBlock(mb2hash);
+            let obj = new Dweb.MutableBlock(mb2hash);
             let path = []; // [ 'langs', 'readme.md' ]  // Direct to a file
             obj.async_load(verbose,
                 function(msg) { obj.async_fetchlist(verbose, function(msg) { obj.objbrowser(obj._hash, path, "ObjBrowser", verbose); }, null); },

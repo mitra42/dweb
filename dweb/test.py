@@ -257,7 +257,7 @@ class Testing(unittest.TestCase):
             #print filename + " editable:" + mbm.privateurl()    # Side effect of storing
             #print filename + ":" + mbm.publicurl(command="file", table="mb")
             url = mbm.publicurl(command="file", table="mb")
-            self.uploads[filename]  = { "publichash": mbm._publichash, "editable": mbm.privateurl(), "editablehash": mbm._hash, "read": url, "relread": url.split('/', 3)[3], "contenthash": mbm._current._hash}
+            self.uploads[filename]  = { "publichash": mbm._publichash, "editable": mbm.privateurl(), "editablehash": mbm._hash, "read": url, "relread": "/"+url.split('/', 3)[3], "contenthash": mbm._current._hash}
             #print self.uploads[filename]
         else:
             #print filename + ":" + f.url(command="file", table="sb")
@@ -277,8 +277,8 @@ class Testing(unittest.TestCase):
         #Dweb.settransport(transportclass=TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         b=Block(data=self.dog); b.store(); print self.dog,b.url()
         self.uploads = {}
-        self._storeas("dweb.js", "dweb_js", "application/javascript")
-        self._storeas("jquery-3.1.1.js", None, "application/javascript")
+        #self._storeas("dweb.js", "dweb_js", "application/javascript")
+        #self._storeas("jquery-3.1.1.js", None, "application/javascript")
         self._storeas("index.html", "index_html", "text/html")
         self._storeas("test.html", "test_html", "text/html")
         self._storeas("snippet.html", "snippet_html", "text/html")
@@ -286,15 +286,18 @@ class Testing(unittest.TestCase):
         self._storeas("WrenchIcon.png", None, "image/png")
         self._storeas("DWebArchitecture.png", "DwebArchitecture_png","image/png")
         self._storeas("objbrowser.html", "objbrowser_html", "text/html")
-        self._storeas("libsodium", None, None)
+        #self._storeas("libsodium", None, None)
+        self._storeas("../js/dweb_bundled.js","dweb_bundled_js", "application/javascript")
+
         if ext: # Not uploaded if doing fast cycle dev
             self._storeas("../tinymce", "tinymce", None)
             self._storeas("../docs/_build/html", "docs_build_html", None)
         #self._storeas("mnemonic.js", None, None)
         print "INDEX.HTML at",self.uploads["index.html"]["read"]
-        print "jquery-3.1.1.js",self.uploads["jquery-3.1.1.js"]["relread"]
-        print "libsodium", self.uploads["libsodium"]["relread"]+"/sodium.js"
-        print "dweb.js",self.uploads["dweb.js"]["relread"]
+        print "dweb_bundled.js", self.uploads["../js/dweb_bundled.js"]["relread"]
+        #print "jquery-3.1.1.js",self.uploads["jquery-3.1.1.js"]["relread"]
+        #print "libsodium", self.uploads["libsodium"]["relread"]+"/sodium.js"
+        #print "dweb.js",self.uploads["dweb.js"]["relread"]
         if ext: print "../tinymce/tinymce.min.js", self.uploads["../tinymce"]["relread"]+"/tinymce.min.js"
         print "snippet.html", self.uploads["snippet.html"]["editablehash"]
         print "cleverdog", b._hash
@@ -307,13 +310,13 @@ class Testing(unittest.TestCase):
         print "objbrowser.html", self.uploads["objbrowser.html"]["relread"]
         print "TEST.HTML at",self.uploads["test.html"]["read"]
         print "or OBJECTBROWSER.HTML at", self.uploads["objbrowser.html"]["read"]
-        print "libsodium", self.uploads["libsodium"]["relread"]+"/sodium.js"
-        print "dweb.js",self.uploads["dweb.js"]["relread"]
+        print "dweb_bundled.js", self.uploads["../js/dweb_bundled.js"]["relread"]
+        #print "libsodium", self.uploads["libsodium"]["relread"]+"/sodium.js"
+        #print "dweb.js",self.uploads["dweb.js"]["relread"]
         if ext: print "mbhash Tinymce", self.uploads["../tinymce"]["publichash"]
         if ext: print "mb2hash Sphinx docs", self.uploads["../docs/_build/html"]["publichash"]
         if ext: print "sbhash Tinymce cont", self.uploads["../tinymce"]["contenthash"]
         print "EXPERIMENTAL"
-        print "libsodium", self.uploads["libsodium"]["relread"]+"/sodium.js"
         #print "mnemonic.js", self.uploads["mnemonic.js"]["relread"]+"/mnemonic.js"
 
     def test_uploadandrelativepaths(self):
