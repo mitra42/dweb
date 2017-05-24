@@ -1,4 +1,3 @@
-//const $ = require('jquery');    // Only used for $.ajax, could probably clone that
 const Transport = require('./Transport.js');
 
 var request = require('request');

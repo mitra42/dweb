@@ -3,8 +3,10 @@
   "version": "0.0.1",
   "description": "Javascript library for Decentralized Web project",
   "main": "sandbox.js",
+  "browser": "browser.js",
   "scripts": {
-    "bundle": "browserify ./test.js >bundled.js"
+    "bundletest": "browserify ./test.js >test_bundled.js",
+    "bundle": "browserify ./browser.js >dweb_bundled.js"
   },
   "keywords": [],
   "license": "MIT",

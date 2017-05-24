@@ -257,7 +257,7 @@ class Testing(unittest.TestCase):
             #print filename + " editable:" + mbm.privateurl()    # Side effect of storing
             #print filename + ":" + mbm.publicurl(command="file", table="mb")
             url = mbm.publicurl(command="file", table="mb")
-            self.uploads[filename]  = { "publichash": mbm._publichash, "editable": mbm.privateurl(), "editablehash": mbm._hash, "read": url, "relread": url.split('/', 3)[3], "contenthash": mbm._current._hash}
+            self.uploads[filename]  = { "publichash": mbm._publichash, "editable": mbm.privateurl(), "editablehash": mbm._hash, "read": url, "relread": "/"+url.split('/', 3)[3], "contenthash": mbm._current._hash}
             #print self.uploads[filename]
         else:
             #print filename + ":" + f.url(command="file", table="sb")
@@ -287,6 +287,9 @@ class Testing(unittest.TestCase):
         self._storeas("DWebArchitecture.png", "DwebArchitecture_png","image/png")
         self._storeas("objbrowser.html", "objbrowser_html", "text/html")
         self._storeas("libsodium", None, None)
+        self._storeas("../js/dweb_bundled.js","dweb_bundled_js", "application/javascript")
+        self._storeas("../js/test.html", "js_test_html", "text/html")
+
         if ext: # Not uploaded if doing fast cycle dev
             self._storeas("../tinymce", "tinymce", None)
             self._storeas("../docs/_build/html", "docs_build_html", None)
@@ -314,6 +317,8 @@ class Testing(unittest.TestCase):
         if ext: print "sbhash Tinymce cont", self.uploads["../tinymce"]["contenthash"]
         print "EXPERIMENTAL"
         print "libsodium", self.uploads["libsodium"]["relread"]+"/sodium.js"
+        print "JS/TEST.HTML  at ",self.uploads["../js/test.html"]["read"]
+        print "dweb_bundled.js", self.uploads["../js/dweb_bundled.js"]["relread"]
         #print "mnemonic.js", self.uploads["mnemonic.js"]["relread"]+"/mnemonic.js"
 
     def test_uploadandrelativepaths(self):
