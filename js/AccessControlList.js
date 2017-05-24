@@ -10,7 +10,7 @@ class AccessControlList extends CommonList {
         this.table = "acl";
     }
     _async_storepublic(verbose, success, error) { // See KeyChain for example
-        console.log("XXX Undefined function AccessControlList._async_storepublic");
+        console.assert(false, "XXX Undefined function AccessControlList._async_storepublic");
         //mb = new MutableBlock(keypair=this.keypair, name=this.name)
     }
 

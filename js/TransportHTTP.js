@@ -21,7 +21,7 @@ class TransportHTTP extends TransportHTTPBase {
         // Call chain is mb.load > CL.fetchlist > THttp.rawlist > Thttp.load > CL|MB.fetchlist.success > callers.success
         this.async_load("rawlist", hash, verbose, success, error);
     }
-    rawreverse() { console.log("XXX Undefined function TransportHTTP.rawreverse"); }
+    rawreverse() { console.assert(false, "XXX Undefined function TransportHTTP.rawreverse"); }
 
     async_rawstore(self, data, verbose, success, error) {
         //PY: res = self._sendGetPost(True, "rawstore", headers={"Content-Type": "application/octet-stream"}, urlargs=[], data=data, verbose=verbose)

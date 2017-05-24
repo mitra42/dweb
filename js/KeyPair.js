@@ -41,9 +41,9 @@ class KeyPair extends SmartDict {
         if (name === "key") {
             this.key_setter(value);
         } else if (name === "private") {
-            console.log("XXX Undefined function KeyPair.private.setter");
+            console.assert(false, "XXX Undefined function KeyPair.private.setter");
         } else if (name === "public") {
-            console.log("XXX Undefined function KeyPair.public.setter");
+            console.assert(false, "XXX Undefined function KeyPair.public.setter");
         } else {
             super.__setattr__(name, value);
         }
@@ -100,11 +100,11 @@ class KeyPair extends SmartDict {
         if (this._key.sign) { res.push("NACL VERIFY:"+sodium.to_urlsafebase64(this._key.sign.publicKey)) }
     }
 
-    key() { console.log("XXX Undefined function KeyPair.key"); }
-    private() { console.log("XXX Undefined function KeyPair.private"); }    //TODO private is a reserved word in JS
-    public() { console.log("XXX Undefined function KeyPair.public"); }  //TODO public is a reserved word in JS
-    mnemonic() { console.log("XXX Undefined function KeyPair.mnemonic"); }
-    _exportkey() { console.log("XXX Undefined function KeyPair._exportkey"); }
+    key() { console.assert(false, "XXX Undefined function KeyPair.key"); }
+    private() { console.assert(false, "XXX Undefined function KeyPair.private"); }    //TODO private is a reserved word in JS
+    public() { console.assert(false, "XXX Undefined function KeyPair.public"); }  //TODO public is a reserved word in JS
+    mnemonic() { console.assert(false, "XXX Undefined function KeyPair.mnemonic"); }
+    _exportkey() { console.assert(false, "XXX Undefined function KeyPair._exportkey"); }
 
     privateexport() {
         // Matches functionality in Python BUT uses NACL SEED when know seed
@@ -126,7 +126,7 @@ class KeyPair extends SmartDict {
 
     naclprivate() { return this._key.encrypt.privateKey; }
     naclpublic() { return this._key.encrypt.publicKey; }
-    naclpublicexport() { console.log("XXX Undefined function KeyPair.naclpublicexport"); }
+    naclpublicexport() { console.assert(false, "XXX Undefined function KeyPair.naclpublicexport"); }
 
     has_private() {
         return KeyPair._key_has_private(this._key)
@@ -150,7 +150,7 @@ class KeyPair extends SmartDict {
         const combined = Dweb.utils.mergeTypedArraysUnsafe(nonce, ciphertext);
         return b64 ? sodium.to_urlsafebase64(nonce) : sodium.to_string(combined);
     }
-    decrypt() { console.log("XXX Undefined function KeyPair.decrypt"); }
+    decrypt() { console.assert(false, "XXX Undefined function KeyPair.decrypt"); }
 }
 
 exports = module.exports = KeyPair;

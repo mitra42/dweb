@@ -7,7 +7,7 @@ class Block extends Transportable {
         super(hash, data);
         this.table = 'b';
     }
-    size() { console.log("XXX Undefined function Block.size"); }
+    size() { console.assert(false, "XXX Undefined function Block.size"); }
     content() {
         console.assert(!this._needsfetch,"Block should be loaded first as content is sync");
         return this._data;

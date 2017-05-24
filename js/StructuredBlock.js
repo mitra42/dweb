@@ -97,8 +97,8 @@ class StructuredBlock extends SmartDict {
         //Not supporting hash/fetch as async
         //(this.hash and Dweb.transport.rawfetch(hash = self.hash, verbose=verbose, **options)) or # Hash must point to raw data, not another SB
     }
-    file() { console.log("XXX Undefined function StructuredBlock.file"); }
-    size() { console.log("XXX Undefined function StructuredBlock.size"); }
+    file() { console.assert(false, "XXX Undefined function StructuredBlock.file"); }
+    size() { console.assert(false, "XXX Undefined function StructuredBlock.size"); }
 
     sign(commonlist, verbose) {
         /*
@@ -112,7 +112,7 @@ class StructuredBlock extends SmartDict {
         this._signatures.push(Signature.sign(commonlist, this._hash, verbose));
         return this;  // For chaining
     }
-    verify() { console.log("XXX Undefined function StructuredBlock.verify"); }
+    verify() { console.assert(false, "XXX Undefined function StructuredBlock.verify"); }
 
 
     earliestdate(){    // Set the _date field to the earliest date of any signature or null if not found

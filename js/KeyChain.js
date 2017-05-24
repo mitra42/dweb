@@ -23,8 +23,8 @@ class KeyChain extends CommonList {
     }
     keytype() { return Dweb.KEYPAIRKEYTYPESIGNANDENCRYPT; }  // Inform keygen
 
-    keys() { console.log("XXX Undefined property KeyChain.keys"); }
     add() { console.log("XXX Undefined function KeyChain.add"); }
+    keys() { console.assert(false, "XXX Undefined property KeyChain.keys"); }
 
     encrypt(res, b64) {
         /*
@@ -37,8 +37,8 @@ class KeyChain extends CommonList {
         // Should be a signing key
         return this.keypair.encrypt(res, b64, this);  // data, b64, signer
     }
-    decrypt() { console.log("XXX Undefined function KeyChain.decrypt"); }
-    accesskey() { console.log("XXX Undefined property KeyChain.accesskey"); }
+    decrypt() { console.assert(false, "XXX Undefined function KeyChain.decrypt"); }
+    accesskey() { console.assert(false, "XXX Undefined property KeyChain.accesskey"); }
 
     static addkeychains(keychains) {
         //Add keys I can view under to ACL
@@ -50,7 +50,7 @@ class KeyChain extends CommonList {
         }
     }
 
-    find() { console.log("XXX Undefined function KeyChain.find"); }
+    find() { console.assert(false, "XXX Undefined function KeyChain.find"); }
 
     _async_storepublic(verbose, success, error) { // Based on python CL._storepublic, but done in each class in JS
         console.log("KeyChain._async_storepublic");
@@ -65,9 +65,9 @@ class KeyChain extends CommonList {
     }
     fetch() { console.log("Intentionally XXX Undefined function MutableBlock.fetch use load/success"); }   // Split into load/onload
 
-    _findbyclass() { console.log("XXX Undefined function KeyChain._findbyclass"); }
-    myviewerkeys() { console.log("XXX Undefined function KeyChain.myviewerkeys"); }
-    mymutableBlocks() { console.log("XXX Undefined function KeyChain.mymutableBlocks"); }
+    _findbyclass() { console.assert(false, "XXX Undefined function KeyChain._findbyclass"); }
+    myviewerkeys() { console.assert(false, "XXX Undefined function KeyChain.myviewerkeys"); }
+    mymutableBlocks() { console.assert(false, "XXX Undefined function KeyChain.mymutableBlocks"); }
 
 }
 

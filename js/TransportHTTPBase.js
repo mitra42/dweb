@@ -93,7 +93,7 @@ class TransportHTTPBase extends Transport {
 
         });
     }
-    info() { console.log("XXX Undefined function Transport.info"); }
+    info() { console.assert(false, "XXX Undefined function Transport.info"); }
 
     url(command, hash) {
         let url = this.baseurl + command;

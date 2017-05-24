@@ -58,7 +58,7 @@ class CommonList extends SmartDict {
     }
 
     fetch() {
-        console.log("XXX Undefined function CommonList.fetch replace carefully with load");
+        console.assert(false, "XXX Undefined function CommonList.fetch replace carefully with load");
     }
 
     async_load(verbose, success, error) {   // Python can also fetch based on just having key
@@ -139,8 +139,8 @@ class CommonList extends SmartDict {
         return this;
     }
 
-    publicurl() { console.log("XXX Undefined function CommonList.publicurl"); }   // For access via web
-    privateurl() { console.log("XXX Undefined function CommonList.privateurl"); }   // For access via web
+    publicurl() { console.assert(false, "XXX Undefined function CommonList.publicurl"); }   // For access via web
+    privateurl() { console.assert(false, "XXX Undefined function CommonList.privateurl"); }   // For access via web
 
     async_signandstore(obj, verbose, success, error) {
         /*

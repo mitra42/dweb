@@ -38,16 +38,16 @@ class CryptoLib {
             ToBeImplementedException("signature for key =",keypair._key);
         }
     }
-    static verify() { console.log("XXX Undefined function CryptoLib.verify"); }
-    static b64dec() { console.log("XXX Undefined function CryptoLib.b64dec"); }
-    static b64enc() { console.log("XXX Undefined function CryptoLib.b64enc"); }
+    static verify() { console.assert(false, "XXX Undefined function CryptoLib.verify"); }
+    static b64dec() { console.assert(false, "XXX Undefined function CryptoLib.b64dec"); }
+    static b64enc() { console.assert(false, "XXX Undefined function CryptoLib.b64enc"); }
 
     static dumps(obj) { return JSON.stringify(obj); }   // Uses toJSON methods on objects (equivalent of dumps methods on python)
 
-    static decryptdata() { console.log("XXX Undefined function CryptoLib.decryptdata"); }
-    static randomkey() { console.log("XXX Undefined function CryptoLib.randomkey"); }
-    static sym_encrypt() { console.log("XXX Undefined function CryptoLib.sym_encrypt"); }
-    static sym_decrypt() { console.log("XXX Undefined function CryptoLib.sym_decrypt"); }
+    static decryptdata() { console.assert(false, "XXX Undefined function CryptoLib.decryptdata"); }
+    static randomkey() { console.assert(false, "XXX Undefined function CryptoLib.randomkey"); }
+    static sym_encrypt() { console.assert(false, "XXX Undefined function CryptoLib.sym_encrypt"); }
+    static sym_decrypt() { console.assert(false, "XXX Undefined function CryptoLib.sym_decrypt"); }
 }
 
 exports = module.exports = CryptoLib;

@@ -21,6 +21,6 @@ class Signature extends SmartDict {
         return new Signature(null, {"date": date, "signature": signature, "signedby": commonlist._publichash})
     }
 
-    verify() { console.log("XXX Undefined function Signature.verify"); }
+    verify() { console.assert(false, "XXX Undefined function Signature.verify"); }
 }
 exports = module.exports = Signature;

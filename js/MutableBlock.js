@@ -78,10 +78,10 @@ class MutableBlock extends CommonList {
     }
 
     contentacl() {
-        console.log("XXX Undefined function MutableBlock.contentacl setter and getter");
+        console.assert(false, "XXX Undefined function MutableBlock.contentacl setter and getter");
     }   // Encryption of content
     fetch() {
-        console.log("XXX Undefined function MutableBlock.fetch");
+        console.assert(false, "XXX Undefined function MutableBlock.fetch");
     }   // Split into load/onload
     content() {
         console.assert(!this._needsfetch, "Content is asynchronous, must load first");
@@ -89,7 +89,7 @@ class MutableBlock extends CommonList {
     }
 
     file() {
-        console.log("XXX Undefined function MutableBlock.store");
+        console.assert(false, "XXX Undefined function MutableBlock.store");
     }   // Retrieving data
     async_signandstore(verbose, success, error) {
         /*

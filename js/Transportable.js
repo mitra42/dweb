@@ -42,7 +42,7 @@ class Transportable {
         this._hash = null;
     }
 
-    fetch() { console.log("XXX Undefined function Transportable.fetch"); } // Replaced by load
+    fetch() { console.assert(false, "XXX Undefined function Transportable.fetch"); } // Replaced by load
 
     async_load(verbose, success, error) {
         // Asynchronous equiv of fetch
@@ -63,8 +63,8 @@ class Transportable {
         // Block fetched in the background - dont assume loaded here - see success for actions post-load
     }
 
-    file() { console.log("XXX Undefined function Transportable.file"); }
-    url() { console.log("XXX Undefined function Transportable.url"); }
+    file() { console.assert(false, "XXX Undefined function Transportable.file"); }
+    url() { console.assert(false, "XXX Undefined function Transportable.url"); }
     content() { console.log("Intentionally undefined function Transportable.content - superclass should define"); }
     async_updatelist() { console.log("Intentionally undefined function Transportable.async_updatelist - meaningless except on CL"); }
 
