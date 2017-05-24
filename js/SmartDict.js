@@ -123,7 +123,7 @@ class SmartDict extends Transportable {
                         let ul3 = document.createElement("ul");
                         ul3.className = "proplinks";
                         ul3.style.display = 'none';
-                        spanname.setAttribute('onclick',"Dweb.togglevisnext(this);");
+                        spanname.setAttribute('onclick',"Dweb.utils.togglevisnext(this);");
                         //spanname.setAttribute('onclick',"console.log(this.nextSibling)");
 
                         li2.appendChild(ul3);
@@ -157,7 +157,7 @@ class SmartDict extends Transportable {
                             //noinspection ES6ConvertVarToLetConst
                             spanval = document.createElement('span');
                             if (prop === "_needsfetch") {
-                                li2.setAttribute('onclick','Dweb.async_objbrowserfetch(this.parentNode.parentNode);');
+                                li2.setAttribute('onclick','Dweb.utils.async_objbrowserfetch(this.parentNode.parentNode);');
                             }
                         }
                         //noinspection JSUnfilteredForInLoop

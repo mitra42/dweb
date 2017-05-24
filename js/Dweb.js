@@ -1,6 +1,8 @@
-const TransportHTTP = require('./TransportHTTP.js');
-const MutableBlock = require('./MutableBlock.js');
-const StructuredBlock = require('./StructuredBlock.js');
+exports.TransportHTTP = require('./TransportHTTP');
+exports.StructuredBlock = require('./StructuredBlock');
+exports.MutableBlock = require('./MutableBlock');
+exports.KeyChain = require('./KeyChain');
+
 
 // Javascript library for dweb
 // The crypto uses https://github.com/jedisct1/libsodium.js but https://github.com/paixaop/node-sodium may also be suitable if we move to node
@@ -75,13 +77,13 @@ exports.async_dwebfile = function(table, hash, path, successmethod, error) {
     if (verbose) { console.log("Dweb.async_dwebfile",table,hash,path,successmethod);}
     if (table === "mb") {
         //(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose)
-        const mb = new MutableBlock(hash, null, false, null, false, null, null, null, verbose, null);
+        const mb = new exports.MutableBlock(hash, null, false, null, false, null, null, null, verbose, null);
         // Call chain is mb.load > CL.fetchlist > THttp.rawlist > Thttp.load > MB.fetchlist.success > caller.success
         // for dwebfile:mb, we want to apply the success function to the file - which is in the content after fetchlist
         mb.async_loadandfetchlist(verbose, function(msg) { mb.async_path(path, verbose, successmethod, error);}, error);
         // Note success is applied once after list is fetched, content isn't loaded before that.
     } else if (table === "sb") {
-        const sb = new StructuredBlock(hash, null, verbose);
+        const sb = new exports.StructuredBlock(hash, null, verbose);
         sb.async_load(verbose, function(msg) {sb.async_path(path, verbose, successmethod, error);}, error);
     } else {
         alert("dwebfile called with invalid table="+table);
@@ -91,7 +93,7 @@ exports.async_dwebfile = function(table, hash, path, successmethod, error) {
 exports.async_dwebupdate = function(hash, type, data, successmethod, error) {
     let verbose = false;
     //(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose)
-    let mbm = new MutableBlock(hash, null, true, null, false, null, null, null, verbose, null);
+    let mbm = new exports.MutableBlock(hash, null, true, null, false, null, null, null, verbose, null);
     mbm.async_update( type, data, verbose,
         function(msg){
             if (successmethod) {
@@ -109,7 +111,7 @@ exports.async_dweblist = function(div, hash, verbose, success, successmethodeach
     //successeach, is run on each object in the list.
     verbose = false;
     //(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose)
-    const mb = new MutableBlock(hash, null, false, null, false, null, null, null, verbose, null);
+    const mb = new exports.MutableBlock(hash, null, false, null, false, null, null, null, verbose, null);
     // Call chain is mb.load > CL.fetchlist > THttp.rawlist > Thttp.load > MB.fetchlist.success
     mb.async_loadandfetchlist(verbose,
         function(msg) {
@@ -123,6 +125,6 @@ exports.async_dweblist = function(div, hash, verbose, success, successmethodeach
 //TODO BROWSER----
 //-data collapsable
 
-exports.transport = TransportHTTP.setup([exports.dwebserver, exports.dwebport], {});
+exports.transport = exports.TransportHTTP.setup([exports.dwebserver, exports.dwebport], {});
 
 

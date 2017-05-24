@@ -3,50 +3,51 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>DWEB Demonstration page</title>
+    <script type="text/javascript" src="/file/mb/BLAKE2.iYiNlcLOfxRU-coIq2foYgTN9V1J4DzPV2yTXqHUN2I="></script><!-- Dweb bundled via Dweb-->
     <!--<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script><!-- Jquery via Google -->
-    <script src="/file/sb/BLAKE2.RXiIhCFXXknh1K54zIpF53Fi2wieHY6SluWML39taS4="></script><!-- jquery-3.1.1.js-->
-    <script src="/file/sb/BLAKE2.o2MS3vLprUwCMK8PDcx27A1SdW4OX-V37beCKS_c4tw=/sodium.js"></script><!-- libsodium/sodium.js-->
-    <script src="/file/mb/BLAKE2.C0pfg39FLVAO9eCBrT76D5lHQp6XtN32vxmretoFxQE="></script><!-- dweb.js -->
+    <!--<script type="text/javascript" src="/file/sb/BLAKE2.RXiIhCFXXknh1K54zIpF53Fi2wieHY6SluWML39taS4="></script><!-- jquery-3.1.1.js-->
+    <!--<script type="text/javascript" src="/file/sb/BLAKE2.o2MS3vLprUwCMK8PDcx27A1SdW4OX-V37beCKS_c4tw=/sodium.js"></script><!-- libsodium/sodium.js-->
+    <!--<script type="text/javascript" src="/file/mb/BLAKE2.C0pfg39FLVAO9eCBrT76D5lHQp6XtN32vxmretoFxQE="></script><!-- dweb.js -->
     <!--<script src='/dweb/tinymce/tinymce.min.js'></script><!-- TinyMCE -->
     <!--<script src='//cloud.tinymce.com/stable/tinymce.min.js'></script><!-- TinyMCE -->
     <script src='/file/mb/BLAKE2.dfMoOqTdXvqKhoZo7HPvD5raBXfgH7chXsN2PElizs8=/tinymce.min.js'></script><!-- TinyMCE via relative URL-->
     <script>//TODO this needs lots of work to be pretty editor
-        // url for content is: SHA3256B64URL.CLw7p4lteb5oxmXBkuk9lDqM89hRic7RPITGWg1AAD4=
-        //dwebfile("mytextarea", "mb", "SHA3256B64URL.CLw7p4lteb5oxmXBkuk9lDqM89hRic7RPITGWg1AAD4="); // Via Public URL
+    // url for content is: SHA3256B64URL.CLw7p4lteb5oxmXBkuk9lDqM89hRic7RPITGWg1AAD4=
+    //dwebfile("mytextarea", "mb", "SHA3256B64URL.CLw7p4lteb5oxmXBkuk9lDqM89hRic7RPITGWg1AAD4="); // Via Public URL
 
-        tinymce.init({
-            selector: '#mytextarea',
-            plugins: "save",
-            toolbar: "save",
-            save_onsavecallback: function() {
-                content = tinyMCE.get('mytextarea').getContent();
-                hash = "BLAKE2.pOutfp-rmccZaPlx3vF-PjC0o8Mpz38khpwjn79WEJI="; // The privatehash of the "snippet.html editable - should be a parameter
-                // alert(content);
-                type = "text%2Fhtml";
-                async_dwebupdate(hash, type, content, ["async_elem","myDiv", verbose, null, null], null); // Post to Dweb and store URL at myDiv
-            }
-        });
+    tinymce.init({
+        selector: '#mytextarea',
+        plugins: "save",
+        toolbar: "save",
+        save_onsavecallback: function() {
+            content = tinyMCE.get('mytextarea').getContent();
+            hash = "BLAKE2.pOutfp-rmccZaPlx3vF-PjC0o8Mpz38khpwjn79WEJI="; // The privatehash of the "snippet.html editable - should be a parameter
+            // alert(content);
+            type = "text%2Fhtml";
+            Dweb.async_dwebupdate(hash, type, content, ["async_elem","myDiv", verbose, null, null], null); // Post to Dweb and store URL at myDiv
+        }
+    });
 
-        // Demonstrate how to load various features using either simplified functions (dwebfile, dweblist) or objects (Block, StructuredBlock)
-        // This is my current testing script first of block
-        let verbose = false;
-        /*
-        console.log("Block=======");
-        let b = new Block("BLAKE2.A5JOSLvsRV-dFuFqNlpQeBP5OojtIuJmUq9mmoAJXkA=", null); // Block with "clever dog..."
-        b.async_load(verbose,
-            function(msg) { b.async_elem("myList.0", verbose, null, null); },
-            null);     // Load block in background
-        // Now of SB
-        console.log("StructuredBlock=======");
-        let sb = new StructuredBlock("BLAKE2.PE5U0ifHdgpnr4768BRLD8htZIJ14XOc_sgvmUs7JPI="); // This comes from looking in list/..hash of MB below..
-        sb.async_load(verbose,
-                function(msg) { sb.async_elem("myList.1", verbose, null, null); },
-                null); // hash of SB containing data containing "I'm a paragraph" // Load SB in background
-        */
-        verbose=true;
-        // Now MB
-        console.log("MutableBlock=======");
-        async_dweblist("List2", "BLAKE2.x6uk_DPyAiV6_QpaNScTP4PgowErzNM7sjeCaVWUDdo=", true, null, null, null);  // Hash of snippet.html
+    // Demonstrate how to load various features using either simplified functions (dwebfile, dweblist) or objects (Block, StructuredBlock)
+    // This is my current testing script first of block
+    let verbose = false;
+    /*
+     console.log("Block=======");
+     let b = new Block("BLAKE2.A5JOSLvsRV-dFuFqNlpQeBP5OojtIuJmUq9mmoAJXkA=", null); // Block with "clever dog..."
+     b.async_load(verbose,
+     function(msg) { b.async_elem("myList.0", verbose, null, null); },
+     null);     // Load block in background
+     // Now of SB
+     console.log("StructuredBlock=======");
+     let sb = new StructuredBlock("BLAKE2.PE5U0ifHdgpnr4768BRLD8htZIJ14XOc_sgvmUs7JPI="); // This comes from looking in list/..hash of MB below..
+     sb.async_load(verbose,
+     function(msg) { sb.async_elem("myList.1", verbose, null, null); },
+     null); // hash of SB containing data containing "I'm a paragraph" // Load SB in background
+     */
+    verbose=true;
+    // Now MB
+    console.log("MutableBlock=======");
+    Dweb.async_dweblist("List2", "BLAKE2.x6uk_DPyAiV6_QpaNScTP4PgowErzNM7sjeCaVWUDdo=", true, null, null, null);  // Hash of snippet.html
     </script>
 
 </head>
