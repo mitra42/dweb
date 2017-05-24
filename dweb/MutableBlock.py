@@ -271,6 +271,7 @@ class KeyChain(EncryptionList): //TODO move to own file
         """
         Add a obj (usually a MutableBlock or a ViewerKey) to the keychain. by signing with this key.  
         Item should usually itself be encrypted (by setting its _acl field)
+        COPIED TO JS 2017-05-24
         
         :param obj: 
         :param verbose: 

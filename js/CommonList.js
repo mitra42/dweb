@@ -161,7 +161,22 @@ class CommonList extends SmartDict {
             error);
         return this; // For chaining
     }
-    add() { console.log("XXX Undefined function CommonList.add"); }   // For storing data
+    async_add(obj, verbose, success, error) {
+        /*
+         Add a object, typically MBM or ACL (i.e. not a StructuredBlock) to a List,
+         COPIED TO JS 2017-05-24
 
+         :param obj: Object to store on this list or a hash string.
+         :param success: funciton(msg) to run on success
+         :param error: funciton(msg) to run on success
+         :returns Signature: Returns the Signature immediately for adding to local copy
+         */
+        let hash = (typeof obj === "string") ? obj : obj._hash;
+        console.assert(hash, "Empty string or undefined or null would be an error");
+        let sig = Signature.sign(this, hash, verbose);
+        Dweb.transport.async_add(hash, sig.date, sig.signature, sig.signedby, verbose, success, error);
+        return sig;  // Return sig immediately, typically for adding to local copy of list
+        // Caller will probably want to add obj to list , not done here since MB handles differently from KC etc
+    }
 }
 exports = module.exports = CommonList;

@@ -68,9 +68,9 @@ function cryptotest() { //TODO-CRYPTO Still working on this
     console.log("STARTING UNTESTED");
     //verbose = true;
     let mblockm = MutableBlock.async_new(kc, null, "test_keychain mblockm", true, qbf, true, verbose, null, null); //acl, contentacl, name, _allowunsafestore, content, signandstore, verbose, options
+    let mbmhash = mblockm._hash;
+    kc.async_add(mblockm, verbose, null, null)   //Sign and store on KC's list (returns immediately with Sig)
     console.log("END TESTING");
-    //mbmhash = mblockm._hash
-    //kc.add(mblockm, verbose=self.verbose)   # Sign and store on KC's list
 }
 
 //previouslyworking();

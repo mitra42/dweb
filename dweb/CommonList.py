@@ -164,6 +164,7 @@ class CommonList(SmartDict):  # TODO move class to own file
     def add(self, obj, verbose=False, **options):
         """
         Add a object, typically MBM or ACL (i.e. not a StructuredBlock) to a List,
+        COPIED TO JS 2017-05-24
 
         :param obj: Object to store on this list or a hash string.
         """

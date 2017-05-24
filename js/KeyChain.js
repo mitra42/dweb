@@ -23,8 +23,19 @@ class KeyChain extends CommonList {
     }
     keytype() { return Dweb.KEYPAIRKEYTYPESIGNANDENCRYPT; }  // Inform keygen
 
-    add() { console.log("XXX Undefined function KeyChain.add"); }
     keys() { console.assert(false, "XXX Undefined property KeyChain.keys"); }
+
+    async_add(obj, verbose, success, error) {
+        /*
+         Add a obj (usually a MutableBlock or a ViewerKey) to the keychain. by signing with this key.
+         Item should usually itself be encrypted (by setting its _acl field)
+         COPIED FROM PYTHON 2017-05-24
+
+         :param obj: JSON structure to add to KeyChain 0 should be a Signature
+         */
+        let sig = super.async_add(obj, verbose, success, error);  // Adds to dWeb list
+        this._list.push(sig);
+    }
 
     encrypt(res, b64) {
         /*

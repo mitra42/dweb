@@ -64,9 +64,9 @@
             console.log("STARTING UNTESTED");
             //verbose = true;
             let mblockm = Dweb.MutableBlock.async_new(kc, null, "test_keychain mblockm", true, qbf, true, verbose, null, null); //acl, contentacl, name, _allowunsafestore, content, signandstore, verbose, options
+            mbmhash = mblockm._hash
+            kc.add(mblockm, verbose=self.verbose)   // Sign and store on KC's list
             console.log("END TESTING");
-            //mbmhash = mblockm._hash
-            //kc.add(mblockm, verbose=self.verbose)   # Sign and store on KC's list
         }
     </script>
 </head>

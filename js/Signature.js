@@ -15,9 +15,7 @@ class Signature extends SmartDict {
     static sign(commonlist, hash, verbose) {
         let date = new Date(Date.now());  //TODO-DATE //TODO-ASYNC
         let signature = CryptoLib.signature(commonlist.keypair, date, hash);
-        console.assert(commonlist._publichash, "CL should have been stored before call to Signature.sign"); // If encounter this, make sure caller stores CL first
-        //Python does: if (!commonlist._publichash) commonlist.async_store(verbose, null, null)
-        // But this would require making this async.
+        if (!commonlist._publichash) commonlist.async_store(verbose, null, null); // Sets _publichash sync, while storing async
         return new Signature(null, {"date": date, "signature": signature, "signedby": commonlist._publichash})
     }
 
