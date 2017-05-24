@@ -38,7 +38,7 @@ function previouslyworking() {        // This was previously working in examples
     Dweb.async_dwebfile("sb", sbhash, "langs/readme.md", ["async_elem", "myList.2", verbose, null, null], null);
     console.log("Now test path using dwebfile and mb =======");
     Dweb.async_dwebfile("mb", mbhash, "langs/readme.md", ["async_elem", "myList.3", verbose, null, null], null);
-    console.log("XXX@31 end testing");
+    console.log("END testing previouslyworking()");
 }
 
 function cryptotest() { //TODO-CRYPTO Still working on this

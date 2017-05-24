@@ -26,10 +26,12 @@ class KeyPair extends SmartDict {
         console.assert(sodium.crypto_box_SEEDBYTES === sodium.crypto_sign_SEEDBYTES, "KeyPair.keygen assuming seed lengths same");
         key.seed = seed || sodium.randombytes_buf(sodium.crypto_box_SEEDBYTES);
         if (keytype === Dweb.KEYPAIRKEYTYPESIGN || keytype === Dweb.KEYPAIRKEYTYPESIGNANDENCRYPT) {
-            key.sign = sodium.crypto_sign_seed_keypair(key.seed); // Object { publicKey: Uint8Array[32], privateKey: Uint8Array[64], keyType: "ed25519" } <<maybe other keyType
+            key.sign = sodium.crypto_sign_seed_keypair(key.seed); // Object { publicKey: Uint8Array[32], privateKey: Uint8Array[64], keyType: "ed25519" }
         }
         if (keytype === Dweb.KEYPAIRKEYTYPEENCRYPT || keytype === Dweb.KEYPAIRKEYTYPESIGNANDENCRYPT) {
-            key.encrypt = sodium.crypto_box_seed_keypair(key.seed); // Object { publicKey: Uint8Array[32], privateKey: Uint8Array[64], keyType: "ed25519" } <<maybe other keyType
+            key.encrypt = sodium.crypto_box_seed_keypair(key.seed); // Object { publicKey: Uint8Array[32], privateKey: Uint8Array[64] } <<maybe other keyType
+            // note this doesnt have the keyType field
+            //console.log("XXX write this into KeyPair.js line 32", key.encrypt);
         }
         if (verbose) { console.log("key generated:",key); }
         return new KeyPair(null, {"key": key}, verbose);
@@ -103,7 +105,18 @@ class KeyPair extends SmartDict {
     public() { console.log("XXX Undefined function KeyPair.public"); }  //TODO public is a reserved word in JS
     mnemonic() { console.log("XXX Undefined function KeyPair.mnemonic"); }
     _exportkey() { console.log("XXX Undefined function KeyPair._exportkey"); }
-    privateexport() { console.log("XXX Undefined function KeyPair.privateexport"); }
+
+    privateexport() {
+        // Matches functionality in Python BUT uses NACL SEED when know seed
+        let key = this._key;
+        if (key.seed) {
+            return "NACL SEED:" +sodium.to_urlsafebase64(key.seed);
+        } else {
+            console.assert(false, "XXX Undefined function KeyPair.privateexport.public", key);  //TODO should export full set of keys prob as JSON
+        }
+    }
+
+
 
     static _key_has_private(key) {
         if ((key.encrypt && key.encrypt.privateKey) || (key.sign && key.sign.privateKey) || key.seed) { return true; }

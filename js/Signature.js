@@ -13,7 +13,7 @@ class Signature extends SmartDict {
     }
     //TODO need to be able to verify signatures
     static sign(commonlist, hash, verbose) {
-        let date = datetime.now();  //TODO-DATE //TODO-ASYNC
+        let date = new Date(Date.now());  //TODO-DATE //TODO-ASYNC
         let signature = CryptoLib.signature(commonlist.keypair, date, hash);
         console.assert(commonlist._publichash, "CL should have been stored before call to Signature.sign"); // If encounter this, make sure caller stores CL first
         //Python does: if (!commonlist._publichash) commonlist.async_store(verbose, null, null)

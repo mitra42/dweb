@@ -31,6 +31,11 @@ exports.utils.SecurityWarning = function(msg, self) {
     alert(msg);
 };
 
+exports.utils.ToBeImplementedException = function(...args) {
+    console.log(...args);
+    alert(msg);
+};
+
 // Utility functions
 
 exports.utils.mergeTypedArraysUnsafe = function(a, b) { // Take care of inability to concatenate typed arrays

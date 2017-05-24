@@ -1,5 +1,6 @@
 const SmartDict = require("./SmartDict");
 const Signature = require("./Signature");
+const Dweb = require("./Dweb");
 
 // ######### Parallel development to StructuredBlock.py ########
 
@@ -106,11 +107,10 @@ class StructuredBlock extends SmartDict {
          :param CommonList commonlist:   List its going on - has a ACL with a private key
          :return: self
          */
-        if (!this._hash) {
-            this.async_store(verbose);  // Sets _hash which is needed for signatures    //TODO-ASYNC not going to work as makes sign async
-        }
+        if (!this._hash) this.async_store(verbose);  // Sets _hash immediately which is needed for signatures
+        if (!commonlist._publichash) commonlist.async_store(verbose);    // Set _publichash immediately (required for Signature.sign)
         this._signatures.push(Signature.sign(commonlist, this._hash, verbose));
-        return this  // For chaining
+        return this;  // For chaining
     }
     verify() { console.log("XXX Undefined function StructuredBlock.verify"); }
 

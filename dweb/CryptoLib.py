@@ -123,6 +123,7 @@ class CryptoLib(object):
         :param date: Date on which it was signed
         :param data: Storage hash of data signed (as returned by Transport layer) - will convert to str if its unicode
         :return: Signable or comparable string
+        COPIED TO JS 2017-05-23
         """
         return date.isoformat() + str(data)
 
@@ -134,6 +135,7 @@ class CryptoLib(object):
         :param keypair: Key that be used for signture
         :param date: Date that signing (usually now)
         :return: signature that can be verified with verify
+        COPIED TO JS 2017-05-23
         """
         signable = CryptoLib._signable(date, data)
         if isinstance(keypair._key, RSA._RSAobj):
@@ -376,7 +378,7 @@ class KeyPair(SmartDict):
     KEYTYPEENCRYPT = 2
     KEYTYPESIGNANDENCRYPT = 3
 
-    naclkeyclasses = {
+    naclkeyclasses = {  # Note JS also uses "NACL SEED"
         nacl.public.PublicKey: "NACL PUBLIC",
         nacl.public.PrivateKey: "NACL PRIVATE",
         nacl.signing.SigningKey: "NACL SIGNING",

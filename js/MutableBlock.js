@@ -74,7 +74,7 @@ class MutableBlock extends CommonList {
         //(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose, options)
         let mb = new MutableBlock(null, null, false, this.keypair, false, null, null, null, verbose, {"name": this.name});
         mb.async_store(verbose, success, error);    // Returns immediately but sets _hash first
-        return mb._hash;
+        this._publichash = mb._hash;
     }
 
     contentacl() {

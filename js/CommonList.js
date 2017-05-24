@@ -86,7 +86,7 @@ class CommonList extends SmartDict {
             function(lines) {
                 //console.log("async_fetchlist:",lines[0]); // Should be a full line, not just "[" which suggests unparsed.
                 //lines = JSON.parse(lines))   Should already by a list
-                console.log("CommonList:async_fetchlist.success", self._hash, lines.length);
+                console.log("CommonList:async_fetchlist.success", self._hash, "len=", lines.length);
                 self._list = [];
                 for (let i in lines) {
                     //TODO verify signature
@@ -124,10 +124,10 @@ class CommonList extends SmartDict {
         return sbs;
     }
     _async_storepublic() { //verbose,success, error
-        console.log("Intentionally XXX Undefined function CommonList._async_storepublic - should implement in subclasses");
+        console.assert(false, "Intentionally XXX Undefined function CommonList._async_storepublic - should implement in subclasses");
     }
     async_store(verbose, success, error) {  // Based on python
-        if (verbose) { console.log("CL.store", this); }
+        //if (verbose) { console.log("CL.store", this); }
         if (this._master && ! this._publichash) {
             this._async_storepublic(verbose, success, error); //Stores asynchronously, but hash set immediately
         }
