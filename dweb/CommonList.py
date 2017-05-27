@@ -176,3 +176,11 @@ class CommonList(SmartDict):  # TODO move class to own file
         return sig  # Typically for adding to local copy of list
         # Caller will probably want to add obj to list , not done here since MB handles differently.
 
+class EncryptionList(CommonList):
+    """
+    Common class for AccessControlList and KeyChain for things that can handle encryption
+
+    accesskey   Key with which things on this list are encrypted
+    From CommonList: keypair, _publichash, _list, _master, name
+    """
+    pass
