@@ -84,7 +84,7 @@ class SmartDict extends Transportable {
         let arr = obj._keys;
         arr.push(this);
         console.assert(!this.encrypted,"oops it isnt decrypted");
-        if (!obj.keysloading && success)  success(undefined);
+        if (!obj._keysloading && success)  success(undefined);
     }
 
     objbrowser(hash, path, ul, verbose) {

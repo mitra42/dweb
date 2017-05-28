@@ -19,6 +19,8 @@ if python_version.startswith('3'):
 else:
     from urlparse import parse_qs, parse_qsl, urlparse        # See https://docs.python.org/2/library/urlparse.html
     from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+    from SocketServer import ThreadingMixIn
+    import threading
 
 import traceback
 
@@ -39,8 +41,6 @@ class DWEBMalformedURLException(MyBaseException):
     httperror = 400
     msg = "Malformed URL {path}"
 
-from SocketServer import ThreadingMixIn
-import threading
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     """Handle requests in a separate thread."""
 
@@ -73,7 +73,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         cls.verbose = verbose
         cls.options = options
         if verbose: print "Setup server at",cls.ipandport,"to",Dweb.transport
-        #BaseHTTPServer.HTTPServer(cls.ipandport, cls).serve_forever()  # Start http server
+        #HTTPServer(cls.ipandport, cls).serve_forever()  # Start http server
         ThreadedHTTPServer(cls.ipandport, cls).serve_forever()  # OR Start http server
         print "Server exited" # It never should
 
@@ -87,7 +87,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         :return:
         """
         try:
-            print "XXX@_dispatch",self.headers
+            #print "XXX@_dispatch",self.headers
             verbose=True   # Cant pass through vars as they are postvariables
             o = urlparse(self.path)
             argvars =  dict(parse_qsl(o.query))     # Look for arguments in URL

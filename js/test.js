@@ -95,15 +95,17 @@ function cryptotest() { //TODO-CRYPTO Still working on this
     let kcs2 = KeyChain.async_new(mnemonic, null, "test_keychain kc", verbose,
         function(msg) { // Note success is run AFTER all keys have been loaded
             let mm = KeyChain.mymutableBlocks();
-            console.assert(mm.length, "Should find mblockm");
+            if (!mm.length) {
+                console.assert(mm.length, "Should find mblockm");
+            }
             console.log("XXX@99",mm);
             let mbm3 = mm[mm.length - 1];
             console.assert(mbm3 instanceof MutableBlock, "Should be a mutable block", mbm3);
             console.assert(mbm3.name === mblockm.name, "Names should survive round trip");
         },
         null); // Note only fetches if name matches
+     if (verbose) console.log("KEYCHAIN 5: Check can user ViewerKeyPair");
     /*
-     if (verbose) console.log("KEYCHAIN 5: Check can user ViewerKeyPair"
      acl = self._makeacl()   # Create Access Control List    - dont require encrypting as pretending itssomeone else's
      acl._allowunsafestore = True
      acl.add(viewerpublichash=viewerkeypair._hash, verbose=self.verbose)   # Add us as viewer

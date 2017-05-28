@@ -4,7 +4,7 @@ const request = require('request');
 
 const isNode=new Function("try {return this===global;}catch(e){return false;}");
 
-const myrequest = request.defaults({pool: {maxSockets: Infinity}, forever: true});
+const myrequest = request.defaults({pool: {maxSockets: 2}, forever: true});
 //const myrequest = request.defaults({forever: true});
 
 class TransportHTTPBase extends Transport {
