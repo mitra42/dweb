@@ -104,9 +104,22 @@ function cryptotest() { //TODO-CRYPTO Still working on this
             console.assert(mbm3.name === mblockm.name, "Names should survive round trip");
         },
         null); // Note only fetches if name matches
-     if (verbose) console.log("KEYCHAIN 5: Check can user ViewerKeyPair");
     /*
-     acl = self._makeacl()   # Create Access Control List    - dont require encrypting as pretending itssomeone else's
+    if (verbose) console.log("KEYCHAIN 5: Check can user ViewerKeyPair");
+    //acl = self._makeacl()   # Create Access Control List    - dont require encrypting as pretending itssomeone else's
+    // This is _makeacl() in test.py
+    if (verbose) console.log("Creating AccessControlList");
+    //Create a acl for testing, - full breakout is in test_keychain
+    let accesskey=CryptoLib.randomkey();
+    //hash, data, master, keypair, keygen, mnemonic, verbose, options
+    let key = self.keyfromfile("test_acl1"+self.keytail, private=True, keytype=KeyPair.KEYTYPESIGN)
+    let accesskey=CryptoLib.b64enc(accesskey);
+    let acl = AccessControlList(null, {"name":"test_acl.acl", "accesskey": accesskey }, true, key, false, null, verbose, null);
+    acl._allowunsafestore = True    // Not setting _acl on this
+    acl.store(verbose, null, null)
+    acl._allowunsafestore = False
+    if (verbose) console.log("Created AccessControlList hash=", acl._hash);
+
      acl._allowunsafestore = True
      acl.add(viewerpublichash=viewerkeypair._hash, verbose=self.verbose)   # Add us as viewer
      sb = self._makesb(acl=acl)   # Encrypted obj
