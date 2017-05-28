@@ -1,11 +1,13 @@
+//const AccessControlList = require("./AccessControlList"); // Including this for some reason makes the result unavailable, maybe a loop ?
+//const KeyChain = require("./KeyChain"); // Including this for some reason makes the result unavailable, maybe a loop ?
 const sodium = require("libsodium-wrappers");
 const Dweb = require("./Dweb");
 
+CryptoLib = {}
 // ==== Crypto.py - Encapsulate all the Cryptography =========
-class CryptoLib {
-    static Curlhash(data) { return "BLAKE2."+ sodium.crypto_generichash(32, data, null, 'urlsafebase64'); }
+CryptoLib.Curlhash = function(data) { return "BLAKE2."+ sodium.crypto_generichash(32, data, null, 'urlsafebase64'); }
 
-    static _signable(date, data) {
+CryptoLib._signable = function(date, data) {
         /*
          Returns a string suitable for signing and dating, current implementation includes date and storage hash of data.
          Called by signature, so that same thing signed as compared
@@ -18,7 +20,7 @@ class CryptoLib {
         return date.toISOString() + data;
     }
 
-    static signature(keypair, date, hash, verbose) {
+CryptoLib.signature = function(keypair, date, hash, verbose) {
         /*
         Pair of verify(), signs date and data using public key function.
 
@@ -34,21 +36,44 @@ class CryptoLib {
             //Can implement and uncomment next line if seeing problems verifying things that should verify ok - tests immediate verification
             //keypair._key.verify_key.verify(signable, nacl.encoding.URLSafeBase64Encoder.decode(sig))
         } else {
-            //console.log("XXX@CryptoLib.signature write test for this key", keypair._key)
             Dweb.utils.ToBeImplementedException("signature for key =",keypair._key);
         }
     }
-    static verify() { console.assert(false, "XXX Undefined function CryptoLib.verify"); }
-    static b64dec() { console.assert(false, "XXX Undefined function CryptoLib.b64dec"); }
-    static b64enc() { console.assert(false, "XXX Undefined function CryptoLib.b64enc"); }
+CryptoLib.verify = function() { console.assert(false, "XXX Undefined function CryptoLib.verify"); }
+CryptoLib.b64dec = function() { console.assert(false, "XXX Undefined function CryptoLib.b64dec"); }
+CryptoLib.b64enc = function() { console.assert(false, "XXX Undefined function CryptoLib.b64enc"); }
 
-    static dumps(obj) { return JSON.stringify(obj); }   // Uses toJSON methods on objects (equivalent of dumps methods on python)
+CryptoLib.dumps = function(obj) { return JSON.stringify(obj); }   // Uses toJSON methods on objects (equivalent of dumps methods on python)
+CryptoLib.loads = function(str) { return JSON.parse(str); }
 
-    static decryptdata() { console.assert(false, "XXX Undefined function CryptoLib.decryptdata"); }
-    static randomkey() { console.assert(false, "XXX Undefined function CryptoLib.randomkey"); }
-    static sym_encrypt() { console.assert(false, "XXX Undefined function CryptoLib.sym_encrypt"); }
-    static sym_decrypt() { console.assert(false, "XXX Undefined function CryptoLib.sym_decrypt"); }
-}
+CryptoLib.decryptdata = function(value, verbose) {
+        /*
+         Takes a dictionary that may contain { acl, encrypted } and returns the decrypted data.
+         No assumption is made about what is in the decrypted data
+
+         :param value:
+         :return:
+         */
+        if (value.encrypted) {
+            let hash = value.acl;
+            let kc = Dweb.KeyChain.find(hash);  // Matching KeyChain or None
+            if (kc) {
+                return kc.decrypt(value.encrypted, verbose) // Exception: DecryptionFail - unlikely since publichash matches
+            } else {
+                //(hash, data, master, keypair, keygen, mnemonic, verbose, options)
+                let acl = new Dweb.AccessControlList(hash, null, null, null, false, null, verbose);  // TODO-AUTHENTICATION probably add person - to - person version
+                console.log("XXX@65 - TODO-AUTHENTICATION probably not loaded may need function to go async");
+                return acl.decrypt(value.encrypted, null, verbose);
+            }
+        } else {
+            return value;
+        }
+    }
+
+
+CryptoLib.randomkey = function() { console.assert(false, "XXX Undefined function CryptoLib.randomkey"); }
+CryptoLib.sym_encrypt = function() { console.assert(false, "XXX Undefined function CryptoLib.sym_encrypt"); }
+CryptoLib.sym_decrypt = function() { console.assert(false, "XXX Undefined function CryptoLib.sym_decrypt"); }
 
 exports = module.exports = CryptoLib;
 

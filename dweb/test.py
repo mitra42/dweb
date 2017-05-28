@@ -12,7 +12,8 @@ import nacl.signing
 import nacl.encoding
 
 from misc import _print
-from CryptoLib import CryptoLib, KeyPair
+from CryptoLib import CryptoLib
+from KeyPair import KeyPair
 from Transport import TransportBlockNotFound, TransportURLNotFound, TransportFileNotFound
 from TransportLocal import TransportLocal
 from TransportHTTP import TransportHTTP
@@ -21,7 +22,9 @@ from CommonBlock import Transportable
 from Block import Block
 from StructuredBlock import StructuredBlock
 from CommonList import CommonList
-from MutableBlock import MutableBlock, AccessControlList, KeyChain
+from MutableBlock import MutableBlock
+from AccessControlList import AccessControlList
+from KeyChain import KeyChain
 from File import File, Dir
 from Dweb import Dweb
 from ServerHTTP import DwebHTTPRequestHandler
@@ -30,7 +33,7 @@ from ServerHTTP import DwebHTTPRequestHandler
 class Testing(unittest.TestCase):
     def setUp(self):
         super(Testing, self).setUp()
-        testTransporttype = 2 #TransportLocal, TransportHTTP, TransportDistPeer, TransportDistPeer = multi  # Can switch between TransportLocal and TransportHTTP to test both
+        testTransporttype = 1 #TransportLocal, TransportHTTP, TransportDistPeer, TransportDistPeer = multi  # Can switch between TransportLocal and TransportHTTP to test both
         self.verbose=False
         self.quickbrownfox =  "The quick brown fox ran over the lazy duck"
         self.dog = "But the clever dog chased the fox"
@@ -288,14 +291,14 @@ class Testing(unittest.TestCase):
         self._storeas("DWebArchitecture.png", "DwebArchitecture_png","image/png")
         self._storeas("objbrowser.html", "objbrowser_html", "text/html")
         #self._storeas("libsodium", None, None)
-        self._storeas("../js/dweb_bundled.js","dweb_bundled_js", "application/javascript")
+        self._storeas("../dweb_bundled.js","dweb_bundled_js", "application/javascript")
 
         if ext: # Not uploaded if doing fast cycle dev
             self._storeas("../tinymce", "tinymce", None)
             self._storeas("../docs/_build/html", "docs_build_html", None)
         #self._storeas("mnemonic.js", None, None)
         print "INDEX.HTML at",self.uploads["index.html"]["read"]
-        print "dweb_bundled.js", self.uploads["../js/dweb_bundled.js"]["relread"]
+        print "dweb_bundled.js", self.uploads["../dweb_bundled.js"]["relread"]
         #print "jquery-3.1.1.js",self.uploads["jquery-3.1.1.js"]["relread"]
         #print "libsodium", self.uploads["libsodium"]["relread"]+"/sodium.js"
         #print "dweb.js",self.uploads["dweb.js"]["relread"]
@@ -311,7 +314,7 @@ class Testing(unittest.TestCase):
         print "objbrowser.html", self.uploads["objbrowser.html"]["relread"]
         print "TEST.HTML at",self.uploads["test.html"]["read"]
         print "or OBJECTBROWSER.HTML at", self.uploads["objbrowser.html"]["read"]
-        print "dweb_bundled.js", self.uploads["../js/dweb_bundled.js"]["relread"]
+        print "dweb_bundled.js", self.uploads["../dweb_bundled.js"]["relread"]
         #print "libsodium", self.uploads["libsodium"]["relread"]+"/sodium.js"
         #print "dweb.js",self.uploads["dweb.js"]["relread"]
         if ext: print "mbhash Tinymce", self.uploads["../tinymce"]["publichash"]
@@ -483,7 +486,7 @@ class Testing(unittest.TestCase):
 
     def Xtest_current(self):
         self.verbose=True
-        self.test_crypto()
+        self.test_keychain()
         #self.test_keychain()
 
         #self.uploads = {}

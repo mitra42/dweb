@@ -9,9 +9,7 @@ class MutableBlock extends CommonList {
 
     constructor(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose, options) {
         //CL.constructor: hash, data, master, keypair, keygen, mnemonic, verbose
-        if (verbose) {
-            console.log("MutableBlock(", hash, data, master, keypair, keygen, mnemonic, verbose, options, ")");
-        }
+        //if (verbose) console.log("new MutableBlock(", hash, data, master, keypair, keygen, mnemonic, verbose, options, ")");
         super(hash, data, master, keypair, keygen, mnemonic, verbose, options);
         this.contentacl = contentacl;
         this._current = new StructuredBlock(contenthash, null, verbose);
@@ -36,13 +34,13 @@ class MutableBlock extends CommonList {
         super.async_fetchlist(verbose,
             function (unused) {
                 // Called after CL.async_fetchlist has unpacked data into Signatures in _list
-                let sig = self._list[self._list.length - 1];  // Get most recent
-                self._current = new StructuredBlock(sig.hash, null, verbose);   // Store in _current
-                if (success) {
-                    success(undefined);
-                }  // Note success is applied to the MB, not to the content, and the content might not have been loaded.
+                if (self._list.length) {
+                    let sig = self._list[self._list.length - 1];  // Get most recent
+                    self._current = new StructuredBlock(sig.hash, null, verbose);   // Store in _current
+                }
+                if (success) { success(undefined); }  // Note success is applied to the MB, not to the content, and the content might not have been loaded.
             },
-            error)
+            error);
     }
 
     async_updatelist(ul, verbose, successmethodeach, error) {
@@ -77,12 +75,20 @@ class MutableBlock extends CommonList {
         this._publichash = mb._hash;
     }
 
-    contentacl() {
-        console.assert(false, "XXX Undefined function MutableBlock.contentacl setter and getter");
-    }   // Encryption of content
-    fetch() {
-        console.assert(false, "XXX Undefined function MutableBlock.fetch");
-    }   // Split into load/onload
+    contentacl() {console.assert(false, "XXX Undefined function MutableBlock.contentacl setter and getter"); }   // Encryption of content
+
+    async_load(verbose, success, error) {
+        /*
+         COPIED FROM JS MutableBlock.fetch 2017-05-24
+         :return: self for chaining
+         */
+        if (verbose) console.log("MutableBlock.fetch pubkey=", self._hash);
+        let self = this;
+        super.async_load(verbose, function (msg) {
+            self.async_fetchlist(success, error); }, error);
+        return self;
+    }
+
     content() {
         console.assert(!this._needsfetch, "Content is asynchronous, must load first");
         return this._current.content();

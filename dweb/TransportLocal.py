@@ -49,6 +49,7 @@ class TransportLocal(Transport):
 
     def _filename(self, subdir, hash=None, key=None, verbose=False, **options):
         # key now obsoleted
+        print "XXX@_filename:52",hash
         file = hash or CryptoLib.Curlhash(key, verbose=verbose, **options)
         return "%s/%s/%s" % (self.dir, subdir, file)
 

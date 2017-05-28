@@ -19,16 +19,20 @@ class TransportHTTP extends TransportHTTPBase {
         // obj being loaded
         // Locate and return a block, based on its multihash
         // Call chain is mb.load > CL.fetchlist > THttp.rawlist > Thttp.load > CL|MB.fetchlist.success > callers.success
+        console.assert(hash, "TransportHTTP.async_rawlist: requires hash");
         this.async_load("rawlist", hash, verbose, success, error);
     }
     rawreverse() { console.assert(false, "XXX Undefined function TransportHTTP.rawreverse"); }
 
     async_rawstore(self, data, verbose, success, error) {
         //PY: res = self._sendGetPost(True, "rawstore", headers={"Content-Type": "application/octet-stream"}, urlargs=[], data=data, verbose=verbose)
-        this.async_post("rawstore", null, null, data, verbose, success, error) // Returns immediately
+        console.assert(data, "TransportHttp.async_rawstore: requires data");
+        this.async_post("rawstore", null, "application/octet-stream", data, verbose, success, error) // Returns immediately
     }
 
     async_rawadd(self, hash, date, signature, signedby, verbose, success, error) {
+        verbose=true;
+        console.assert(hash && signature && signedby, "async_rawadd args",hash,signature,signedby);
         if (verbose) console.log("rawadd", hash, date, signature, signedby);
         let value = TransportHTTP._add_value( hash, date, signature, signedby, verbose)+ "\n";
         //async_post(self, command, hash, type, data, verbose, success, error)

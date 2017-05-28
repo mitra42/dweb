@@ -7,7 +7,8 @@ from MutableBlock import MutableBlock
 from MyHTTPServer import MyHTTPRequestHandler, exposed
 from misc import ToBeImplementedException
 from CommonBlock import Transportable
-from CryptoLib import CryptoLib, KeyPair
+from CryptoLib import CryptoLib
+from KeyPair import KeyPair
 from Dweb import Dweb
 
 
@@ -42,7 +43,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
 
     @exposed
     def info(self, **kwargs):
-        return { 'Content-type': 'text/json',
+        return { 'Content-type': 'application/json',
                  'data': { "type:": "xhttp"}
                }
     info.arglist=[]
@@ -68,7 +69,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         :param hash: key to retrieve values for
         :return:
         """
-        return { 'Content-type': 'text/json',
+        return { 'Content-type': 'application/json',
                  'data': Dweb.transport.rawlist(hash=hash, **kwargs)
                }
     rawlist.arglist=["hash"]
@@ -81,7 +82,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         :param hash: key to retrieve values for
         :return:
         """
-        return {'Content-type': 'text/json',
+        return {'Content-type': 'application/json',
                 'data': Dweb.transport.rawreverse(hash=hash, **kwargs)
                 }
     rawreverse.arglist = ["hash"]
@@ -89,7 +90,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
     @exposed
     def rawstore(self, data=None, **kwargs):
         hash = Dweb.transport.rawstore(data=data, **kwargs)
-        return { "Content-type": "appliction/octet-stream", "data": hash }
+        return { "Content-type": "application/octet-stream", "data": hash }
     rawstore.arglist=["data"]
 
     @exposed
@@ -99,10 +100,11 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
 
         :param data: Dictionary to add {hash, signature, date, signedby} or json string of it.
         """
+        print "XXX@rawadd.102",data
         if isinstance(data, basestring): # Assume its JSON
             data = CryptoLib.loads(data)    # HTTP just delivers bytes
         data["verbose"]=verbose
-        return  { "Content-type": "appliction/octet-stream",
+        return  { "Content-type": "application/octet-stream",
                   "data":  Dweb.transport.rawadd(**data)
                   }
         #hash=None, date=None, signature=None, signedby=None, verbose=False, **options):

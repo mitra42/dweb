@@ -14,6 +14,9 @@ class AccessControlList extends CommonList {
         //mb = new MutableBlock(keypair=this.keypair, name=this.name)
     }
 
+    decrypt(data, viewerkeypair, verbose) {
+        console.assert(false, "XXX Undefined function AccessControlList._async_storepublic");
+    }
 }
 exports = module.exports = AccessControlList;
 

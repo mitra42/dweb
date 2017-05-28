@@ -1,6 +1,7 @@
 # encoding: utf-8
 
-from CryptoLib import CryptoLib, KeyPair, WordHashKey, PrivateKeyException, AuthenticationException, DecryptionFail, SecurityWarning
+from CryptoLib import CryptoLib, WordHashKey, PrivateKeyException, AuthenticationException, DecryptionFail, SecurityWarning
+from KeyPair import KeyPair
 import base64
 import nacl.signing
 import nacl.encoding

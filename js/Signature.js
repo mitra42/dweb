@@ -16,9 +16,15 @@ class Signature extends SmartDict {
         let date = new Date(Date.now());  //TODO-DATE //TODO-ASYNC
         let signature = CryptoLib.signature(commonlist.keypair, date, hash);
         if (!commonlist._publichash) commonlist.async_store(verbose, null, null); // Sets _publichash sync, while storing async
+        console.assert(commonlist._publichash, "Signature.sign should be a publichash by here");
         return new Signature(null, {"date": date, "signature": signature, "signedby": commonlist._publichash})
     }
 
     verify() { console.assert(false, "XXX Undefined function Signature.verify"); }
+    /* Also undefined from Signatures class in Python
+        Should be defined on CommonList
+        earliest(), fetch(hash), blocks(), latest()
+     */
+
 }
 exports = module.exports = Signature;

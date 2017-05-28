@@ -57,7 +57,7 @@ function cryptotest() { //TODO-CRYPTO Still working on this
     if (verbose) { console.log("hash_hex = ",shash_u64, hash_hex, hash_64, hash_u64); }
     if (hash_u64 !== "YOanaCqfg3UsKoqlNmVG7SFwLgDyB3aToEmLCH-vOzs=") { console.log("ERR Bad blake2 hash"); }
     let signingkey = sodium.crypto_sign_keypair();
-    if (verbose) { console.log(signingkey); }
+    if (verbose) { console.log("test: SigningKey=", signingkey); }
     let seedstr = "01234567890123456789012345678901";
     let seed = sodium.from_string(seedstr);
     let boxkey = sodium.crypto_box_seed_keypair(seed);
@@ -66,7 +66,7 @@ function cryptotest() { //TODO-CRYPTO Still working on this
     // Set mnemonic to value that generates seed "01234567890123456789012345678901"
     let mnemonic = "coral maze mimic half fat breeze thought champion couple muscle snack heavy gloom orchard tooth alert cram often ask hockey inform broken school cotton"; // 32 byte
     // Test sequence extracted from test.py
-    if (verbose) { console.log("KEYCHAIN 0 - create"); }
+     if (verbose) { console.log("KEYCHAIN 0 - create"); }
     let kc = KeyChain.async_new(mnemonic, false, "test_keychain kc", verbose, null, null);
     if (verbose) { console.log("KEYCHAIN 1 - add MB to KC"); }
     //verbose = true;
@@ -84,6 +84,42 @@ function cryptotest() { //TODO-CRYPTO Still working on this
     viewerkeypair._acl = kc;
     viewerkeypair.async_store(verbose); // Defaults to store private=True (which we want)
     kc.async_add(viewerkeypair, verbose, null, null);
+    if (verbose) console.log("KEYCHAIN 3: Fetching mbm hash=",mbmhash);
+    //MB(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose, options)
+    let mbm2 = new MutableBlock(mbmhash, null, true, null, false, null, null, null, verbose, null);
+    mbm2.async_load(verbose, function(msg) {
+        console.assert(mbm2.name === mblockm.name, "Names should survive round trip"); }, null);
+    if (verbose) console.log("KEYCHAIN 4: reconstructing KeyChain and fetch");
+    Dweb.keychains = []; // Clear Key Chains
+    //async_new(mnemonic, keygen, name, verbose, success, error)
+    let kcs2 = KeyChain.async_new(mnemonic, null, "test_keychain kc", verbose,
+        function(msg) { // Note success is run AFTER all keys have been loaded
+            let mm = KeyChain.mymutableBlocks();
+            console.assert(mm.length, "Should find mblockm");
+            console.log("XXX@99",mm);
+            let mbm3 = mm[mm.length - 1];
+            console.assert(mbm3 instanceof MutableBlock, "Should be a mutable block", mbm3);
+            console.assert(mbm3.name === mblockm.name, "Names should survive round trip");
+        },
+        null); // Note only fetches if name matches
+    /*
+     if (verbose) console.log("KEYCHAIN 5: Check can user ViewerKeyPair"
+     acl = self._makeacl()   # Create Access Control List    - dont require encrypting as pretending itssomeone else's
+     acl._allowunsafestore = True
+     acl.add(viewerpublichash=viewerkeypair._hash, verbose=self.verbose)   # Add us as viewer
+     sb = self._makesb(acl=acl)   # Encrypted obj
+     assert KeyChain.myviewerkeys()[0].name == vkpname, "Should find viewerkeypair stored above"
+     if (verbose) console.log("KEYCHAIN 6: Check can fetch and decrypt - should use viewerkeypair stored above"
+     sb2 = StructuredBlock(hash=sb._hash, verbose=self.verbose).fetch(verbose=self.verbose) # Fetch & decrypt
+     assert sb2.data == self.quickbrownfox, "Data should survive round trip"
+     if (verbose) console.log("KEYCHAIN 7: Check can store content via an MB"
+     mblockm = MutableBlock.new(contentacl=acl, name="mblockm", _allowunsafestore=True, content=self.quickbrownfox, signandstore=True, verbose=self.verbose)  # Simulate other end
+     mb = MutableBlock(name="test_acl mb", hash=mblockm._publichash, verbose=self.verbose)
+     assert mb.content(verbose=self.verbose) == self.quickbrownfox, "should round trip through acl"
+     if self.verbose: print "test_keychain: done"
+     #TODO - named things in keychain
+     #TODO - test_keychain with HTML
+     */
     console.log("END TESTING");
 
 

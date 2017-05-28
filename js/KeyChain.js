@@ -1,4 +1,8 @@
 const CommonList = require("./CommonList");
+const MutableBlock = require("./MutableBlock");
+const KeyPair = require("./KeyPair");
+const UnknownBlock = require("./UnknownBlock");
+
 const Dweb = require("./Dweb");
 // ######### Parallel development to MutableBlock.py ########
 
@@ -9,21 +13,49 @@ class KeyChain extends CommonList {
 
     constructor(hash, data, master, keypair, keygen, mnemonic, verbose) { //Note not all these parameters are supported (yet) by CommonList.constructor
         super(hash, data, master, keypair, keygen, mnemonic, verbose);
+        if (!this._keys) this._keys = []; // Could be overridden by data in super
         this.table = "kc";
     }
     static async_new(mnemonic, keygen, name, verbose, success, error) {
-        let kc = new KeyChain(null, { "name": name }, false, null, keygen, mnemonic, verbose);
+        let kc = new KeyChain(null, { "name": name }, true, null, keygen, mnemonic, verbose);
         kc.async_store(verbose, null, error);
         // Dont need to wait on store to load and fetchlist
         KeyChain.addkeychains(kc);
-        kc.async_loadandfetchlist(verbose, success, error);  //Was fetching blocks, but now done by "keys"
+        kc.async_loadandfetchlist(verbose, success, error);  //Fetches blocks in async_fetchlist.success
         //if verbose: print "Created keychain for:", kc.keypair.private.mnemonic
         //if verbose and not mnemonic: print "Record these words if you want to access again"
         return kc
     }
     keytype() { return Dweb.KEYPAIRKEYTYPESIGNANDENCRYPT; }  // Inform keygen
 
-    keys() { console.assert(false, "XXX Undefined property KeyChain.keys"); }
+    async_fetchlist(verbose, success, error) {  // Check callers of fetchlist and how pass parameters
+        // Call chain is kc.async_new > kc.loadandfetchlist > KC.async_fetchlist > THttp.async_rawlist > Thttp.list > KC.fetchlist.success > caller's success
+        let self = this;
+        super.async_fetchlist(verbose,
+            function (unused) {
+                // Called after CL.async_fetchlist has unpacked data into Signatures in _list
+                let results={};
+                self._keysloading = self._keysloading || 0;
+                for (let i in self._list) {
+                    self._keysloading += 1;
+                    let sig = self._list[i];
+                    if (! results[sig.hash]) {
+                        let key = new UnknownBlock(sig.hash, verbose);
+                        results[sig.hash] = key;
+                        key.async_load(verbose, ["addtokeysonload", self, success], null);   // Order isn't significant - could be MB or ACL
+                    }
+                }
+                // Success done above when all loaded. if (success) { success(undefined); }  // Note success is applied to the KC, before the blocks have been loaded
+            },
+            error);
+    }
+
+
+    keys() {    // Is property in Python
+        // Keys are fetched during async_fetchlist
+        return this._keys;
+    }
+
 
     async_add(obj, verbose, success, error) {
         /*
@@ -48,20 +80,45 @@ class KeyChain extends CommonList {
         // Should be a signing key
         return this.keypair.encrypt(res, b64, this);  // data, b64, signer
     }
-    decrypt() { console.assert(false, "XXX Undefined function KeyChain.decrypt"); }
+    decrypt(data, verbose) {
+        /*
+         :param data: String from json, b64 encoded
+         :param verbose:
+         :return: decrypted text
+         */
+        let key = this.keypair._key;
+        if (key.encrypt) { // NACL key
+            return this.keypair.decrypt(data, true, this); //data, b64, signer
+        } else {
+            Dweb.utils.ToBeImplementedException("Keypair.decrypt for ", key);
+        }
+    }
+
+
+
     accesskey() { console.assert(false, "XXX Undefined property KeyChain.accesskey"); }
 
     static addkeychains(keychains) {
         //Add keys I can view under to ACL
         //param keychains:   Array of keychains
-        if (typeof keychains === "object") {    // Should be array not dict
-            Dweb.keychains = Dweb.keychains + keychains;
+        if (keychains instanceof Array) {
+            Dweb.keychains = Dweb.keychains.concat(keychains);
         } else {
             Dweb.keychains.push(keychains);
         }
     }
 
-    find() { console.assert(false, "XXX Undefined function KeyChain.find"); }
+    static find(publichash, verbose) {
+        /* Locate a needed key by its hash */
+        for (let i in Dweb.keychains) {
+            let kc = Dweb.keychains[i];
+            if (kc._publichash === publichash) {
+                if (verbose) console.log("KeyChain.find successful for",publichash);
+                return kc;
+            }
+        }
+        return null;
+    }
 
     _async_storepublic(verbose, success, error) { // Based on python CL._storepublic, but done in each class in JS
         console.log("KeyChain._async_storepublic");
@@ -76,10 +133,33 @@ class KeyChain extends CommonList {
     }
     fetch() { console.log("Intentionally XXX Undefined function MutableBlock.fetch use load/success"); }   // Split into load/onload
 
-    _findbyclass() { console.assert(false, "XXX Undefined function KeyChain._findbyclass"); }
-    myviewerkeys() { console.assert(false, "XXX Undefined function KeyChain.myviewerkeys"); }
-    mymutableBlocks() { console.assert(false, "XXX Undefined function KeyChain.mymutableBlocks"); }
+    static _findbyclass(clstarget) {
+        // Super obscure double loop, but works and fast
+        let res = [];
+        for (let i in Dweb.keychains) {
+            let keys = Dweb.keychains[i].keys();
+            for (let j in keys) {
+                let k = keys[j];
+                if (k instanceof clstarget) res.push(k);
+            }
+        }
+        return res;
+    }
 
+    static myviewerkeys() {
+        /*
+         :return: Array of Viewer Keys on the KeyChains
+         */
+        return KeyChain._findbyclass(KeyPair);
+    }
+
+    static mymutableBlocks() {
+        /*
+         :return: Array of Viewer Keys on the KeyChains
+         */
+        return KeyChain._findbyclass(MutableBlock);
+    }
 }
+
 
 exports = module.exports = KeyChain;

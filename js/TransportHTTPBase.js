@@ -4,6 +4,9 @@ const request = require('request');
 
 const isNode=new Function("try {return this===global;}catch(e){return false;}");
 
+const myrequest = request.defaults({pool: {maxSockets: Infinity}, forever: true});
+//const myrequest = request.defaults({forever: true});
+
 class TransportHTTPBase extends Transport {
     constructor(ipandport, verbose, options) {
         super(verbose, options);
@@ -33,18 +36,22 @@ class TransportHTTPBase extends Transport {
         });
         */
         //See: https://github.com/request/request
-        request(url, function(errorres, response, data) {
-            if (verbose) { console.log("TransportHTTP X:", command, hash, ": returning data len=", data && data.length ); }
+        myrequest(url, function(errorres, response, data) {
+                if (verbose) { console.log("TransportHTTP X:", command, hash, ": returning data len=", data && data.length ); }
             //TODO handle errors
             if (errorres) {
-                console.log("TransportHTTP:", command, ": error", status, "error=",error);
-                console.log('fullerror:', errorres); // Print the error if one occurred //TODO extract useful data to display
+                console.assert(false, "TransportHTTP.async_load:", url, ": error", errorres, "response=", response, "data=", data); // Print the error if one occurred //TODO extract useful data to display
                 if (error) error(undefined, undefined, undefined);
             } else {
-                if (response["headers"]['content-type'] === "text/json") {
-                    data = JSON.parse(data);
+                if (response["statusCode"] === 200) {
+                    if (response["headers"]['content-type'] === "application/json") {
+                        data = JSON.parse(data);
+                    }
+                    if (success) success(data);
+                } else {
+                    console.log("Error status=",response["statusCode"],response["statusMessage"])
+                    if (error) error(undefined, undefined, undefined);
                 }
-                if (success) success(data);
             }
 
         });
@@ -52,13 +59,11 @@ class TransportHTTPBase extends Transport {
     }
     async_post(command, hash, type, data, verbose, success, error) {
         // Locate and return a block, based on its multihash
-        if (verbose) { console.log("TransportHTTP post:", command,":hash=", hash); }
+        verbose=true;
+        if (verbose) console.log("TransportHTTP post:", command,":hash=", hash);
         let url = this.url(command, hash);
-        if (type) {
-            url += "/" + type;
-        }
         if (verbose) { console.log("TransportHTTP:post: url=",url); }
-        if (verbose) { console.log("TransportHTTP:post: data=",data); }
+        if (verbose) { console.log("TransportHTTP:post: data=",typeof data, data); }
         /*
         $.ajax({
             type: "POST",
@@ -77,18 +82,18 @@ class TransportHTTPBase extends Transport {
         });
         */
         //https://github.com/request/request
-        request.post({"url": url, "headers": {"Content-Type": "application/octet-stream"}, "body":data}, function(errorres, response, data) {
-            if (verbose) { console.log("TransportHTTP post:", command, hash, ": returning data len=", data && data.length ); }
+        //console.log("async_post{"url": url, "headers": {"Content-Type": type}, "body":data}, "bodytype=",typeof data);
+        myrequest.post({"url": url, "headers": {"Content-Type": type}, "body":data}, function(errorres, response, respdata) {
+            if (verbose) { console.log("TransportHTTP post:", command, hash, ": returning data len=", respdata && respdata.length ); }
             //TODO handle errors
             if (errorres) {
-                console.log("TransportHTTP:", command, ": error", errorres, "error=",error);
-                console.log('fullerror:', errorres); // Print the error if one occurred //TODO extract useful data to display
+                console.assert(false, "TransportHTTP async_post FAIL:", url, "data:",data, "error:", errorres, "response:", response, "respdata:", respdata); // Print the error if one occurred //TODO extract useful data to display
                 if (error) error(undefined, undefined, undefined);
             } else {
-                if (response["headers"]['content-type'] === "text/json") {
-                    data = JSON.parse(data);
+                if (response["headers"]['content-type'] === "application/json") {
+                    respdata = JSON.parse(respdata);
                 }
-                if (success) success(data);
+                if (success) success(respdata);
             }
 
         });

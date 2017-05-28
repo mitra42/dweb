@@ -27,8 +27,8 @@ exports.KEYPAIRKEYTYPESIGNANDENCRYPT = 3;
 // These are equivalent of python exceptions, will log and raise alert in most cases - exceptions aren't caught
 
 exports.utils.SecurityWarning = function(msg, self) {
-    console.log(msg, self);
-    alert(msg);
+    console.log("Security Warning:", msg, self);
+    alert("Security Warning"+ msg);
 };
 
 exports.utils.ToBeImplementedException = function(...args) {

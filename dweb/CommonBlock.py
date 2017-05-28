@@ -93,6 +93,17 @@ class SmartDict(Transportable):
 
      _acl If set (on master) defines storage as encrypted
     """
+    def __init__(self, data=None, hash=None, verbose=False, **options):
+        """
+
+        :param hash: Object to fetch data from
+        :param data: Used via _data's setter function to initialize object
+        :param options: Set fields of SmartDict AFTER initialized from data
+        """
+        super(SmartDict, self).__init__(data=data, hash=hash) # Uses _data.setter to set data
+        for k in options:
+            self.__setattr__(k, options[k])
+
     def __getattr__(self, name):
         return self.__dict__.get(name)
 
@@ -104,22 +115,15 @@ class SmartDict(Transportable):
                 value = dateutil.parser.parse(value)
         return super(SmartDict, self).__setattr__(name, value)  # Calls any property esp _data
 
+    def _setproperties(self, value):
+        for k in value:
+            self.__setattr__(k, value[k])
+
     def __str__(self):
         return self.__class__.__name__+"("+str(self.__dict__)+")"
 
     def __repr__(self):
         return repr(self.__dict__)
-
-    def __init__(self, data=None, hash=None, verbose=False, **options):
-        """
-
-        :param hash: Object to fetch data from
-        :param data: Used via _data's setter function to initialize object
-        :param options: Set fields of SmartDict AFTER initialized from data
-        """
-        super(SmartDict, self).__init__(data=data, hash=hash) # Uses _data.setter to set data
-        for k in options:
-            self.__setattr__(k, options[k])
 
     def preflight(self, dd):
         """
@@ -157,7 +161,14 @@ class SmartDict(Transportable):
         return res
 
     def _setdata(self, value):
-        # Note separarated from @_data.setter to make subclassing easier
+        """
+        Set the data from a dictionary
+        Note separated from @_data.setter to make subclassing easier
+        COPIED TO PYTHON 2017-5-27
+        
+        :param value: JSON string or dictionary
+        """
+
         from CryptoLib import CryptoLib
         if value:  # Just skip if no initialization
             if not isinstance(value, dict):
@@ -165,8 +176,7 @@ class SmartDict(Transportable):
                 value = CryptoLib.loads(value)  # Will throw exception if it isn't JSON
             if "encrypted" in value:
                 value = CryptoLib.loads(CryptoLib.decryptdata(value))    # Decrypt, null operation if not encrypted
-            for k in value:
-                self.__setattr__(k, value[k])
+            self._setproperties(value)
 
     _data = property(_getdata, _setdata)
 

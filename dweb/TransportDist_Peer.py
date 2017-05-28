@@ -79,7 +79,7 @@ class ServerPeer(DwebHTTPRequestHandler):
         node.learnfrom(PeerSet(data["peers"], verified=False),verified=False)
         del(data["peers"])
         node.learnfrom(Peer(**data), verified=True)
-        return { 'Content-type': 'text/json',
+        return { 'Content-type': 'application/json',
                  'data': node.infodata()
         }
     info.arglist=[]

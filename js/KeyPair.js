@@ -153,9 +153,30 @@ class KeyPair extends SmartDict {
         const ciphertext = sodium.crypto_box_easy(data, nonce, this.naclpublic(), signer.keypair.naclprivate(), "uint8array"); //(message, nonce, publicKey, secretKey, outputFormat)
 
         const combined = Dweb.utils.mergeTypedArraysUnsafe(nonce, ciphertext);
-        return b64 ? sodium.to_urlsafebase64(nonce) : sodium.to_string(combined);
+        return b64 ? sodium.to_urlsafebase64(combined) : sodium.to_string(combined);
     }
-    decrypt() { console.assert(false, "XXX Undefined function KeyPair.decrypt"); }
+    decrypt(data, b64, signer) {
+        /*
+         Decrypt date encrypted with encrypt (above)
+
+         :param data:
+         :b64 bool:  Try if want result encoded
+         :signer AccessControlList: If result was signed (currently ignored for RSA, reqd for NACL)
+        */
+        console.assert(data, "KeyPair.decrypt: meaningless to decrypt undefined, null or empty strings");
+        if (this._key.encrypt.privateKey) {
+            console.assert(signer, "Until PyNaCl bindings have secretbox we require a signer and have to add authentication");
+             // Note may need to convert data from unicode to str
+             if (b64) { data = sodium.from_urlsafebase64(data); }
+             let nonce = data.slice(0,sodium.crypto_box_NONCEBYTES);
+             data = data.slice(sodium.crypto_box_NONCEBYTES);
+             let dec =  sodium.crypto_box_open_easy(data, nonce, signer.keypair.naclpublic(), this.naclprivate());
+             return sodium.to_string(dec);
+         } else {
+            Dweb.utils.ToBeImplementedException("KeyPair.decrypt for ", this._key);
+         }
+    }
+
 }
 
 exports = module.exports = KeyPair;

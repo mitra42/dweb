@@ -1,4 +1,5 @@
-from CryptoLib import CryptoLib, KeyPair, WordHashKey
+from CryptoLib import CryptoLib, WordHashKey
+from KeyPair import KeyPair
 import nacl.signing
 import nacl.encoding
 from misc import ToBeImplementedException
@@ -14,6 +15,13 @@ class KeyChain(EncryptionList):  # TODO move to own file
     From SmartDict:     _acl            For encrypting the KeyChain itself
     """
     table = "kc"
+
+    def __init__(self, master=False, keypair=None, data=None, hash=None, verbose=False, keygen=False, mnemonic=None,
+                 **options):
+        self._keys = [] # Before super as may be overritten by data (unlikely since starts with '_'
+        super(KeyChain, self).__init__(master=master, keypair=keypair, data=data, hash=hash, verbose=verbose, keygen=keygen, mnemonic=mnemonic,
+                 **options);
+
 
     @classmethod
     def new(cls, mnemonic=None, keygen=False, name="My KeyChain", verbose=False):
@@ -53,6 +61,7 @@ class KeyChain(EncryptionList):  # TODO move to own file
         """
         sig = super(KeyChain, self).add(obj, verbose=verbose, **options)  # Adds to dWeb list
         self._list.append(sig)
+        self._keys.append(obj)
 
     def encrypt(self, res, b64=False):
         """
@@ -142,4 +151,5 @@ class KeyChain(EncryptionList):  # TODO move to own file
 
         :return:
         """
+        from MutableBlock import MutableBlock
         return cls._findbyclass(MutableBlock)

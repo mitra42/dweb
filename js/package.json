@@ -6,8 +6,8 @@
   "browser": "browser.js",
   "scripts": {
     "bundletest": "browserify ./test.js >test_bundled.js",
-    "bundle": "browserify ./browser.js >dweb_bundled.js",
-    "watch": "watchify ./browser.js -o dweb_bundled.js --verbose"
+    "bundle": "browserify ./browser.js >../dweb_bundled.js",
+    "watch": "watchify ./browser.js -o ../dweb_bundled.js --verbose"
   },
   "keywords": [],
   "license": "MIT",

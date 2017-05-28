@@ -19,7 +19,6 @@ class Transportable {
     }
 
     async_store(verbose, success, error) {    // Python has a "data" parameter to override this._data but probably not needed
-        if (verbose) console.log("Transportable.store", this);
         let data = this._getdata();
         if (verbose) console.log("Transportable.store data=", data);
         this._hash = CryptoLib.Curlhash(data); //store the hash since the HTTP is async

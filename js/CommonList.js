@@ -82,7 +82,9 @@ class CommonList extends SmartDict {
         // Load a list, note it does not load the individual items, just the Signatures. To do that, provide a "success" to loop over htem afterwards.
         // Call chain is mb.load > CL.fetchlist > THttp.rawlist > Thttp.load > CL|MB.fetchlist.success > callers.success
         let self = this;
-        Dweb.transport.async_rawlist(this, this._hash, verbose,
+        if (!this._master && !this._publichash)  this._publichash = this._hash;  // We aren't master, so publichash is same as hash
+        if (!this._publichash) this._async_storepublic(verbose, null, error); // Async, but sets _publichash immediately
+        Dweb.transport.async_rawlist(this, this._publichash, verbose,
             function(lines) {
                 //console.log("async_fetchlist:",lines[0]); // Should be a full line, not just "[" which suggests unparsed.
                 //lines = JSON.parse(lines))   Should already by a list
@@ -107,6 +109,7 @@ class CommonList extends SmartDict {
             error);
     }
     blocks(verbose) {
+        console.log("XXX@CL.blocks - checking if this ever gets used as should be hadnled by async_fetchlist.success");
         let results = {};   // Dictionary of { SHA... : StructuredBlock(hash=SHA... _signatures:[Signature*] ] ) }
         for (let i in this._list) {
             let s = this._list[i];
@@ -173,8 +176,10 @@ class CommonList extends SmartDict {
          */
         let hash = (typeof obj === "string") ? obj : obj._hash;
         console.assert(hash, "Empty string or undefined or null would be an error");
+        console.assert(this._master, "Must be master to sign something");
         let sig = Signature.sign(this, hash, verbose);
-        Dweb.transport.async_add(hash, sig.date, sig.signature, sig.signedby, verbose, success, error);
+        console.assert(sig.signature, "Must be a signature");
+        Dweb.transport.async_add(this, hash, sig.date, sig.signature, sig.signedby, null, verbose, success, error);
         return sig;  // Return sig immediately, typically for adding to local copy of list
         // Caller will probably want to add obj to list , not done here since MB handles differently from KC etc
     }

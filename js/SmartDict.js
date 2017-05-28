@@ -2,6 +2,7 @@ const Transportable = require("./Transportable");
 const CryptoLib = require("./CryptoLib");
 
 
+
 // See CommonBlock.py for Python version
 
 class SmartDict extends Transportable {
@@ -10,6 +11,7 @@ class SmartDict extends Transportable {
         super(hash, data); // _hash is _hash of SB, not of data - will call _setdata (which usually set fields), -note does not fetch the has, but sets _needsfetch
         this._setproperties(options);   // Note this will override any properties set with data
     }
+
     __setattr__(name, value) { // Call chain is ... success or constructor > _setdata > _setproperties > __setattr__
         // Subclass this to catch any field (other than _data) which has its own setter
         //TODO Need a javascript equivalent way of transforming date
@@ -20,6 +22,7 @@ class SmartDict extends Transportable {
         //TODO - instead of calling "setter" automatically, assuming that __setattr__ in each class does so.
         this[name] = value; //TODO: Python-Javascript: In Python can assume will get methods of property e.g. _data, in javascript need to be explicit here, or in caller.
     }
+
     _setproperties(dict) { // Call chain is ... onloaded or constructor > _setdata > _setproperties > __setattr__
         if (dict) { // Ignore dict if null
             for (let prop in dict) {
@@ -28,6 +31,7 @@ class SmartDict extends Transportable {
             }
         }
     }
+
     preflight(dd) { // Called on outgoing dictionary of outgoing data prior to sending - note order of subclassing can be significant
         let res = {};
         for (let i in dd) {
@@ -61,14 +65,26 @@ class SmartDict extends Transportable {
     _setdata(value) {
         // Note SmartDict expects value to be a dictionary, which should be the case since the HTTP requester interprets as JSON
         // Call chain is ...  or constructor > _setdata > _setproperties > __setattr__
+        // COPIED FROM PYTHON 2017-5-27
         if (value) {    // Skip if no data
             if (typeof value === 'string') {    // Assume it must be JSON
                 value = JSON.parse(value);
             }
+            if (value.encrypted) {
+                value = CryptoLib.loads(CryptoLib.decryptdata(value))
+            }
             // value should be a dict by now, not still json as it is in Python
-            //TODO-AUTHENTICTION - decrypt here
             this._setproperties(value); // Note value should not contain a "_data" field, so wont recurse even if catch "_data" at __setattr__()
         }
+    }
+    addtokeysonload(obj, success) {
+        //method sent to new block from UnknownBlock.async_load - use to add to the KeyChain
+        //console.log("addtoarronload success:",obj._keysloading);
+        obj._keysloading -= 1;
+        let arr = obj._keys;
+        arr.push(this);
+        console.assert(!this.encrypted,"oops it isnt decrypted");
+        if (!obj.keysloading && success)  success(undefined);
     }
 
     objbrowser(hash, path, ul, verbose) {

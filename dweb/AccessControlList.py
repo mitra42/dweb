@@ -1,8 +1,10 @@
-from CryptoLib import CryptoLib, KeyPair, AuthenticationException, DecryptionFail
+from CryptoLib import CryptoLib, AuthenticationException, DecryptionFail
+from KeyPair import KeyPair
 import nacl.signing
 import nacl.encoding
 from misc import ForbiddenException
 from CommonList import EncryptionList
+from StructuredBlock import StructuredBlock
 
 class AccessControlList(EncryptionList):
     """
@@ -81,6 +83,7 @@ class AccessControlList(EncryptionList):
         :param verbose:
         :return:
         """
+        from KeyChain import KeyChain
         #vks = viewerkeypair or AccessControlList.myviewerkeys
         vks = viewerkeypair or KeyChain.myviewerkeys()
         if not isinstance(vks, (list, tuple, set)):

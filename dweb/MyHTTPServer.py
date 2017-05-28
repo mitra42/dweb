@@ -18,7 +18,7 @@ if python_version.startswith('3'):
     from http.server import BaseHTTPRequestHandler
 else:
     from urlparse import parse_qs, parse_qsl, urlparse        # See https://docs.python.org/2/library/urlparse.html
-    from BaseHTTPServer import BaseHTTPRequestHandler
+    from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
 import traceback
 
@@ -39,6 +39,11 @@ class DWEBMalformedURLException(MyBaseException):
     httperror = 400
     msg = "Malformed URL {path}"
 
+from SocketServer import ThreadingMixIn
+import threading
+class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+    """Handle requests in a separate thread."""
+
 class MyHTTPRequestHandler(BaseHTTPRequestHandler):
     """
     Generic HTTPRequestHandler, extends BaseHTTPRequestHandler, to make it easier to use
@@ -51,6 +56,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
     Subclasses should define "exposed" as a list of exposed methods
     """
     exposed = []
+    protocol_version = "HTTP/1.1"
 
     @classmethod
     def serve_forever(cls, ipandport=None, verbose=False, **options):
@@ -67,7 +73,8 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         cls.verbose = verbose
         cls.options = options
         if verbose: print "Setup server at",cls.ipandport,"to",Dweb.transport
-        BaseHTTPServer.HTTPServer(cls.ipandport, cls).serve_forever()  # Start http server
+        #BaseHTTPServer.HTTPServer(cls.ipandport, cls).serve_forever()  # Start http server
+        ThreadedHTTPServer(cls.ipandport, cls).serve_forever()  # OR Start http server
         print "Server exited" # It never should
 
     def _dispatch(self, **vars):
@@ -80,6 +87,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         :return:
         """
         try:
+            print "XXX@_dispatch",self.headers
             verbose=True   # Cant pass through vars as they are postvariables
             o = urlparse(self.path)
             argvars =  dict(parse_qsl(o.query))     # Look for arguments in URL
@@ -128,13 +136,15 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
                     # Raise an exception - will not honor the status already sent, but this shouldnt happen as coding
                     # error in the dispatched function if it returns anything else
                     raise ToBeImplementedException(name=self.__class__.__name__+"._dispatch for return data "+data.__class__.__name__)
-                self.send_header('Content-Length', str(len(data)) if data else 0)
-            self.end_headers()
-            if data:
                 if isinstance(data, unicode):
                     data = data.encode("utf-8") # Needed to make sure any unicode in data converted to utf8 BUT wont work for intended binary
+            self.send_header('content-length', str(len(data)) if data else 0)
+            self.end_headers()
+            if (data):
                 self.wfile.write(data)                   # Write content of result if applicable
+            #self.wfile.close()
         except (TransportBlockNotFound, TransportFileNotFound, DWEBMalformedURLException) as e:         # Gentle errors, entry in log is sufficient (note line is app specific)
+            print "XXX@141 sending error",e.httperror
             self.send_error(e.httperror, str(e))    # Send an error response
         except Exception as e:
             traceback.print_exc(limit=None)  # unfortunately only prints to try above so need to raise
@@ -142,6 +152,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
             self.send_error(httperror, str(e))  # Send an error response
 
     def do_GET(self):
+        print "XXX@do_GET:145";
         self._dispatch()
 
 
@@ -151,6 +162,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
 
         :return:
         """
+        print "XXX@do_POST:145";
         try:
             verbose = False
             if verbose: print self.headers
@@ -174,6 +186,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
                 #raise ToBeImplementedException(name="do_POST:application/json")
             else:
                 postvars = {}
+            print "XXX@do_POST:177",self.path,postvars
             self._dispatch(**postvars)
         #except Exception as e:
         except ZeroDivisionError as e:  # Uncomment this to actually throw exception

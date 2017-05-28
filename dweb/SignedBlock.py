@@ -4,7 +4,8 @@ from datetime import datetime
 import dateutil.parser  # pip py-dateutil
 from json import loads
 from misc import MyBaseException, AssertionFail, _print, ToBeImplementedException
-from CryptoLib import CryptoLib, KeyPair
+from CryptoLib import CryptoLib
+from KeyPair import KeyPair
 from CommonBlock import Transportable, UnknownBlock
 from StructuredBlock import SmartDict, StructuredBlock
 from Transport import TransportURLNotFound, TransportFileNotFound

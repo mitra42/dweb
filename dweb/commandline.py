@@ -15,8 +15,9 @@ def keychain(mnemonic=None):
     :param mnemonic: Optional set of mnemonic words to build keychain from.
     :return:
     """
-    from MutableBlock import KeyChain
-    from CryptoLib import WordHashKey, KeyPair, WordHashKey
+    from KeyChain import KeyChain
+    from CryptoLib import WordHashKey, WordHashKey
+    from KeyPair import KeyPair
     return KeyChain.new(mnemonic=mnemonic, keygen=(False if mnemonic else WordHashKey), verbose=_verbose)
 
 
