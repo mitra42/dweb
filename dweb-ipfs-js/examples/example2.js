@@ -15,7 +15,7 @@ const multihash = require('multihashes');   // Multihash - binary representation
 const IPFS = require('ipfs');               // This might obviate need for some of the others, but not sure.
 
 // Utility packages (ours)
-const makepromises = require('./utils/makepromises')
+const makepromises = require('../utils/makepromises')
 // Dweb packages (ours)
 
 /*
