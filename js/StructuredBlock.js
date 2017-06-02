@@ -2,6 +2,7 @@ const SmartDict = require("./SmartDict");
 const Signature = require("./Signature");
 const Dweb = require("./Dweb");
 
+
 // ######### Parallel development to StructuredBlock.py ########
 
 class StructuredBlock extends SmartDict {

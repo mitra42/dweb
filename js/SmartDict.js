@@ -1,6 +1,7 @@
 const Transportable = require("./Transportable");
 const CryptoLib = require("./CryptoLib");
 
+//TODO-IPFS review from here down - especially regarding going direct to Dag
 
 
 // See CommonBlock.py for Python version

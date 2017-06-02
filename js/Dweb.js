@@ -1,4 +1,4 @@
-exports.TransportHTTP = require('./TransportHTTP');
+//exports.TransportHTTP = require('./TransportHTTP');   //TODO-IPFS temporarily commented out
 exports.StructuredBlock = require('./StructuredBlock');
 exports.MutableBlock = require('./MutableBlock');
 exports.KeyChain = require('./KeyChain');
@@ -130,6 +130,7 @@ exports.async_dweblist = function(div, hash, verbose, success, successmethodeach
 //TODO BROWSER----
 //-data collapsable
 
-exports.transport = exports.TransportHTTP.setup([exports.dwebserver, exports.dwebport], {});
+//TODO-IPFS This was uncommented for browser version that was working
+//exports.transport = exports.TransportHTTP.setup([exports.dwebserver, exports.dwebport], {});
 
 
