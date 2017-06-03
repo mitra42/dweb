@@ -102,10 +102,12 @@ function dagtest(message) {
     return new Promise((resolve, reject) => {
         console.log("Starting dagtest",message);
         ipfs.dag.put(mydata, {format: 'dag-cbor', hashAlg: 'sha2-256'})
-        //.then((cid) => { console.log("DAG PUT=",cid); return(cid); })
-            .then((cid)=>ipfs.dag.get(cid))
+        .then((cid) => {
+            console.log("DAG PUT=",cid.multihash);
+            return(cid); })
+            .then((cid)=>ipfs.dag.get(cid)) // Returns a result data structure
             .then((result)=>{
-                //console.log(result.value);
+                console.log(result);
                 console.assert(result.value.name === mydata.name, "DAG should survive roundtrip");
                 console.log("DAG finishing");
             })
