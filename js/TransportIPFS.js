@@ -71,53 +71,36 @@ class TransportIPFS extends Transport {
         })
     }
 
+    // Everything else - unless documented here - should be opaque to the actual structure of a CID
+    // or a Link. This code may change as its not clear (from IPFS docs) if this is the right mapping.
     static cid2link(cid) {
         //console.log("XXX@72:",cid.multihash[0],cid.multihash[1],cid.multihash[2]);
         return "/ipfs/"+cid.toBaseEncodedString()
     }  //TODO-IPFS this might not be right, (TODO-IPFS-Q)
+
     static link2cid(link) {
         let arr = link.split('/');
         console.assert(arr.length===3 && arr[1]==="ipfs");
         return new CID(arr[2])
     }
-    async_rawfetch(self, hash, verbose, success, error) {
-        // Locate and return a block, based on its multihash
-        this.async_load("rawfetch", hash, verbose, success, error);
+
+    p_rawfetch(hash, verbose) {
+        //TODO-IPFS could accept CID as alternative to hash
+        console.assert(hash, "TransportIPFS.p_rawfetch: requires hash");
+        let cid = TransportIPFS.link2cid(hash)
+        return new Promise((resolve, reject) => {
+            this.promisified.ipfs.block.get(cid)
+            .then((result) => resolve(result.data.toString()))
+            .catch((err) => reject(err))
+        })
+    }
+    async_rawfetch(self, hash, verbose, success, error) {   //TODO-IPFS OBSOLETE this
+        this.p_rawfetch(hash, verbose).then((hash)=>success(hash)).catch((err) => error(err))
+        if (verbose) console.log("async_rawfetch continuining")
     }
 
 //TODO-IPFS review from here down
 
-
-/*
-    // This chunk tests block storage
-    function blocktest(message) {
-    let blobtxt = 'a serialized object'
-    const blob = new Buffer(blobtxt);
-    let cid;    // Holds id of block stored
-    return new Promise((resolve, reject) => {
-        console.log("MESSAGE=",message)
-        promisified.ipfs.block.put(blob)
-            .then((block) => {
-                //console.log(block);
-                let cid = block.cid;
-                //console.log("CID=",cid);
-                return cid;
-            })
-            .then((cid) => promisified.ipfs.block.get(cid))
-            .then((result) => {
-                //console.log(result);
-                let data = result.data.toString();
-                console.log("Block Data=", data);
-                resolve(data);
-            })
-            //.then((data) => console.assert(data === blobtxt, "Should round trip ok"))
-            .catch((err) => {
-                console.log("UNCAUGHT ERROR IN BLOCKTEST", err)
-                reject(err)
-            })
-    })
-    }
-    */
     /*
     async_rawlist(self, hash, verbose, success, error) {
         // obj being loaded
@@ -173,19 +156,30 @@ class TransportIPFS extends Transport {
         try {
                 let transport;
                 let verbose = true;
+                let hashqbf;
+                let hashrold
+                let qbf = "The quick brown fox"
+                let rold = "Ran over the lazy dog"
                 TransportIPFS.setup()
                 .then((t) => { console.log("setup returned");
                     transport = t; })
-                .then(() => transport.p_rawstore("The quick brown fox", verbose))
+                .then(() => transport.p_rawstore(qbf, verbose))
                 .then((hash) => {
                     console.log("rawstore returned", hash);
                     let newcid = TransportIPFS.link2cid(hash);
                     let newhash = TransportIPFS.cid2link(newcid);
                     console.assert(hash === newhash, "Should round trip");
+                    hashqbf = hash;
                 })
-                .then(()=>transport.async_rawstore(null, "Ran over the lazy dog", verbose,
-                    function(hash) { console.log("async_rawstore got",hash)}, null
+                .then(()=>transport.async_rawstore(null, rold, verbose,
+                    function(hash) { console.log("async_rawstore got",hash); hashrold=hash; }, null
                 ))
+                // Note above returns immediately and runs async, we don't wait for it before below
+                .then(()=> transport.p_rawfetch(hashqbf, verbose))
+                .then((data) => {
+                    console.log("rawfetch returned", data);
+                    console.assert(data = qbf, "Should fetch block stored above");
+                })
                 .catch((err) => {
                     console.log("test ERR=", err);
                     throw(err)
