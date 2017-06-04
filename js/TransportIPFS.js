@@ -1,4 +1,8 @@
 
+// IPFS components
+const IPFS = require('ipfs');
+const CID = require('cids');
+
 // Utility packages (ours)
 const makepromises = require('./utils/makepromises')
 
@@ -7,7 +11,6 @@ const Transport = require('./Transport.js');
 
 //Debugging only
 
-const IPFS = require('ipfs');
 
 let defaultipfsoptions = {
     repo: '/tmp/ipfs' + Math.random(), //TODO-IPFS think through where, esp for browser
@@ -68,14 +71,14 @@ class TransportIPFS extends Transport {
         })
     }
 
-    cid2link(cid) {
+    static cid2link(cid) {
         //console.log("XXX@72:",cid.multihash[0],cid.multihash[1],cid.multihash[2]);
         return "/ipfs/"+cid.toBaseEncodedString()
     }  //TODO-IPFS this might not be right, (TODO-IPFS-Q)
-    link2cid(link) {
-        arr = link.split('/');
-        console.assert(length(arr)===2 && arr[0]==="ipfs");
-        return new CID(arr[1])
+    static link2cid(link) {
+        let arr = link.split('/');
+        console.assert(arr.length===3 && arr[1]==="ipfs");
+        return new CID(arr[2])
     }
     async_rawfetch(self, hash, verbose, success, error) {
         // Locate and return a block, based on its multihash
@@ -137,9 +140,9 @@ class TransportIPFS extends Transport {
         return new Promise((resolve, reject) =>
             this.promisified.ipfs.block.put(buf)
                 .then((block) => { // Debugging of CID - can eliminate this clause
-                    if (verbose) console.log("p_rawstore>",this.cid2link(block.cid));
+                    if (verbose) console.log("p_rawstore>",TransportIPFS.cid2link(block.cid));
                     //console.log("XXX@pstore data=",block.data)
-                    return (this.cid2link(block.cid));
+                    return (TransportIPFS.cid2link(block.cid));
                 })
                 .then((hash) => resolve(hash))
                 .catch((err) => reject(err))
@@ -176,6 +179,9 @@ class TransportIPFS extends Transport {
                 .then(() => transport.p_rawstore("The quick brown fox", verbose))
                 .then((hash) => {
                     console.log("rawstore returned", hash);
+                    let newcid = TransportIPFS.link2cid(hash);
+                    let newhash = TransportIPFS.cid2link(newcid);
+                    console.assert(hash === newhash, "Should round trip");
                 })
                 .then(()=>transport.async_rawstore(null, "Ran over the lazy dog", verbose,
                     function(hash) { console.log("async_rawstore got",hash)}, null
