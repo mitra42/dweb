@@ -54,12 +54,13 @@ OALSimple = {
 }
 const annotationList = db.annotationList(originalAnnotationListExample)
 
-console.log("XXX@57 - ipfs exprimental start")
-db.ipfs.init()
-    .then(()=>db.ipfs.start());    // XXX Added
+console.log("XXX@57 - ipfs exprimental start", db.ipfs.isOnline())
+//db.ipfs.init({emptyRepo: true, bits: 2048})
+//    .then(()=>db.ipfs.start());    // XXX Added
 
 annotationList.on('started', (event) => {
     //console.log('started', event)
+    console.log("GR started", db.ipfs.isOnline());
     gr = annotationList.getResources();
     console.log("GR at start = ", gr);
     //console.log('annotation list now is:', annotationList.toJSON())
