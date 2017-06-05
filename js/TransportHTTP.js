@@ -1,4 +1,5 @@
 const TransportHTTPBase = require('./TransportHTTPBase.js');
+//TODO-IPFS rewrite as promises
 
 class TransportHTTP extends TransportHTTPBase {
 
