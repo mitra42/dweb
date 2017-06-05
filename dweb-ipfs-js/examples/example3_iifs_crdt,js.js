@@ -35,7 +35,7 @@ const ipfsOptions = {
     }
 }
 options = { ipfs: ipfsOptions, store: "leveldb", partion: "iiif" }
-const db = DB(options);
+const db = DB(options); // { ipfs, annotationList)
 
 // Get an anotations object
 //TODO see how much of this originalAnnotationList is required
@@ -54,7 +54,9 @@ OALSimple = {
 }
 const annotationList = db.annotationList(originalAnnotationListExample)
 
-
+console.log("XXX@57 - ipfs exprimental start")
+db.ipfs.init()
+    .then(()=>db.ipfs.start());    // XXX Added
 
 annotationList.on('started', (event) => {
     //console.log('started', event)
@@ -79,7 +81,7 @@ annotationList.on('resource inserted', (event) => {
 
 
 alnow = annotationList.getResources();
-console.log("AL.resource=",alnow);
+console.log("After setup AL.resource=",alnow);
 
 resource1 = {
     "@id": "foobar123",
@@ -95,7 +97,7 @@ annotationList.pushResource(resource1);
 console.log("ANNOTATION LIST NOW:", annotationList.toJSON());
 
 alnow = annotationList.getResources();
-console.log("AL.resource=",alnow);
+console.log("Immediately after pushResource, AL.resource=",alnow);
 
 
 function delay(ms, val) { return new Promise(resolve => {setTimeout(() => { resolve(val); },ms)})}

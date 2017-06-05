@@ -2,6 +2,8 @@
 // IPFS components
 const IPFS = require('ipfs');
 const CID = require('cids');
+const IIIFDB = require('ipfs-iiif-db')
+
 
 // Utility packages (ours)
 const makepromises = require('./utils/makepromises')
@@ -14,12 +16,22 @@ const Transport = require('./Transport.js');
 
 let defaultipfsoptions = {
     repo: '/tmp/ipfs' + Math.random(), //TODO-IPFS think through where, esp for browser
-    init: false,
-    start: false,
+    //init: false,
+    //start: false,
+    config: {
+        Addresses: { Swarm: [ '/libp2p-webrtc-star/dns4/star-signal.cloud.ipfs.team/wss' ] },   // For IIIF - same as defaults
+        Discovery: { webRTCStar: { Enabled: true } }    // For IIIF - same as defaults
+    },
     EXPERIMENTAL: {
         pubsub: true
     }
 };
+
+let iiifoptions = { ipfs: defaultipfsoptions, store: "leveldb", partion: "iiif" }
+
+const annotationlistexample = { //TODO-IPFS match to structure of list additios
+    "@id": "foobar",    // Only required field is @id
+}
 
 class TransportIPFS extends Transport {
 
@@ -31,14 +43,17 @@ class TransportIPFS extends Transport {
 
     }
 
-
-    // This chunk starts up IPFS
+    // This chunk starts up IPFS (old version w/o IIIF)
     static ipfsstart(ipfsoptions) {
-        let ipfs = new IPFS(ipfsoptions);
+        //let ipfs = new IPFS(ipfsoptions); // Without CRDT (for lists)
+        const res = IIIFDB(iiifoptions); //Note this doesn't start it
+        const ipfs = res.ipfs
+        const annotationList = res.annotationList(annotationlistexample)    //TODO-IPFS move this to the list command
         return new Promise((resolve, reject) => {
             ipfs.version()
                 .then((version) => console.log("Version=", version))
                 .then((unused) => ipfs.init({emptyRepo: true, bits: 2048}))
+                .then((version) => console.log("initialized"))
                 .then((unused) => ipfs.start())
                 .then((unused) => {
                     if (ipfs.isOnline()) console.log('IPFS node is now ready and online');
@@ -95,7 +110,16 @@ class TransportIPFS extends Transport {
         if (verbose) console.log("async_rawfetch continuining")
     }
 
-//TODO-IPFS review from here down
+
+     p_rawlist(hash, verbose) {
+     // obj being loaded
+     // Locate and return a block, based on its multihash
+     // Call chain is mb.load > CL.fetchlist > THttp.rawlist > Thttp.load > CL|MB.fetchlist.success > callers.success
+     console.assert(hash, "TransportHTTP.async_rawlist: requires hash");
+     this.async_load("rawlist", hash, verbose, success, error);
+     }
+
+     //TODO-IPFS review from here down
 
     /*
     async_rawlist(self, hash, verbose, success, error) {
@@ -174,3 +198,57 @@ class TransportIPFS extends Transport {
 }
 exports = module.exports = TransportIPFS;
 
+/* TODO-IPFS need this
+
+annotationList.on('started', (event) => {
+    //console.log('started', event)
+    gr = annotationList.getResources();
+    console.log("GR at start = ", gr);
+    //console.log('annotation list now is:', annotationList.toJSON())
+})
+*/
+
+/*
+ annotationList.on('mutation', (event) => {
+ console.log('new mutation', event)
+ gr = annotationList.getResources();
+ console.log("GR = ", gr);
+ //console.log('annotation list now is:', annotationList.toJSON())
+ })
+ */
+
+/* TODO-IPFS need this
+annotationList.on('resource inserted', (event) => {
+    //console.log('resource inserted', event)
+    console.log("Added= ", event.value);
+})
+*/
+
+/* TODO-IPFS need this in test
+alnow = annotationList.getResources();
+console.log("AL.resource=",alnow);
+
+resource1 = {
+    "@id": "foobar123",
+    "content": "This is a test, this is only a test"
+}
+resource2 = {
+    "@id": "foobar123",
+    "content": "And this is another test"
+}
+annotationList.pushResource(resource1);
+console.log("ANNOTATION LIST NOW:", annotationList.toJSON());
+
+alnow = annotationList.getResources();
+console.log("AL.resource=",alnow);
+
+
+function delay(ms, val) { return new Promise(resolve => {setTimeout(() => { resolve(val); },ms)})}
+
+console.log("example2_iifs_crdt.js queueing");
+
+delay(2000,resource2).then((x) => annotationList.pushResource(resource2))
+delay(2000,"Delayed 200").then((x) => console.log(x))
+
+console.log("example2_iifs_crdt.js finishing");
+*/

@@ -7,7 +7,11 @@
   "scripts": {
     "bundletest": "browserify ./test.js >test_bundled.js",
     "bundle": "browserify ./browser.js >../dweb_bundled.js",
-    "watch": "watchify ./browser.js -o ../dweb_bundled.js --verbose"
+    "watch": "watchify ./browser.js -o ../dweb_bundled.js --verbose",
+    "compile": "browserify src/app.js --require browserify-zlib-next:zlib --external y-leveldb -o public/js/app.js -d",
+    "serve": "http-server -c-1 -p 12345 public",
+    "start": "npm run compile && npm run serve"
+
   },
   "keywords": [],
   "license": "MIT",
