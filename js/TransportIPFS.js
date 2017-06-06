@@ -14,6 +14,9 @@ const Transport = require('./Transport.js');
 //Debugging only
 
 
+var globaltransport;  //TODO-IPFS move to use from Dweb
+var globalannotationList;  //TODO-IPFS move to use from Dweb
+
 let defaultipfsoptions = {
     repo: '/tmp/ipfs' + Math.random(), //TODO-IPFS think through where, esp for browser
     //init: false,
@@ -27,7 +30,7 @@ let defaultipfsoptions = {
     }
 };
 
-let iiifoptions = { ipfs: defaultipfsoptions, store: "leveldb", partion: "iiif" }
+let iiifoptions = { ipfs: defaultipfsoptions, store: "leveldb", partition: "iiif" }   //*Use "leveldb" for node and indexeddb (not sure how to represent)
 
 const annotationlistexample = { //TODO-IPFS match to structure of list additios
     "@id": "foobar",    // Only required field is @id
@@ -46,19 +49,36 @@ class TransportIPFS extends Transport {
     // This chunk starts up IPFS (old version w/o IIIF)
     static ipfsstart(ipfsoptions) {
         //let ipfs = new IPFS(ipfsoptions); // Without CRDT (for lists)
-        const res = IIIFDB(iiifoptions); //Note this doesn't start it
-        const ipfs = res.ipfs
-        const annotationList = res.annotationList(annotationlistexample)    //TODO-IPFS move this to the list command
+        const res = IIIFDB(iiifoptions); //Note this doesn't start either IPFS or annotationlist
+        const ipfs = res.ipfs;
+        let annotationList;
+        /*
+        const annotationList = res.annotationList(annotationlistexample)    //TODO-IPFS move this to the list command - means splitting stuff under it that calls bootstrap
+        globalannotationList = annotationList;  // TODO-IPFS remove need for global
+        annotationList.on('started', (event) => {
+            console.log('-------XXX-------- annotationList started', event);
+            let gr = annotationList.getResources();
+            console.log("GR at start = ", gr);
+        })
+        */
         return new Promise((resolve, reject) => {
             ipfs.version()
                 .then((version) => console.log("Version=", version))
-                .then((unused) => ipfs.init({emptyRepo: true, bits: 2048}))
-                .then((version) => console.log("initialized"))
-                .then((unused) => ipfs.start())
-                .then((unused) => {
-                    if (ipfs.isOnline()) console.log('IPFS node is now ready and online');
-                    resolve(ipfs);
-                })    //TODO throw error if not online
+                //TODO-IPFS - may have to disable init and start for CRDT/lists
+                //.then((unused) => ipfs.init({emptyRepo: true, bits: 2048}))
+                //.then((version) => console.log("initialized"))
+                //.then((unused) => ipfs.start())
+                .then((unused) => console.log("IPFS node",ipfs.isOnline() ? "and online" : "but offline"))    //TODO throw error if not online
+                .then(() => {
+                    annotationList = res.annotationList(annotationlistexample);    //TODO-IPFS move this to the list command - means splitting stuff under it that calls bootstrap
+                    annotationList.on('started', (event) => {
+                        console.log('-------XXX-------- annotationList started', event);
+                        let gr = annotationList.getResources();
+                        console.log("GR at start = ", gr);
+                        resolve(ipfs)   // Cant resolve till annotation list online
+                    });
+                })
+                //.then(() => resolve(ipfs))  // Whatever happens above, want to return ipfs to caller
                 .catch((err) => {
                     console.log("UNCAUGHT ERROR in ipfsstart", err);
                     reject(err)
@@ -111,12 +131,16 @@ class TransportIPFS extends Transport {
     }
 
 
-     p_rawlist(hash, verbose) {
+     p_rawlist(hash, verbose) { //TODO-IPFS move initialization of annotation list here
      // obj being loaded
      // Locate and return a block, based on its multihash
      // Call chain is mb.load > CL.fetchlist > THttp.rawlist > Thttp.load > CL|MB.fetchlist.success > callers.success
-     console.assert(hash, "TransportHTTP.async_rawlist: requires hash");
-     this.async_load("rawlist", hash, verbose, success, error);
+        console.assert(hash, "TransportHTTP.async_rawlist: requires hash");
+        globalannotationList.on('started', (event) => {
+            console.log('annotationList started', event);
+            gr = annotationList.getResources();
+            console.log("GR at start = ", gr);
+        })
      }
 
      //TODO-IPFS review from here down
@@ -160,15 +184,19 @@ class TransportIPFS extends Transport {
 
     static test() {
         try {
-                let transport;
                 let verbose = true;
                 let hashqbf;
                 let hashrold
                 let qbf = "The quick brown fox"
                 let rold = "Ran over the lazy dog"
+                let transport
                 TransportIPFS.setup()
-                .then((t) => { console.log("setup returned");
-                    transport = t; })
+                .then((t) => { console.log("setup returned and transport set");
+                    transport = t;
+                    globaltransport = transport;    //TODO-IPFS remove need for globaltransport and globalannotationList
+                })
+
+                //.then(() => { transport.p_rawlist("UNDEFINED", verbose); console.log("XXX@200p_rawlist returned")})
                 .then(() => transport.p_rawstore(qbf, verbose))
                 .then((hash) => {
                     console.log("rawstore returned", hash);
@@ -186,6 +214,7 @@ class TransportIPFS extends Transport {
                     console.log("rawfetch returned", data);
                     console.assert(data = qbf, "Should fetch block stored above");
                 })
+
                 .catch((err) => {
                     console.log("test ERR=", err);
                     throw(err)
