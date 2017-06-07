@@ -1,12 +1,28 @@
 //const AccessControlList = require("./AccessControlList"); // Including this for some reason makes the result unavailable, maybe a loop ?
 //const KeyChain = require("./KeyChain"); // Including this for some reason makes the result unavailable, maybe a loop ?
+//TODO-IPFS gradually uncomment file as required
+
+//IPFS packages needed
+const multihashes = require('multihashes');
+
+/*TODO-IPFS
 const sodium = require("libsodium-wrappers");
 const Dweb = require("./Dweb");
+*/
+const crypto = require ('crypto')
 
 CryptoLib = {}
 // ==== Crypto.py - Encapsulate all the Cryptography =========
-CryptoLib.Curlhash = function(data) { return "BLAKE2."+ sodium.crypto_generichash(32, data, null, 'urlsafebase64'); }
-
+// This was the libsodium version using Blake2
+//CryptoLib.Curlhash = function(data) { return "BLAKE2."+ sodium.crypto_generichash(32, data, null, 'urlsafebase64'); }
+//Specific to IPFS
+CryptoLib.Curlhash = function(data) {
+    let b2 = (data instanceof Buffer) ? data : new Buffer(data);
+    let b3 = crypto.createHash('sha256').update(b2).digest();
+    hash = multihashes.toB58String(multihashes.encode(b3, 'sha2-256'));  //TODO-IPFS-Q unclear how to make generic
+    return "/ipfs/"+hash
+}
+/*TODO-IPFS
 CryptoLib._signable = function(date, data) {
         /*
          Returns a string suitable for signing and dating, current implementation includes date and storage hash of data.
@@ -16,7 +32,7 @@ CryptoLib._signable = function(date, data) {
          :param data: Storage hash of data signed (as returned by Transport layer) - will convert to str if its unicode
          :return: Signable or comparable string
          COPIED TO JS 2017-05-23
-         */
+         *-/
         return date.toISOString() + data;
     }
 
@@ -28,7 +44,7 @@ CryptoLib.signature = function(keypair, date, hash, verbose) {
         :param date: Date that signing (usually now)
         :return: signature that can be verified with verify
         COPIED FROM PYTHON 2017-05-23 excluding RSA and WordHashKey support
-        */
+        *-/
         let signable = CryptoLib._signable(date, hash); // A string we can sign
         if (keypair._key.sign.privateKey) {
             //if (keypair._key instanceof nacl.signing.SigningKey):
@@ -53,7 +69,7 @@ CryptoLib.decryptdata = function(value, verbose) {
 
          :param value:
          :return:
-         */
+         *-/
         if (value.encrypted) {
             let hash = value.acl;
             let kc = Dweb.KeyChain.find(hash);  // Matching KeyChain or None
@@ -74,6 +90,6 @@ CryptoLib.decryptdata = function(value, verbose) {
 CryptoLib.randomkey = function() { console.assert(false, "XXX Undefined function CryptoLib.randomkey"); }
 CryptoLib.sym_encrypt = function() { console.assert(false, "XXX Undefined function CryptoLib.sym_encrypt"); }
 CryptoLib.sym_decrypt = function() { console.assert(false, "XXX Undefined function CryptoLib.sym_decrypt"); }
-
+*/ //TODO-IPFS end of section to work through
 exports = module.exports = CryptoLib;
 

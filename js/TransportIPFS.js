@@ -13,6 +13,14 @@ TODO-IPFS-MULTILIST
 For now we use one list, and filter by hash, at some point we'll need lots of lists and its unclear where to split
 - at listener; partition or list within that (resources / hits) or have to filter on content
 
+TODO-IPFS
+Work back up file stash:
+    Done: Transport, TransportIPFS
+    ComeBckFor: TransportHTTP & TransportLocal (make use promises)
+    Next queue: Transportable, Block
+Use multihash before storing
+
+
 */
 
 
@@ -22,6 +30,9 @@ For now we use one list, and filter by hash, at some point we'll need lots of li
 const IPFS = require('ipfs');
 const CID = require('cids');
 const IIIFDB = require('ipfs-iiif-db');  //https://github.com/pgte/ipfs-iiif-db
+const multihashing = require('multihashing-async'); //TODO-IPFS Only for testing - can remove
+const multihashes = require('multihashes');  //TODO-IPFS Only for testing - can remove - and use CryptoHash.Curlhash
+const crypto = require('crypto'); //TODO-IPFS only for testing - can remove
 
 // Utility packages (ours) Aand one-loners
 const makepromises = require('./utils/makepromises');
@@ -30,6 +41,7 @@ function consolearr(arr) { return (arr && arr.length >0) ? [arr.length+" items i
 
 // Other Dweb modules
 const Transport = require('./Transport.js');
+const Dweb = require('./Dweb.js')
 
 //Debugging only
 
@@ -222,57 +234,68 @@ class TransportIPFS extends Transport {
     */
 
 
-    static test() {
-        try {
-                let verbose = true;
+    static test(transport) {
+        return new Promise((resolve, reject) => {
+            try {
+                let verbose = false;
                 let hashqbf;
                 let hashrold;
                 let qbf = "The quick brown fox";
                 let rold = "Ran over the lazy dog";
-                let transport;
                 let testhash = "1114";
                 let listlen;    // Holds length of list run intermediate
-                TransportIPFS.setup({}, verbose, {})
-                .then((t) => { if (verbose) console.log("setup returned and transport set - including annoationList");
-                    transport = t;
-                    globaltransport = transport;    //TODO-IPFS remove need for globaltransport and globalannotationList
-                })
-
-                //.then(() => { transport.p_rawlist("UNDEFINED", verbose); console.log("XXX@200p_rawlist returned")})
-                .then(() => transport.p_rawstore(qbf, verbose))
-                .then((hash) => {
-                    if (verbose) console.log("rawstore returned", hash);
-                    let newcid = TransportIPFS.link2cid(hash);
-                    let newhash = TransportIPFS.cid2link(newcid);
-                    console.assert(hash === newhash, "Should round trip");
-                    hashqbf = hash;
-                })
-                .then(()=>transport.async_rawstore(null, rold, verbose,
-                    function(hash) { if (verbose) console.log("async_rawstore got",hash); hashrold=hash; }, null
-                ))
-                // Note above returns immediately and runs async, we don't wait for it before below
-                .then(()=> transport.p_rawfetch(hashqbf, verbose))
-                .then((data) => console.assert(data === qbf, "Should fetch block stored above"))
-                .then(() => transport.p_rawlist(testhash, verbose))
-                .then((res) => { listlen=res.length; if (verbose) console.log("rawlist returned ",...consolearr(res))})
-                .then(() => transport.listmonitor(testhash, (obj)=> console.log("Monitored",obj), verbose))
-                .then((res) => transport.p_rawadd("123", "TODAY", "Joe Smith", testhash, verbose))
-                .then(() => { if (verbose) console.log("p_rawadd returned ")})
-                .then(() => transport.p_rawlist(testhash, verbose))
-                .then((res) => {if (verbose) console.log("rawlist returned ",...consolearr(res))}) // Note not showing return
-                .then(() => delay(2000))
-                .then(() => transport.p_rawlist(testhash, verbose))
-                .then((res) => console.assert(res.length = listlen+1, "Should have added one item"))
-                .then(() => console.log("delaying 10 secs"))
-                .then(() => delay(10000))
-                .then(() => console.log("TransportIPFS test complete"))
-                .catch((err) => {
-                    console.log("test ERR=", err);
-                    throw(err)
-                });
-        } catch (err) {
-            console.log("Exception thrown in TransportIPFS.test", err)
-        }
+                let cidmultihash;   // Store cid from first block in form of multihash
+                transport.p_rawstore(qbf, verbose)
+                    .then((hash) => {
+                        if (verbose) console.log("rawstore returned", hash);
+                        let newcid = TransportIPFS.link2cid(hash);  // Its a CID which has a buffer in it
+                        cidmultihash = hash.split('/')[2]
+                        //console.log("XXX@258",cidmultihash)
+                        let newhash = TransportIPFS.cid2link(newcid);
+                        console.assert(hash === newhash, "Should round trip");
+                        hashqbf = hash;
+                    })
+                    .then(() => transport.async_rawstore(null, rold, verbose,
+                        function (hash) {
+                            if (verbose) console.log("async_rawstore got", hash);
+                            hashrold = hash;
+                        }, null
+                    ))
+                    // Note above returns immediately and runs async, we don't wait for it before below
+                    .then(() => transport.p_rawfetch(hashqbf, verbose))
+                    .then((data) => console.assert(data === qbf, "Should fetch block stored above"))
+                    .then(() => transport.p_rawlist(testhash, verbose))
+                    .then((res) => {
+                        listlen = res.length;
+                        if (verbose) console.log("rawlist returned ", ...consolearr(res))
+                    })
+                    .then(() => transport.listmonitor(testhash, (obj) => console.log("Monitored", obj), verbose))
+                    .then((res) => transport.p_rawadd("123", "TODAY", "Joe Smith", testhash, verbose))
+                    .then(() => { if (verbose) console.log("p_rawadd returned ")  })
+                    .then(() => transport.p_rawlist(testhash, verbose))
+                    .then((res) => { if (verbose) console.log("rawlist returned ", ...consolearr(res)) }) // Note not showing return
+                    .then(() => delay(500))
+                    .then(() => transport.p_rawlist(testhash, verbose))
+                    .then((res) => console.assert(res.length = listlen + 1, "Should have added one item"))
+                    .then(() => console.log("TransportIPFS test complete"))
+                    .then(() => { // Can get multihash but not synchrnously. Unclear why that is so hard
+                            multihashing(qbf, 'sha2-256', (err, multihash) => {
+                                console.assert(multihashes.toB58String(multihash) === cidmultihash, "Should match multihash format from block.put")
+                            })
+                    })
+                    .then(() => {
+                        let b2 = crypto.createHash('sha256').update(new Buffer(qbf)).digest();
+                        console.assert(multihashes.toB58String(multihashes.encode(b2, 'sha2-256')) === cidmultihash, "Should match multihash format from block.put");
+                    })
+                    .then(() => resolve())
+                    .catch((err) => {
+                        console.log("test ERR=", err);
+                        reject(err)
+                    });
+            } catch (err) {
+                    console.log("Exception thrown in TransportIPFS.test", err)
+            }
+        })
     }
 
 }

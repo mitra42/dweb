@@ -1,17 +1,22 @@
 //exports.TransportHTTP = require('./TransportHTTP');   //TODO-IPFS temporarily commented out
+/* TODO-IPFS gradually uncomment this file */
+/* TODO-IPFS
 exports.StructuredBlock = require('./StructuredBlock');
 exports.MutableBlock = require('./MutableBlock');
 exports.KeyChain = require('./KeyChain');
-
+*/ //TODO-IPFS
 
 // Javascript library for dweb
 // The crypto uses https://github.com/jedisct1/libsodium.js but https://github.com/paixaop/node-sodium may also be suitable if we move to node
 
 exports.utils = {}; //utility functions
+exports.errors = {}; //Errors - as classes
 
+/* TODO-IPFS
 exports.dwebserver = 'localhost';
 //exports.dwebserver = '192.168.1.156';
 exports.dwebport = '4243';
+*/ //TODO-IPFS
 exports.keychains = [];
 
 // Constants    //TODO move these to KeyPair
@@ -35,6 +40,16 @@ exports.utils.ToBeImplementedException = function(...args) {
     console.assert(false, ...args);
     //alert(msg);
 };
+
+class TransportError extends Error {
+    constructor(message) {
+        super(message || "Transport failure");
+        this.name = "TransportError"
+        // See MDN definition of error, may need to set stack
+    }
+}
+exports.errors.TransportError = TransportError
+
 
 // Utility functions
 
@@ -72,6 +87,7 @@ exports.utils.async_objbrowserfetch = function(el) {
 
 // ==== NON OBJECT ORIENTED FUNCTIONS ==============
 
+/* TODO-IPFS
 exports.async_dwebfile = function(table, hash, path, successmethod, error) {
     // Simple utility function to load into a hash without dealing with individual objects
     // successmethod - see "path()" for definition.
@@ -125,12 +141,13 @@ exports.async_dweblist = function(div, hash, verbose, success, successmethodeach
         },
         error);
 };
+*/ //TODO-IPFS
 // ======== EXPERIMENTAL ZONA ==================
 
 //TODO BROWSER----
 //-data collapsable
 
-//TODO-IPFS This was uncommented for browser version that was working
+//TODO-IPFS This was uncommented for browser version that was working, done in test_ipfs.js for now
 //exports.transport = exports.TransportHTTP.setup([exports.dwebserver, exports.dwebport], {});
 
 

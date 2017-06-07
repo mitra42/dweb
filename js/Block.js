@@ -14,5 +14,6 @@ class Block extends Transportable {
     }
 
 }
+
 exports = module.exports = Block;
 

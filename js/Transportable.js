@@ -18,7 +18,24 @@ class Transportable {
         return this._data;  // Default behavior - opaque bytes
     }
 
-    async_store(verbose, success, error) {    // Python has a "data" parameter to override this._data but probably not needed
+    p_store(verbose) {    // Python has a "data" parameter to override this._data but probably not needed
+        //TODO-IPFS callers can't use hash till after stored
+        let data = this._getdata();
+        if (verbose) console.log("Transportable.store data=", data);
+        this._hash = CryptoLib.Curlhash(data); //store the hash since the HTTP is async
+        if (verbose) console.log("Transportable.store hash=", this._hash);
+        let self = this;
+        return Dweb.transport.p_rawstore(data, verbose)
+            .then((msg) => {
+                if (msg !== self._hash) {
+                    console.log("ERROR Hash returned ",msg,"doesnt match hash expected",self._hash);
+                    throw new Dweb.errors.TransportError("Hash returned "+msg+" doesnt match hash expected "+self._hash)
+                }
+                return(msg); // Note this will be a return from the promise.
+            }) // Caller should handle error and success
+    }
+
+    async_store(verbose, success, error) {    // Python has a "data" parameter to override this._data but probably not needed //TODO-IPFS-OBSOLETE
         let data = this._getdata();
         if (verbose) console.log("Transportable.store data=", data);
         this._hash = CryptoLib.Curlhash(data); //store the hash since the HTTP is async
@@ -34,7 +51,7 @@ class Transportable {
             },
             error); // Returns immediately BEFORE storing
         if (verbose) { console.log("Transportable.store hash=", this._hash); }
-        return this;    // For chaining, hash is valid, but note not yet stored
+        return this;    // For chaining, this._hash is valid
     }
 
     dirty() {   // Flag as dirty so needs uploading - subclasses may delete other, now invalid, info like signatures
