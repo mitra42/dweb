@@ -234,10 +234,9 @@ class TransportIPFS extends Transport {
     */
 
 
-    static test(transport) {
+    static test(transport, verbose) {
         return new Promise((resolve, reject) => {
             try {
-                let verbose = false;
                 let hashqbf;
                 let hashrold;
                 let qbf = "The quick brown fox";

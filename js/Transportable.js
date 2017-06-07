@@ -37,7 +37,7 @@ class Transportable {
 
     async_store(verbose, success, error) {    // Python has a "data" parameter to override this._data but probably not needed //TODO-IPFS-OBSOLETE
         let data = this._getdata();
-        if (verbose) console.log("Transportable.store data=", data);
+        if (verbose) console.log("Transportable.async_store data=", data);
         this._hash = CryptoLib.Curlhash(data); //store the hash since the HTTP is async
         let self = this;
         Dweb.transport.async_rawstore(this, data, verbose,
@@ -60,10 +60,26 @@ class Transportable {
 
     fetch() { console.assert(false, "XXX Undefined function Transportable.fetch"); } // Replaced by load
 
-    async_load(verbose, success, error) {
+    p_fetch(verbose) { //Obsoletes async_load
+        // Promise equiv of PY:fetch and async_load
+        // Resolves whether needs to load or not as will often load and then do something.
+        if (verbose) { console.log("Transportable.p_fetch hash=",this._hash); }
+        if (this._needsfetch) { // Only load if need to
+            let self = this;
+            this._needsfetch = false;    // Set false before return so not multiply fetched
+            return Dweb.transport.p_rawfetch(this._hash, verbose)
+                .then((data) => { if (data) self._setdata(data)})
+        } else {
+            console.log("XXX@73 - confirm this next is really a Noop")
+            return new Promise((resolve, reject)=> resolve(null));  // I think this should be a noop - fetched already
+        }
+        // Block fetched in the background - dont assume loaded here - see success for actions post-load
+
+    }
+    async_load(verbose, success, error) { //TODO-IPFS obsolete with p_fetch
         // Asynchronous equiv of fetch
         // Runs success whether needs to load or not as will often load and then do something.
-        if (verbose) { console.log("Transportable.load hash=",this._hash); }
+        if (verbose) { console.log("Transportable.async_load hash=",this._hash); }
         if (this._needsfetch) { // Only load if need to
             let self = this;
             Dweb.transport.async_rawfetch(this, this._hash, verbose,
