@@ -1,5 +1,6 @@
 const SmartDict = require("./SmartDict");
-const CryptoLib = require("./CryptoLib");
+const Dweb = require("./Dweb");
+
 // ######### Parallel development to SignedBlock.py which also has SignedBlocks and Signatures classes ########
 
 class Signature extends SmartDict {
@@ -13,8 +14,11 @@ class Signature extends SmartDict {
     }
     //TODO need to be able to verify signatures
     static sign(commonlist, hash, verbose) {
+        /*
+        :param hash: of item being signed
+         */
         let date = new Date(Date.now());  //TODO-DATE //TODO-ASYNC
-        let signature = CryptoLib.signature(commonlist.keypair, date, hash);
+        let signature = Dweb.CryptoLib.signature(commonlist.keypair, date, hash);
         if (!commonlist._publichash) commonlist.async_store(verbose, null, null); // Sets _publichash sync, while storing async
         console.assert(commonlist._publichash, "Signature.sign should be a publichash by here");
         return new Signature(null, {"date": date, "signature": signature, "signedby": commonlist._publichash})
@@ -25,6 +29,13 @@ class Signature extends SmartDict {
         Should be defined on CommonList
         earliest(), fetch(hash), blocks(), latest()
      */
+
+    static filterduplicates(arr) {
+        let res = {}
+        // Remove duplicate signatures
+        return arr.filter((x) => (!res[x.hash] && (res[x.hash] = true)))
+    }
+
 
 }
 exports = module.exports = Signature;

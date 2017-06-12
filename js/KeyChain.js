@@ -1,14 +1,12 @@
-const CommonList = require("./CommonList");
-const MutableBlock = require("./MutableBlock");
-const KeyPair = require("./KeyPair");
-const UnknownBlock = require("./UnknownBlock");
-
+const CommonList = require("./CommonList");  // Superclass
 const Dweb = require("./Dweb");
+
 // ######### Parallel development to MutableBlock.py ########
+
+// Note naming convention - p_xyz means it returns a Promise
 
 class KeyChain extends CommonList {
     // This class is pulled form MutableBlock.py
-    // Notable changes:
 
 
     constructor(hash, data, master, keypair, keygen, mnemonic, verbose) { //Note not all these parameters are supported (yet) by CommonList.constructor
@@ -16,7 +14,18 @@ class KeyChain extends CommonList {
         if (!this._keys) this._keys = []; // Could be overridden by data in super
         this.table = "kc";
     }
-    static async_new(mnemonic, keygen, name, verbose, success, error) {
+    static p_new(mnemonic, keygen, name, verbose) {
+        let kc = new KeyChain(null, { "name": name }, true, null, keygen, mnemonic, verbose);
+        return kc.p_store(verbose) // Dont need to wait on store to load and fetchlist but will do so to avoid clashes
+            .then(() => KeyChain.addkeychains(kc))
+            .then(() => kc.p_loadandfetchlist(verbose))
+            .then(() => kc) //Fetches blocks in async_fetchlist.success
+            // Note kc returned from promise NOT from p_new so have to catch in a ".then"
+        //if verbose: print "Created keychain for:", kc.keypair.private.mnemonic
+        //if verbose and not mnemonic: print "Record these words if you want to access again"
+    }
+
+    static async_new(mnemonic, keygen, name, verbose, success, error) { console.trace(); console.assert(false, "OBSOLETE 28"); //TODO-IPFS obsolete with p_fetch
         let kc = new KeyChain(null, { "name": name }, true, null, keygen, mnemonic, verbose);
         kc.async_store(verbose, null, error);
         // Dont need to wait on store to load and fetchlist
@@ -28,7 +37,17 @@ class KeyChain extends CommonList {
     }
     keytype() { return Dweb.KEYPAIRKEYTYPESIGNANDENCRYPT; }  // Inform keygen
 
-    async_fetchlist(verbose, success, error) {  // Check callers of fetchlist and how pass parameters
+    p_fetchlist(verbose) {
+        // Call chain is kc.async_new > kc.loadandfetchlist > KC.async_fetchlist > THttp.async_rawlist > Thttp.list > KC.fetchlist.success > caller's success
+        let self = this;
+        return super.p_fetchlist(verbose)
+            // Called after CL.async_fetchlist has unpacked data into Signatures in _list
+            .then(() => Promise.all(Dweb.Signature.filterduplicates(self._list).map((sig) => new Dweb.UnknownBlock(sig.hash, verbose).p_fetch(verbose))))
+            .then((arr) => self._keys = arr)
+            .then(() => { if (verbose) console.log("Got keys", self._keys)})
+    }
+
+    async_fetchlist(verbose, success, error) {  console.trace(); console.assert(false, "OBSOLETE 51"); //TODO-IPFS obsolete with p_fetch // Check callers of fetchlist and how pass parameters
         // Call chain is kc.async_new > kc.loadandfetchlist > KC.async_fetchlist > THttp.async_rawlist > Thttp.list > KC.fetchlist.success > caller's success
         let self = this;
         super.async_fetchlist(verbose,
@@ -40,8 +59,8 @@ class KeyChain extends CommonList {
                     self._keysloading += 1;
                     let sig = self._list[i];
                     if (! results[sig.hash]) {
-                        let key = new UnknownBlock(sig.hash, verbose);
-                        results[sig.hash] = key;
+                        let key = new Dweb.UnknownBlock(sig.hash, verbose);
+                        results[sig.hash] = key;    // So don't duplicate loads
                         key.async_load(verbose, ["addtokeysonload", self, success], null);   // Order isn't significant - could be MB or ACL
                     }
                 }
@@ -57,7 +76,22 @@ class KeyChain extends CommonList {
     }
 
 
-    async_add(obj, verbose, success, error) {
+    p_addobj(obj, verbose) {
+        /*
+         Add a obj (usually a MutableBlock or a ViewerKey) to the keychain. by signing with this key.
+         Item should usually itself be encrypted (by setting its _acl field)
+         COPIED FROM PYTHON 2017-05-24
+
+         :param obj: JSON structure to add to KeyChain 0 should be a Signature
+         */
+        let hash = (typeof obj === "string") ? obj : obj._hash;
+        let sig = this._makesig(hash, verbose);
+        this._list.push(sig);
+        return super.p_add(hash, sig, verbose)    // Resolves to sig
+    }
+
+
+    async_add(obj, verbose, success, error) { console.trace(); console.assert(false, "OBSOLETE 96"); //TODO-IPFS obsolete with p_*
         /*
          Add a obj (usually a MutableBlock or a ViewerKey) to the keychain. by signing with this key.
          Item should usually itself be encrypted (by setting its _acl field)
@@ -120,13 +154,27 @@ class KeyChain extends CommonList {
         return null;
     }
 
-    _async_storepublic(verbose, success, error) { // Based on python CL._storepublic, but done in each class in JS
+    _p_storepublic(verbose) {
+        // Note - doesnt return a promise, the store is happening in the background
+        console.log("KeyChain._p_storepublic");
+        let kc = new KeyChain(null, {"name": this.name}, false, this.keypair, false, null, verbose);
+        kc.p_store(verbose); // Async, but will set _hash immediately
+        this._publichash = kc._hash;  //returns immediately with precalculated hash
+    }
+
+    _async_storepublic(verbose, success, error) {  console.trace(); console.assert(false, "OBSOLETE 167"); //TODO-IPFS obsolete with p_* // Based on python CL._storepublic, but done in each class in JS
         console.log("KeyChain._async_storepublic");
         let kc = new KeyChain(null, {"name": this.name}, false, this.keypair, false, null, verbose);
         this._publichash = kc.async_store(verbose, success, error)._hash;  //returns immediately with precalculated hash
     }
 
-    async_store(verbose, success, error) {
+    p_store(verbose) {
+        // CommonList.store(verbose, success, error)
+        this.dontstoremaster = true;
+        return super.p_store(verbose)  // Stores public version and sets _publichash - never returns
+    }
+
+    async_store(verbose, success, error) { console.trace(); console.assert(false, "OBSOLETE 179"); //TODO-IPFS obsolete with p_*
         // CommonList.store(verbose, success, error)
         this.dontstoremaster = true;
         return super.async_store(verbose, success, error)  // Stores public version and sets _publichash - never returns
@@ -150,14 +198,49 @@ class KeyChain extends CommonList {
         /*
          :return: Array of Viewer Keys on the KeyChains
          */
-        return KeyChain._findbyclass(KeyPair);
+        return KeyChain._findbyclass(Dweb.KeyPair);
     }
 
     static mymutableBlocks() {
         /*
          :return: Array of Viewer Keys on the KeyChains
          */
-        return KeyChain._findbyclass(MutableBlock);
+        return KeyChain._findbyclass(DWeb.MutableBlock);
+    }
+
+    static test(verbose) {
+        if (verbose) console.log("KeyChain.test");
+        return new Promise((resolve, reject) => {
+            try {
+                // Set mnemonic to value that generates seed "01234567890123456789012345678901"
+                let mnemonic = "coral maze mimic half fat breeze thought champion couple muscle snack heavy gloom orchard tooth alert cram often ask hockey inform broken school cotton"; // 32 byte
+                // Test sequence extracted from test.py
+                let kc;
+                let mbmaster;
+                let qbf="The quick brown fox ran over the lazy duck";
+                if (verbose) {
+                    console.log("Keychain.test 0 - create");
+                }
+                KeyChain.p_new(mnemonic, false, "test_keychain kc", verbose)
+                    .then((kc1) => {
+                        kc = kc1;
+                        if (verbose) console.log("KEYCHAIN 1 - add MB to KC");
+                    })
+                    .then(() => Dweb.MutableBlock.p_new(kc, null, "test_keychain mblockm", true, qbf, true, verbose)) //acl, contentacl, name, _allowunsafestore, content, signandstore, verbose, options
+                    .then((mbmaster) => kc.p_addobj(mbmaster, verbose))   //Sign and store on KC's list (returns immediately with Sig)
+                    .then(() => {
+                        if (verbose) console.log("KeyChain.test promises complete");
+                        resolve({kc: kc, mbmaster: mbmaster});
+                    })
+                    .catch((err) => {
+                        console.log("Error in KeyChain.test", err);   // Log since maybe "unhandled" if just throw
+                        reject(err);
+                    })
+            } catch (err) {
+                console.log("Caught exception in KeyChain.test", err);
+                throw err;
+            }
+        })
     }
 }
 

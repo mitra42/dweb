@@ -20,7 +20,13 @@ class Transport {
     //noinspection JSUnusedLocalSymbols
     async_rawadd(hash, date, signature, signedby, verbose) { console.assert(false, "XXX Undefined function Transport.rawadd"); }
 
-    async_add(self, hash, date, signature, signedby, obj, verbose, success, error) {
+    p_add(hash, date, signature, signedby, obj, verbose) {
+        if (obj && !hash) hash = obj._hash;
+        console.assert(signedby && signature && hash, "async_add: Meaningless request");
+        return this.p_rawadd(hash, date, signature, signedby, verbose);
+    }
+
+    _add(self, hash, date, signature, signedby, obj, verbose, success, error) {  console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_*
         if (obj && !hash) hash = obj._hash;
         console.assert(signedby && signature && hash, "async_add: Meaningless request");
         return this.async_rawadd(self, hash, date, signature, signedby, verbose, success, error);

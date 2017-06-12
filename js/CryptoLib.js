@@ -5,11 +5,12 @@
 //IPFS packages needed
 const multihashes = require('multihashes');
 
-/*TODO-IPFS
+//Other packages needed
 const sodium = require("libsodium-wrappers");
+const crypto = require ('crypto')
+/*
 const Dweb = require("./Dweb");
 */
-const crypto = require ('crypto')
 
 CryptoLib = {}
 // ==== Crypto.py - Encapsulate all the Cryptography =========
@@ -22,7 +23,6 @@ CryptoLib.Curlhash = function(data) {
     hash = multihashes.toB58String(multihashes.encode(b3, 'sha2-256'));  //TODO-IPFS-Q unclear how to make generic
     return "/ipfs/"+hash
 }
-/*TODO-IPFS
 CryptoLib._signable = function(date, data) {
         /*
          Returns a string suitable for signing and dating, current implementation includes date and storage hash of data.
@@ -32,7 +32,7 @@ CryptoLib._signable = function(date, data) {
          :param data: Storage hash of data signed (as returned by Transport layer) - will convert to str if its unicode
          :return: Signable or comparable string
          COPIED TO JS 2017-05-23
-         *-/
+         */
         return date.toISOString() + data;
     }
 
@@ -44,7 +44,7 @@ CryptoLib.signature = function(keypair, date, hash, verbose) {
         :param date: Date that signing (usually now)
         :return: signature that can be verified with verify
         COPIED FROM PYTHON 2017-05-23 excluding RSA and WordHashKey support
-        *-/
+        */
         let signable = CryptoLib._signable(date, hash); // A string we can sign
         if (keypair._key.sign.privateKey) {
             //if (keypair._key instanceof nacl.signing.SigningKey):
@@ -69,7 +69,7 @@ CryptoLib.decryptdata = function(value, verbose) {
 
          :param value:
          :return:
-         *-/
+         */
         if (value.encrypted) {
             let hash = value.acl;
             let kc = Dweb.KeyChain.find(hash);  // Matching KeyChain or None
@@ -90,6 +90,25 @@ CryptoLib.decryptdata = function(value, verbose) {
 CryptoLib.randomkey = function() { console.assert(false, "XXX Undefined function CryptoLib.randomkey"); }
 CryptoLib.sym_encrypt = function() { console.assert(false, "XXX Undefined function CryptoLib.sym_encrypt"); }
 CryptoLib.sym_decrypt = function() { console.assert(false, "XXX Undefined function CryptoLib.sym_decrypt"); }
-*/ //TODO-IPFS end of section to work through
+
+CryptoLib.test = function(verbose) {
+     // First test some of the lower level functionality - create key etc
+    if (verbose) console.log("CryptoLib.test starting")
+    let qbf="The quick brown fox ran over the lazy duck";
+    let key = sodium.randombytes_buf(sodium.crypto_shorthash_KEYBYTES);
+    let shash_u64 = sodium.crypto_shorthash('test', key, 'urlsafebase64'); // urlsafebase64 is support added by mitra
+    key = null;
+    let hash_hex = sodium.crypto_generichash(32, qbf, key, 'hex'); // Try this with null as the key
+    let hash_64 = sodium.crypto_generichash(32, qbf, key, 'base64'); // Try this with null as the key
+    let hash_u64 = sodium.crypto_generichash(32, qbf, key, 'urlsafebase64'); // Try this with null as the key
+    if (verbose) { console.log("hash_hex = ",shash_u64, hash_hex, hash_64, hash_u64); }
+    if (hash_u64 !== "YOanaCqfg3UsKoqlNmVG7SFwLgDyB3aToEmLCH-vOzs=") { console.log("ERR Bad blake2 hash"); }
+    let signingkey = sodium.crypto_sign_keypair();
+    if (verbose) { console.log("test: SigningKey=", signingkey); }
+    let seedstr = "01234567890123456789012345678901";
+    let seed = sodium.from_string(seedstr);
+    let boxkey = sodium.crypto_box_seed_keypair(seed);
+    //FAILS - No round trip yet: if (verbose) { console.log("XXX@57 to_string=",sodium.to_string(boxkey.privateKey)); }
+}
 exports = module.exports = CryptoLib;
 

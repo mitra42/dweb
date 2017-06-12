@@ -68,7 +68,7 @@ class KeyPair extends SmartDict {
             // note this doesnt have the keyType field
             //console.log("XXX write this into KeyPair.js line 32", key.encrypt);
         }
-        if (verbose) { console.log("key generated:",key); }
+        //if (verbose) { console.log("key generated:",key); }
         return key;
     }
 

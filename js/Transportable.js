@@ -35,7 +35,7 @@ class Transportable {
             }) // Caller should handle error and success
     }
 
-    async_store(verbose, success, error) {    // Python has a "data" parameter to override this._data but probably not needed //TODO-IPFS-OBSOLETE
+    async_store(verbose, success, error) {  console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_*     // Python has a "data" parameter to override this._data but probably not needed
         let data = this._getdata();
         if (verbose) console.log("Transportable.async_store data=", data);
         this._hash = CryptoLib.Curlhash(data); //store the hash since the HTTP is async
@@ -70,13 +70,12 @@ class Transportable {
             return Dweb.transport.p_rawfetch(this._hash, verbose)
                 .then((data) => { if (data) self._setdata(data)})
         } else {
-            console.log("XXX@73 - confirm this next is really a Noop")
             return new Promise((resolve, reject)=> resolve(null));  // I think this should be a noop - fetched already
         }
         // Block fetched in the background - dont assume loaded here - see success for actions post-load
 
     }
-    async_load(verbose, success, error) { //TODO-IPFS obsolete with p_fetch
+    async_load(verbose, success, error) { console.assert(false, "Obsolete"); //TODO-IPFS obsolete with p_fetch
         // Asynchronous equiv of fetch
         // Runs success whether needs to load or not as will often load and then do something.
         if (verbose) { console.log("Transportable.async_load hash=",this._hash); }
@@ -98,11 +97,12 @@ class Transportable {
     file() { console.assert(false, "XXX Undefined function Transportable.file"); }
     url() { console.assert(false, "XXX Undefined function Transportable.url"); }
     content() { console.log("Intentionally undefined function Transportable.content - superclass should define"); }
+    p_updatelist() { console.log("Intentionally undefined function Transportable.p_updatelist - meaningless except on CL"); }
     async_updatelist() { console.log("Intentionally undefined function Transportable.async_updatelist - meaningless except on CL"); }
 
     // ==== UI method =====
 
-    async_elem(el, verbose, successmethodeach, error) {
+    async_elem(el, verbose, successmethodeach, error) { console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_fetch
         // Called from success methods
         //successeach is function to apply to each element, will be passed "this" for the object being stored at the element.
         if (this._needsfetch) {
@@ -145,6 +145,7 @@ class Transportable {
         let newoptions = options[2];
         notified[method](context, verbose, newoptions);
     }
+    // Note for tests, best to use Block.test()
 }
 exports = module.exports = Transportable;
 

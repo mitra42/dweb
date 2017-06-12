@@ -13,7 +13,7 @@ class TransportHTTPBase extends Transport {
         this.ipandport = ipandport;
         this.baseurl = "http://" + ipandport[0] + ":" + ipandport[1] + "/";
     }
-    async_load(command, hash, verbose, success, error) {
+    async_load(command, hash, verbose, success, error) { console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_*
         // Locate and return a block, based on its multihash
         // Call chain for list is mb.load > CL.fetchlist > THttp.rawlist > Thttp.load > CL|MB.fetchlist.success > callers.succes
         if (verbose) { console.log("TransportHTTP async_load:",command, ":hash=", hash); }
@@ -57,7 +57,7 @@ class TransportHTTPBase extends Transport {
         });
 
     }
-    async_post(command, hash, type, data, verbose, success, error) {
+    async_post(command, hash, type, data, verbose, success, error) { console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_*
         // Locate and return a block, based on its multihash
         verbose=true;
         if (verbose) console.log("TransportHTTP post:", command,":hash=", hash);

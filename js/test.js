@@ -19,7 +19,7 @@ const mbhash = "BLAKE2.dfMoOqTdXvqKhoZo7HPvD5raBXfgH7chXsN2PElizs8=";  // Hash r
 const mb2hash = "BLAKE2.nBWNoMyOJdhm-wrx0URYo7Utw3jG8J3boEBUcXvATVU="; // Hash reported for docs/_build/html
 const sbhash="BLAKE2.spTuo7yuSJEQyYy3rUFV2G0SCDxhkZEHhQQttozxWtQ="; // This is teh hash field from any line of list/..mbhash..
 
-function previouslyworking() {        // This was previously working in examples
+function previouslyworking() {   console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_*      // This was previously working in examples
     let verbose=false;
     console.log("StructuredBlock=======");
     let sb = new StructuredBlock(sbhash);

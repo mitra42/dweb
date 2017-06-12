@@ -12,7 +12,24 @@ class StructuredBlock extends SmartDict {
         this._date = null;  // Updated in _earliestdate when loaded
         this.table = "sb";  // Note this is cls.table on python but need to separate from dictionary
     }
-    async_store(verbose, success, error) {
+    p_store(verbose) {
+        /*
+         Store content if not already stored (note it must have been stored prior to signing)
+         Store any signatures in the Transport layer
+         Resolution of promise will happen on p_store, the addition of signatures will happen async - could change to Promise.all
+         */
+        if (!this._hash) {
+            return super.p_store(verbose);    //Sets self._hash and stores in background if has changed
+        }
+        for (let i in this._signatures) {
+            let s = this._signatures[i];
+            //PY makes copy of s, but this is because the json procedure damages the object which doesnt happen in Crypto.dumps in JS
+            Dweb.transport.p_add(this._hash, s.date, s.signature, s.signedby, null, verbose);
+        }
+        return this; // For chaining
+
+    }
+    async_store(verbose, success, error) { console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_*
         /*
          Store content if not already stored (note it must have been stored prior to signing)
          Store any signatures in the Transport layer
@@ -43,7 +60,32 @@ class StructuredBlock extends SmartDict {
         }
     }
 
-    async_path(patharr, verbose, successmethod, error) {
+    p_path(patharr, verbose, successmethod) {
+        // We cant use a function here, since the closure means it would apply to the object calling this, not the object loaded.
+        // successmethod is an array [ nameofmethod, args... ]
+        // Warning - may change the signature of this as discover how its used.
+        if (verbose) { console.log("sb.p_path",patharr, successmethod, "links=",this.links); }
+        if (patharr && patharr.length && this.links && this.links.length ) { // Have a path and can do next bit of it on this sb
+            let next = patharr.shift(); // Takes first element of patharr, leaves patharr as rest
+            if (verbose) { console.log("StructuredBlock:path next=",next); }
+            let obj = this.link(next);   //TODO handle error if not found
+            return obj.p_fetch(verbose).then(() => obj.p_path(patharr, verbose))
+        } else if (patharr && patharr.length) {
+            throw new Error("Cant follow path"+patharr);
+        } else {  // Reached end of path, can apply success
+            //TODO-IPFS unsure if have this correct
+            //if (success) { success(undefined); } //note this wont work as success defined on different object as "this"
+            if (successmethod) {
+                let methodname = successmethod.shift();
+                if (verbose) { console.log("p_path success:",methodname, successmethod); }
+                this[methodname](...successmethod); // Spreads successmethod into args, like *args in python
+            }
+            console.log("TODO-IPFS @SB.82 - confirm this next is really a Noop")
+            return new Promise((resolve, reject)=> resolve(null));  // I think this should be a noop - fetched already
+        }
+    }
+
+    async_path(patharr, verbose, successmethod, error) { console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_*
         // We cant use a function here, since the closure means it would apply to the object calling this, not the object loaded.
         // successmethod is an array [ nameofmethod, args... ]
         // Warning - may change the signature of this as discover how its used.
@@ -52,7 +94,7 @@ class StructuredBlock extends SmartDict {
             let next = patharr.shift(); // Takes first element of patharr, leaves patharr as rest
             if (verbose) { console.log("StructuredBlock:path next=",next); }
             let obj = this.link(next);   //TODO handle error if not found
-            obj.async_load(verbose, function(msg) { obj.async_path(patharr, verbose, successmethod, error); }, error);
+            return obj.async_load(verbose, function(msg) { obj.async_path(patharr, verbose, successmethod, error); }, error);
         } else if (patharr && patharr.length) {
             console.log("ERR Can't follow path",patharr);
             if (error) error(undefined);
@@ -108,8 +150,8 @@ class StructuredBlock extends SmartDict {
          :param CommonList commonlist:   List its going on - has a ACL with a private key
          :return: self
          */
-        if (!this._hash) this.async_store(verbose);  // Sets _hash immediately which is needed for signatures
-        if (!commonlist._publichash) commonlist.async_store(verbose);    // Set _publichash immediately (required for Signature.sign)
+        if (!this._hash) this.p_store(verbose);  // Sets _hash immediately which is needed for signatures
+        if (!commonlist._publichash) commonlist.p_store(verbose);    // Set _publichash immediately (required for Signature.sign)
         this._signatures.push(Signature.sign(commonlist, this._hash, verbose));
         return this;  // For chaining
     }
@@ -138,4 +180,40 @@ class StructuredBlock extends SmartDict {
         return 0;
     }
 
+    static test(transport, document, verbose) {
+        if (verbose) console.log("StructuredBlock.test")
+        return new Promise((resolve, reject) => {
+            let el = document.getElementById("myList.0");
+            console.log("XXX@make assert: el=", el);
+            try {
+                let teststr = "The well structured block"
+                let sb = new StructuredBlock(null, {"data": teststr});
+                let sb2;
+                if (verbose) {
+                    console.log("StructuredBlock.test sb=", sb);
+                }
+                sb.p_store(verbose)
+                    .then(() => sb2 = new StructuredBlock(sb._hash, null))   // Creates, doesnt fetch
+                    .then(() => sb2.p_fetch())
+                    .then(() => {
+                        if (verbose) console.assert(sb2.data === teststr, "SB should round trip", sb2.data, "!==", teststr)
+                    })
+                    /* //TODO-IPFS create a test set of SB's that have a path
+                    .then(() => sb.p_path(["langs", "readme.md"], verbose, ["async_elem", el, verbose, null, null]))
+                    //To debug, uncomment the el.textContent line in Transportable.async_elem
+                     */
+                    .then(() => {
+                        if (verbose) console.log("StructuredBlock.test promises complete")
+                        resolve({sb: sb, sb2: sb2});
+                    })
+                    .catch((err) => {
+                        console.log("Error in StructuredBlock.test", err);   // Log since maybe "unhandled" if just throw
+                        reject(err);
+                    })
+            } catch (err) {
+                console.log("Caught exception in StructuredBlock.test", err)
+                raise(err)
+            }
+        })
+    }
 }exports = module.exports = StructuredBlock;

@@ -14,6 +14,7 @@ class Block extends Transportable {
     }
 
     static test(transport, verbose) {
+        if (verbose) {console.log("Block.test")}
         return new Promise((resolve, reject) => {
             let blk;
             let blk2;

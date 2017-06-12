@@ -1,10 +1,15 @@
 //exports.TransportHTTP = require('./TransportHTTP');   //TODO-IPFS temporarily commented out
 /* TODO-IPFS gradually uncomment this file */
-/* TODO-IPFS
+exports.Block = require('./Block');
 exports.StructuredBlock = require('./StructuredBlock');
 exports.MutableBlock = require('./MutableBlock');
+exports.CryptoLib = require('./CryptoLib');
 exports.KeyChain = require('./KeyChain');
-*/ //TODO-IPFS
+exports.CommonList = require("./CommonList");
+exports.MutableBlock = require("./MutableBlock");
+exports.KeyPair = require("./KeyPair");
+exports.UnknownBlock = require("./UnknownBlock");
+exports.Signature = require("./Signature");
 
 // Javascript library for dweb
 // The crypto uses https://github.com/jedisct1/libsodium.js but https://github.com/paixaop/node-sodium may also be suitable if we move to node
@@ -77,7 +82,7 @@ exports.utils.togglevisnext = function(elem) {   // Hide the next sibling object
 };
 
 //noinspection JSUnusedGlobalSymbols
-exports.utils.async_objbrowserfetch = function(el) {
+exports.utils.async_objbrowserfetch = function(el) { console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_*
     let verbose = false;
     let source = el.source;
     let parent = el.parentNode;
@@ -87,8 +92,7 @@ exports.utils.async_objbrowserfetch = function(el) {
 
 // ==== NON OBJECT ORIENTED FUNCTIONS ==============
 
-/* TODO-IPFS
-exports.async_dwebfile = function(table, hash, path, successmethod, error) {
+exports.async_dwebfile = function(table, hash, path, successmethod, error) {  console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_*
     // Simple utility function to load into a hash without dealing with individual objects
     // successmethod - see "path()" for definition.
     let verbose = false;
@@ -111,7 +115,7 @@ exports.async_dwebfile = function(table, hash, path, successmethod, error) {
     }
 };
 
-exports.async_dwebupdate = function(hash, type, data, successmethod, error) {
+exports.async_dwebupdate = function(hash, type, data, successmethod, error) { console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_*
     let verbose = false;
     //(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose)
     let mbm = new exports.MutableBlock(hash, null, true, null, false, null, null, null, verbose, null);
@@ -126,7 +130,7 @@ exports.async_dwebupdate = function(hash, type, data, successmethod, error) {
         error);
 };
 
-exports.async_dweblist = function(div, hash, verbose, success, successmethodeach, error) {
+exports.async_dweblist = function(div, hash, verbose, success, successmethodeach, error) { console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_*
     //Retrieve a list, and create <li> elements of div to hold it.
     //success, if present, is run after list retrieved, asynchronous with elements retrieved
     //successeach, is run on each object in the list.
@@ -141,7 +145,6 @@ exports.async_dweblist = function(div, hash, verbose, success, successmethodeach
         },
         error);
 };
-*/ //TODO-IPFS
 // ======== EXPERIMENTAL ZONA ==================
 
 //TODO BROWSER----

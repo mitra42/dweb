@@ -38,7 +38,8 @@ class SmartDict extends Transportable {
         for (let i in dd) {
             if (i.indexOf('_') !== 0) { // Ignore any attributes starting _
                 if (dd[i] instanceof Transportable) {
-                    res[i] = dd[i].async_store(false, null, null)._hash  // store(verbose, success, error) - will set hash, then store obj in background
+                    dd[i].p_store(verbose)  // Stores async, but sets hash first
+                    res[i] = dd[i]._hash
                 } else {
                     res[i] = dd[i];
                 }
@@ -89,6 +90,7 @@ class SmartDict extends Transportable {
     }
 
     objbrowser(hash, path, ul, verbose) {
+        console.assert(false, "Rewrite to use p_*"); //TODO-IPFS obsolete with p_*
         let hashpath = path ? [hash, path].join("/") : hash;
         //OBSdwebobj(ul, hashpath) {    //TODO - note this is under dev works on SB and MB, needs to work on KeyChain, AccessControlList etc
         // ul is either the id of the element, or the element itself.
