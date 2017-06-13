@@ -28,20 +28,10 @@ class KeyChain extends CommonList {
         //if verbose and not mnemonic: print "Record these words if you want to access again"
     }
 
-    static async_new(mnemonic, keygen, name, verbose, success, error) { console.trace(); console.assert(false, "OBSOLETE 28"); //TODO-IPFS obsolete with p_fetch
-        let kc = new KeyChain(null, { "name": name }, true, null, keygen, mnemonic, verbose);
-        kc.async_store(verbose, null, error);
-        // Dont need to wait on store to load and fetchlist
-        KeyChain.addkeychains(kc);
-        kc.async_loadandfetchlist(verbose, success, error);  //Fetches blocks in async_fetchlist.success
-        //if verbose: print "Created keychain for:", kc.keypair.private.mnemonic
-        //if verbose and not mnemonic: print "Record these words if you want to access again"
-        return kc
-    }
     keytype() { return Dweb.KEYPAIRKEYTYPESIGNANDENCRYPT; }  // Inform keygen
 
     p_fetchlist(verbose) {
-        // Call chain is kc.async_new > kc.loadandfetchlist > KC.async_fetchlist > THttp.async_rawlist > Thttp.list > KC.fetchlist.success > caller's success
+        // Call chain is kc.p_new > kc.loadandfetchlist > KC.p_fetchlist > THttp.p_rawlist > Thttp.list > KC.fetchlist.success > caller's success
         let self = this;
         return super.p_fetchlist(verbose)
             // Called after CL.async_fetchlist has unpacked data into Signatures in _list
@@ -52,7 +42,7 @@ class KeyChain extends CommonList {
     }
 
     async_fetchlist(verbose, success, error) {  console.trace(); console.assert(false, "OBSOLETE 51"); //TODO-IPFS obsolete with p_fetch // Check callers of fetchlist and how pass parameters
-        // Call chain is kc.async_new > kc.loadandfetchlist > KC.async_fetchlist > THttp.async_rawlist > Thttp.list > KC.fetchlist.success > caller's success
+        // Call chain is kc.p_new > kc.loadandfetchlist > KC.p_fetchlist > THttp.async_rawlist > Thttp.list > KC.fetchlist.success > caller's success
         let self = this;
         super.async_fetchlist(verbose,
             function (unused) {

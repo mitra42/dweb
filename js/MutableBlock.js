@@ -200,7 +200,7 @@ class MutableBlock extends CommonList {
          :return:
          */
         // See test.py.test_mutableblock for canonical testing of python version of this
-        if (verbose) console.log("MutableBlock.async_new: Creating MutableBlock", name);
+        if (verbose) console.log("MutableBlock.p_new: Creating MutableBlock", name);
         // (hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose)
         let mblockm = new MutableBlock(null, null, true, null, true, null, null, contentacl, verbose, {"name": name}); // (name=name  // Create a new block with a new key
         mblockm._acl = acl;              //Secure it
@@ -217,49 +217,6 @@ class MutableBlock extends CommonList {
             return mblockm.p_store(verbose)
                 .then(() => mblockm)
         }
-    }
-
-
-    static async_new(acl, contentacl, name, _allowunsafestore, content, signandstore, verbose, success, error) { console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_fetch
-        /*
-         Utility function to allow creation of MB in one step
-         :param acl:             Set to an AccessControlList or KeyChain if storing encrypted (normal)
-         :param contentacl:      Set to enryption for content
-         :param name:            Name of block (optional)
-         :param _allowunsafestore: Set to True if not setting acl, otherwise wont allow storage
-         :param content:         Initial data for content
-         :param verbose:
-         :param signandstore:    Set to True if want to sign and store content, can do later
-         :param options:
-         :return:
-         */
-        // See test.py.test_mutableblock for canonical testing of python version of this
-        if (verbose) {
-            console.log("MutableBlock.async_new: Creating MutableBlock", name);
-        }
-        // (hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose)
-        let mblockm = new MutableBlock(null, null, true, null, true, null, null, contentacl, verbose, {"name": name}); // (name=name  // Create a new block with a new key
-        mblockm._acl = acl;              //Secure it
-        mblockm._current.data = content;  //Preload with data in _current.data
-        mblockm._allowunsafestore = _allowunsafestore;
-        if (_allowunsafestore) {
-            mblockm.keypair._allowunsafestore = true;
-        }
-        mblockm.async_store(verbose,
-            function (msg) { //success
-                if (signandstore && content) {
-                    mblockm.async_signandstore(verbose, null, error); //Sign it - this publishes it
-                }
-                if (verbose) {
-                    console.log("Created MutableBlock hash=", mblockm._hash);
-                }
-                if (success) {
-                    success(msg);
-                }  // So success here so done even when "if" above is false
-            },
-            error
-        );
-        return mblockm  // Returns prior to async_signandstore with hash set
     }
 
     static test(sb, transport, verbose) {
