@@ -22,7 +22,7 @@ class KeyChain extends CommonList {
         return kc.p_store(verbose) // Dont need to wait on store to load and fetchlist but will do so to avoid clashes
             .then(() => KeyChain.addkeychains(kc))
             .then(() => kc.p_loadandfetchlist(verbose))
-            .then(() => kc) //Fetches blocks in async_fetchlist.success
+            .then(() => kc) //Fetches blocks in p_loadandfetchlist.success
             // Note kc returned from promise NOT from p_new so have to catch in a ".then"
         //if verbose: print "Created keychain for:", kc.keypair.private.mnemonic
         //if verbose and not mnemonic: print "Record these words if you want to access again"
@@ -229,6 +229,8 @@ class KeyChain extends CommonList {
                 let kcs2
                 let mm
                 let mbm3
+                let key
+                let acl
                 const keypairexport =  "NACL SEED:w71YvVCR7Kk_lrgU2J1aGL4JMMAHnoUtyeHbqkIi2Bk="; // So same result each time
                 if (verbose) {
                     console.log("Keychain.test 0 - create");
@@ -268,6 +270,38 @@ class KeyChain extends CommonList {
                         console.assert(mbm3 instanceof Dweb.MutableBlock, "Should be a mutable block", mbm3);
                         console.assert(mbm3.name === mbmaster.name, "Names should survive round trip");
                      })
+                /*
+                    .then(() => {
+                        let accesskey
+                        if (verbose) console.log("KEYCHAIN 5: Check can user ViewerKeyPair");
+                        //acl = self._makeacl()   # Create Access Control List    - dont require encrypting as pretending itssomeone else's
+                        // This is _makeacl() in test.py
+                        if (verbose) console.log("Creating AccessControlList");
+                        //Create a acl for testing, - full breakout is in test_keychain
+                        accesskey = Dweb.CryptoLib.randomkey();
+                        //hash, data, master, keypair, keygen, mnemonic, verbose, options
+                        key = self.keyfromfile("test_acl1" + self.keytail, private = True, keytype = KeyPair.KEYTYPESIGN)
+                        accesskey = Dweb.CryptoLib.b64enc(accesskey);
+                        acl = Dweb.AccessControlList(null, {
+                            "name": "test_acl.acl",
+                            "accesskey": accesskey
+                        }, true, key, false, null, verbose, null);
+                        acl._allowunsafestore = True    // Not setting _acl on this
+                    })
+                 */
+                    /*
+                    .then(() => acl.p_store(verbose))
+                    */
+                    /*
+                        acl._allowunsafestore = False
+                        if (verbose) console.log("Created AccessControlList hash=", acl._hash);
+
+                        acl._allowunsafestore = True
+                        acl.add(viewerpublichash=viewerkeypair._hash, verbose=self.verbose)   # Add us as viewer
+                        sb = self._makesb(acl=acl)   # Encrypted obj
+                        assert KeyChain.myviewerkeys()[0].name == vkpname, "Should find viewerkeypair stored above"
+                    */
+
 
                     .then(() => {
                         if (verbose) console.log("KeyChain.test promises complete");
