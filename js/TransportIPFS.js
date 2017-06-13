@@ -36,7 +36,6 @@ const crypto = require('crypto'); //TODO-IPFS only for testing - can remove
 // Utility packages (ours) Aand one-loners
 const makepromises = require('./utils/makepromises');
 function delay(ms, val) { return new Promise(resolve => {setTimeout(() => { resolve(val); },ms)})}
-function consolearr(arr) { return (arr && arr.length >0) ? [arr.length+" items inc:", arr[-1]] : arr}
 
 // Other Dweb modules
 const Transport = require('./Transport.js');
@@ -50,7 +49,7 @@ let globaltransport;  //TODO-IPFS move to use from Dweb
 let globalannotationList;  //TODO-IPFS move to use from Dweb
 
 let defaultipfsoptions = {
-    repo: '/tmp/ipfs' + Math.random(), //TODO-IPFS think through where, esp for browser
+    repo: '/tmp/ipfs_dweb20170612', //TODO-IPFS think through where, esp for browser
     //init: false,
     //start: false,
     config: {
@@ -63,7 +62,7 @@ let defaultipfsoptions = {
 };
 
 // See https://github.com/pgte/ipfs-iiif-db for options
-let iiifoptions = { ipfs: defaultipfsoptions, store: "leveldb", partition: "dweb20170611" }; //TODO-IIIF try making parition a variable and connecting to multiple
+let iiifoptions = { ipfs: defaultipfsoptions, store: "leveldb", partition: "dweb20170612" }; //TODO-IIIF try making parition a variable and connecting to multiple
 
 const annotationlistexample = { //TODO-IPFS update this to better example
     "@id": "foobar",    // Only required field is @id
@@ -102,7 +101,7 @@ class TransportIPFS extends Transport {
                     globalannotationList = annotationList;  //TODO-IPFS remove need for global
                     annotationList.on('started', (event) => {
                         console.log("IPFS node after annotation list start",ipfs.isOnline() ? "now online" : "but still offline");   //TODO throw error if not online
-                        if (verbose) { console.log("annotationList started, list at start = ", ...consolearr(annotationList.getResources())); }
+                        if (verbose) { console.log("annotationList started, list at start = ", ...Dweb.utils.consolearr(annotationList.getResources())); }
                         resolve(ipfs)   // Cant resolve till annotation list online
                     });
                 })
@@ -150,6 +149,7 @@ class TransportIPFS extends Transport {
         console.assert(hash, "TransportIPFS.p_rawfetch: requires hash");
         let cid = (hash instanceof CID) ? hash : TransportIPFS.link2cid(hash);
         return this.promisified.ipfs.block.get(cid)
+            //.then((result) => {console.log("XXX@p_rawfetch data=",result.data.toString()); return result;})
             .then((result)=> result.data.toString())
     }
     async_rawfetch(self, hash, verbose, success, error) {  console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_*
@@ -169,7 +169,7 @@ class TransportIPFS extends Transport {
         return new Promise((resolve, reject) => {
             let res = globalannotationList.getResources()
                 .filter((obj) => (obj.signedby === hash))
-            if (verbose) console.log("p_rawlist found",...consolearr(res));
+            if (verbose) console.log("p_rawlist found",...Dweb.utils.consolearr(res));
             resolve(res);
         })
     }
@@ -247,7 +247,6 @@ class TransportIPFS extends Transport {
                         if (verbose) console.log("rawstore returned", hash);
                         let newcid = TransportIPFS.link2cid(hash);  // Its a CID which has a buffer in it
                         cidmultihash = hash.split('/')[2]
-                        //console.log("XXX@258",cidmultihash)
                         let newhash = TransportIPFS.cid2link(newcid);
                         console.assert(hash === newhash, "Should round trip");
                         hashqbf = hash;
@@ -266,13 +265,13 @@ class TransportIPFS extends Transport {
                     .then(() => transport.p_rawlist(testhash, verbose))
                     .then((res) => {
                         listlen = res.length;
-                        if (verbose) console.log("rawlist returned ", ...consolearr(res))
+                        if (verbose) console.log("rawlist returned ", ...Dweb.utils.consolearr(res))
                     })
                     .then(() => transport.listmonitor(testhash, (obj) => console.log("Monitored", obj), verbose))
                     .then((res) => transport.p_rawadd("123", "TODAY", "Joe Smith", testhash, verbose))
                     .then(() => { if (verbose) console.log("p_rawadd returned ")  })
                     .then(() => transport.p_rawlist(testhash, verbose))
-                    .then((res) => { if (verbose) console.log("rawlist returned ", ...consolearr(res)) }) // Note not showing return
+                    .then((res) => { if (verbose) console.log("rawlist returned ", ...Dweb.utils.consolearr(res)) }) // Note not showing return
                     .then(() => delay(500))
                     .then(() => transport.p_rawlist(testhash, verbose))
                     .then((res) => console.assert(res.length = listlen + 1, "Should have added one item"))

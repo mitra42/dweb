@@ -170,7 +170,7 @@ class MutableBlock extends CommonList {
         //sb.async_path(patharr, verbose, successmethod, error) {
         let curr = this._current;
         return curr.p_fetch(verbose)
-            .then((msg) => curr.p_path(patharr, verbose, successmethod));
+            .then((obj) => obj.p_path(patharr, verbose, successmethod));
     }
 
     async_path(patharr, verbose, successmethod, error) { console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_fetch

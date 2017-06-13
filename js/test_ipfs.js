@@ -5,7 +5,6 @@ const Dweb = require('./Dweb');
 // Utility packages (ours) Aand one-loners
 const makepromises = require('./utils/makepromises');
 function delay(ms, val) { return new Promise(resolve => {setTimeout(() => { resolve(val); },ms)})}
-function consolearr(arr) { return (arr && arr.length >0) ? [arr.length+" items inc:", arr[-1]] : arr}
 
 // Fake a browser like environment for some tests
 const jsdom = require("jsdom");

@@ -63,14 +63,14 @@ class CommonList extends SmartDict {
 
     p_fetch(verbose) {
         // See also p_loadandfetchlist as need to fetch body and only then fetchlist since for a list the body might include the publickey whose hash is needed for the list
+        let self = this;
         if (this._needsfetch) { // Only load if need to
             if (verbose) { console.log("CommonList.load:",this._hash)}
             this._needsfetch = false;
-            let self = this;
-            return Dweb.transport.p_rawfetch(this._hash, verbose)
-                .then((data) => self._setdata(JSON.parse(data)))
+            return Dweb.transport.p_rawfetch(this._hash, verbose)   //TODO-IPFS change to use dag storage
+                .then((data) => { self._setdata(JSON.parse(data)); return self;})
         } else {
-            return new Promise((resolve, reject)=> resolve(null));  // I think this should be a noop - fetched already
+            return new Promise((resolve, reject)=> resolve(self));  // I think this should be a noop - fetched already
         }
     }
 

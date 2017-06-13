@@ -1,6 +1,9 @@
 const CommonList = require("./CommonList");  // Superclass
 const Dweb = require("./Dweb");
 
+// Utility packages (ours) Aand one-loners
+
+
 // ######### Parallel development to MutableBlock.py ########
 
 // Note naming convention - p_xyz means it returns a Promise
@@ -42,9 +45,10 @@ class KeyChain extends CommonList {
         let self = this;
         return super.p_fetchlist(verbose)
             // Called after CL.async_fetchlist has unpacked data into Signatures in _list
-            .then(() => Promise.all(Dweb.Signature.filterduplicates(self._list).map((sig) => new Dweb.UnknownBlock(sig.hash, verbose).p_fetch(verbose))))
-            .then((arr) => self._keys = arr)
-            .then(() => { if (verbose) console.log("Got keys", self._keys)})
+            //.then(() => self._keys = Dweb.Signature.filterduplicates(self._list).map((sig) => new Dweb.UnknownBlock(sig.hash, verbose)))
+            .then(() => Promise.all(Dweb.Signature.filterduplicates(self._list).map((sig) => new Dweb.UnknownBlock(sig.hash, verbose)).map((ub) => ub.p_fetch(verbose)))) // Return is result of p_fetch which is new obj
+            .then((keys) => self._keys = keys)
+            .then(() => { if (verbose) console.log("KC.fetchlist Got keys", ...Dweb.utils.consolearr(self._keys))})
     }
 
     async_fetchlist(verbose, success, error) {  console.trace(); console.assert(false, "OBSOLETE 51"); //TODO-IPFS obsolete with p_fetch // Check callers of fetchlist and how pass parameters
@@ -205,7 +209,7 @@ class KeyChain extends CommonList {
         /*
          :return: Array of Viewer Keys on the KeyChains
          */
-        return KeyChain._findbyclass(DWeb.MutableBlock);
+        return KeyChain._findbyclass(Dweb.MutableBlock);
     }
 
     static test(verbose) {
@@ -213,11 +217,19 @@ class KeyChain extends CommonList {
         return new Promise((resolve, reject) => {
             try {
                 // Set mnemonic to value that generates seed "01234567890123456789012345678901"
-                let mnemonic = "coral maze mimic half fat breeze thought champion couple muscle snack heavy gloom orchard tooth alert cram often ask hockey inform broken school cotton"; // 32 byte
+                const mnemonic = "coral maze mimic half fat breeze thought champion couple muscle snack heavy gloom orchard tooth alert cram often ask hockey inform broken school cotton"; // 32 byte
                 // Test sequence extracted from test.py
                 let kc;
                 let mbmaster;
-                let qbf="The quick brown fox ran over the lazy duck";
+                const qbf="The quick brown fox ran over the lazy duck";
+                const vkpname="test_keychain viewerkeypair";
+                let mbm2;
+                let keypair
+                let viewerkeypair
+                let kcs2
+                let mm
+                let mbm3
+                const keypairexport =  "NACL SEED:w71YvVCR7Kk_lrgU2J1aGL4JMMAHnoUtyeHbqkIi2Bk="; // So same result each time
                 if (verbose) {
                     console.log("Keychain.test 0 - create");
                 }
@@ -227,7 +239,36 @@ class KeyChain extends CommonList {
                         if (verbose) console.log("KEYCHAIN 1 - add MB to KC");
                     })
                     .then(() => Dweb.MutableBlock.p_new(kc, null, "test_keychain mblockm", true, qbf, true, verbose)) //acl, contentacl, name, _allowunsafestore, content, signandstore, verbose, options
-                    .then((mbmaster) => kc.p_addobj(mbmaster, verbose))   //Sign and store on KC's list (returns immediately with Sig)
+                    .then((mbm) => {mbmaster=mbm;  kc.p_addobj(mbmaster, verbose)})   //Sign and store on KC's list (returns immediately with Sig)
+                    .then(() => {
+                        if (verbose) console.log("KEYCHAIN 2 - add viewerkeypair to it");
+                        viewerkeypair = new Dweb.KeyPair(null, {"name": vkpname, "key": keypairexport}, verbose);
+                        viewerkeypair._acl = kc;
+                        viewerkeypair.p_store(verbose); // Defaults to store private=True (which we want)   // Sets hash, dont need to wait for it to store
+                    })
+                    .then(() =>  kc.p_addobj(viewerkeypair, verbose))
+                    .then(() => {
+                        if (verbose) console.log("KEYCHAIN 3: Fetching mbm hash=", mbmaster._hash);
+                        //MB(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose, options)
+                        mbm2 = new Dweb.MutableBlock(mbmaster._hash, null, true, null, false, null, null, null, verbose, null);
+                    })
+                    .then(() =>  mbm2.p_fetch(verbose))
+                    .then(() => console.assert(mbm2.name === mbmaster.name, "Names should survive round trip"))
+                    .then(() => {
+                        if (verbose) console.log("KEYCHAIN 4: reconstructing KeyChain and fetch");
+                        Dweb.keychains = []; // Clear Key Chains
+                    })
+                    //p_new(mnemonic, keygen, name, verbose)
+                    .then(() => kcs2 = KeyChain.p_new(mnemonic, null, "test_keychain kc", verbose))
+                    // Note success is run AFTER all keys have been loaded
+                    .then(() => {
+                        mm = KeyChain.mymutableBlocks();
+                        console.assert(mm.length, "Should find mblockm");
+                        mbm3 = mm[mm.length - 1];
+                        console.assert(mbm3 instanceof Dweb.MutableBlock, "Should be a mutable block", mbm3);
+                        console.assert(mbm3.name === mbmaster.name, "Names should survive round trip");
+                     })
+
                     .then(() => {
                         if (verbose) console.log("KeyChain.test promises complete");
                         resolve({kc: kc, mbmaster: mbmaster});

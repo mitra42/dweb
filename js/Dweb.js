@@ -45,6 +45,8 @@ exports.utils.ToBeImplementedException = function(...args) {
     console.assert(false, ...args);
     //alert(msg);
 };
+exports.utils.consolearr  = (arr) => ((arr && arr.length >0) ? [arr.length+" items inc:", arr[-1]] : arr );
+
 
 class TransportError extends Error {
     constructor(message) {

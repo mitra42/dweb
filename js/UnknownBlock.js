@@ -27,9 +27,13 @@ class UnknownBlock extends SmartDict {
         super(hash, null, verbose, null);
     }
     p_fetch(verbose, successmethod) {
+        /*
+            Fetch a block which initially we don't know which type
+            :return: New object - e.g. StructuredBlock or MutableBlock
+         */
         if (verbose) console.log("Unknownblock loading", this._hash);
         let self = this;
-        Dweb.transport.p_rawfetch(this._hash, verbose)
+        return Dweb.transport.p_rawfetch(this._hash, verbose)
             .then((data) => {
                 if (typeof data === 'string') {    // Assume it must be JSON
                     data = JSON.parse(data);
@@ -43,7 +47,7 @@ class UnknownBlock extends SmartDict {
                     //if (verbose) console.log("async_elem",methodname, successmethod);
                     newobj[methodname](...successmethod); // Spreads successmethod into args, like *args in python
                 }
-                return data;    // For chaining
+                return newobj;    // For chaining
             })
     }
 

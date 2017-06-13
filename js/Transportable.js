@@ -1,5 +1,4 @@
 // ######### Parallel development to CommonBlock.py ########
-const CryptoLib = require("./CryptoLib");
 const Dweb = require("./Dweb");
 
 class Transportable {
@@ -22,7 +21,7 @@ class Transportable {
         //TODO-IPFS callers can't use hash till after stored
         let data = this._getdata();
         if (verbose) console.log("Transportable.store data=", data);
-        this._hash = CryptoLib.Curlhash(data); //store the hash since the HTTP is async
+        this._hash = Dweb.CryptoLib.Curlhash(data); //store the hash since the HTTP is async
         if (verbose) console.log("Transportable.store hash=", this._hash);
         let self = this;
         return Dweb.transport.p_rawstore(data, verbose)
@@ -38,7 +37,7 @@ class Transportable {
     async_store(verbose, success, error) {  console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_*     // Python has a "data" parameter to override this._data but probably not needed
         let data = this._getdata();
         if (verbose) console.log("Transportable.async_store data=", data);
-        this._hash = CryptoLib.Curlhash(data); //store the hash since the HTTP is async
+        this._hash = Dweb.CryptoLib.Curlhash(data); //store the hash since the HTTP is async
         let self = this;
         Dweb.transport.async_rawstore(this, data, verbose,
             function(msg) {
@@ -64,13 +63,13 @@ class Transportable {
         // Promise equiv of PY:fetch and async_load
         // Resolves whether needs to load or not as will often load and then do something.
         if (verbose) { console.log("Transportable.p_fetch hash=",this._hash); }
+        let self = this;
         if (this._needsfetch) { // Only load if need to
-            let self = this;
             this._needsfetch = false;    // Set false before return so not multiply fetched
             return Dweb.transport.p_rawfetch(this._hash, verbose)
-                .then((data) => { if (data) self._setdata(data)})
+                .then((data) => { if (data) self._setdata(data); return self})
         } else {
-            return new Promise((resolve, reject)=> resolve(null));  // I think this should be a noop - fetched already
+            return new Promise((resolve, reject)=> resolve(self));  // I think this should be a noop - fetched already
         }
         // Block fetched in the background - dont assume loaded here - see success for actions post-load
 

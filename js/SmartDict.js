@@ -1,5 +1,5 @@
-const Transportable = require("./Transportable");
-const CryptoLib = require("./CryptoLib");
+const Transportable = require("./Transportable");   //Superclass
+const Dweb = require("./Dweb");
 
 //TODO-IPFS review from here down - especially regarding going direct to Dag
 
@@ -55,11 +55,11 @@ class SmartDict extends Transportable {
             //noinspection JSUnfilteredForInLoop
             dd[i] = this[i];    // This just copies the attributes not functions
         }
-        let res = CryptoLib.dumps(this.preflight(dd));
+        let res = Dweb.CryptoLib.dumps(this.preflight(dd));
         if (this._acl) { //Need to encrypt
             let encdata = this._acl.encrypt(res, true);  // data, b64
             let dic = { "encrypted": encdata, "acl": this._acl._publichash, "table": this.table};
-            res = CryptoLib.dumps(dic);
+            res = Dweb.CryptoLib.dumps(dic);
         }
         return res
     }    // Should be being called on outgoing _data includes dumps and encoding etc
@@ -73,7 +73,7 @@ class SmartDict extends Transportable {
                 value = JSON.parse(value);
             }
             if (value.encrypted) {
-                value = CryptoLib.loads(CryptoLib.decryptdata(value))
+                value = Dweb.CryptoLib.loads(Dweb.CryptoLib.decryptdata(value))
             }
             // value should be a dict by now, not still json as it is in Python
             this._setproperties(value); // Note value should not contain a "_data" field, so wont recurse even if catch "_data" at __setattr__()
