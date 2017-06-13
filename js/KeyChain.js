@@ -34,38 +34,15 @@ class KeyChain extends CommonList {
         // Call chain is kc.p_new > kc.loadandfetchlist > KC.p_fetchlist > THttp.p_rawlist > Thttp.list > KC.fetchlist.success > caller's success
         let self = this;
         return super.p_fetchlist(verbose)
-            // Called after CL.async_fetchlist has unpacked data into Signatures in _list
+            // Called after CL.p_fetchlist has unpacked data into Signatures in _list
             //.then(() => self._keys = Dweb.Signature.filterduplicates(self._list).map((sig) => new Dweb.UnknownBlock(sig.hash, verbose)))
             .then(() => Promise.all(Dweb.Signature.filterduplicates(self._list).map((sig) => new Dweb.UnknownBlock(sig.hash, verbose)).map((ub) => ub.p_fetch(verbose)))) // Return is result of p_fetch which is new obj
             .then((keys) => self._keys = keys)
             .then(() => { if (verbose) console.log("KC.fetchlist Got keys", ...Dweb.utils.consolearr(self._keys))})
     }
 
-    async_fetchlist(verbose, success, error) {  console.trace(); console.assert(false, "OBSOLETE 51"); //TODO-IPFS obsolete with p_fetch // Check callers of fetchlist and how pass parameters
-        // Call chain is kc.p_new > kc.loadandfetchlist > KC.p_fetchlist > THttp.async_rawlist > Thttp.list > KC.fetchlist.success > caller's success
-        let self = this;
-        super.async_fetchlist(verbose,
-            function (unused) {
-                // Called after CL.async_fetchlist has unpacked data into Signatures in _list
-                let results={};
-                self._keysloading = self._keysloading || 0;
-                for (let i in self._list) {
-                    self._keysloading += 1;
-                    let sig = self._list[i];
-                    if (! results[sig.hash]) {
-                        let key = new Dweb.UnknownBlock(sig.hash, verbose);
-                        results[sig.hash] = key;    // So don't duplicate loads
-                        key.async_load(verbose, ["addtokeysonload", self, success], null);   // Order isn't significant - could be MB or ACL
-                    }
-                }
-                // Success done above when all loaded. if (success) { success(undefined); }  // Note success is applied to the KC, before the blocks have been loaded
-            },
-            error);
-    }
-
-
     keys() {    // Is property in Python
-        // Keys are fetched during async_fetchlist
+        // Keys are fetched during p_fetchlist
         return this._keys;
     }
 
@@ -82,19 +59,6 @@ class KeyChain extends CommonList {
         let sig = this._makesig(hash, verbose);
         this._list.push(sig);
         return super.p_add(hash, sig, verbose)    // Resolves to sig
-    }
-
-
-    async_add(obj, verbose, success, error) { console.trace(); console.assert(false, "OBSOLETE 96"); //TODO-IPFS obsolete with p_*
-        /*
-         Add a obj (usually a MutableBlock or a ViewerKey) to the keychain. by signing with this key.
-         Item should usually itself be encrypted (by setting its _acl field)
-         COPIED FROM PYTHON 2017-05-24
-
-         :param obj: JSON structure to add to KeyChain 0 should be a Signature
-         */
-        let sig = super.async_add(obj, verbose, success, error);  // Adds to dWeb list
-        this._list.push(sig);
     }
 
     encrypt(res, b64) {
@@ -156,23 +120,12 @@ class KeyChain extends CommonList {
         this._publichash = kc._hash;  //returns immediately with precalculated hash
     }
 
-    _async_storepublic(verbose, success, error) {  console.trace(); console.assert(false, "OBSOLETE 167"); //TODO-IPFS obsolete with p_* // Based on python CL._storepublic, but done in each class in JS
-        console.log("KeyChain._async_storepublic");
-        let kc = new KeyChain(null, {"name": this.name}, false, this.keypair, false, null, verbose);
-        this._publichash = kc.async_store(verbose, success, error)._hash;  //returns immediately with precalculated hash
-    }
-
     p_store(verbose) {
         // CommonList.store(verbose, success, error)
         this.dontstoremaster = true;
         return super.p_store(verbose)  // Stores public version and sets _publichash - never returns
     }
 
-    async_store(verbose, success, error) { console.trace(); console.assert(false, "OBSOLETE 179"); //TODO-IPFS obsolete with p_*
-        // CommonList.store(verbose, success, error)
-        this.dontstoremaster = true;
-        return super.async_store(verbose, success, error)  // Stores public version and sets _publichash - never returns
-    }
     fetch() { console.log("Intentionally XXX Undefined function MutableBlock.fetch use load/success"); }   // Split into load/onload
 
     static _findbyclass(clstarget) {

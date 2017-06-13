@@ -1,5 +1,4 @@
-//exports.TransportHTTP = require('./TransportHTTP');   //TODO-IPFS temporarily commented out
-/* TODO-IPFS gradually uncomment this file */
+//exports.TransportHTTP = require('./TransportHTTP');   //TODO-IPFS HTTP ONLY temporarily commented out
 exports.Block = require('./Block');
 exports.StructuredBlock = require('./StructuredBlock');
 exports.MutableBlock = require('./MutableBlock');
@@ -17,11 +16,11 @@ exports.Signature = require("./Signature");
 exports.utils = {}; //utility functions
 exports.errors = {}; //Errors - as classes
 
-/* TODO-IPFS
+/* TODO-IPFS HTTP ONLY
 exports.dwebserver = 'localhost';
 //exports.dwebserver = '192.168.1.156';
 exports.dwebport = '4243';
-*/ //TODO-IPFS
+*/ //TODO-IPFS HTTP ONLY
 exports.keychains = [];
 
 // Constants    //TODO move these to KeyPair
@@ -83,41 +82,44 @@ exports.utils.togglevisnext = function(elem) {   // Hide the next sibling object
     }
 };
 
-//noinspection JSUnusedGlobalSymbols
-exports.utils.async_objbrowserfetch = function(el) { console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_*
+exports.utils.p_objbrowserfetch = function(el) {
     let verbose = false;
     let source = el.source;
     let parent = el.parentNode;
     parent.removeChild(el); //Remove elem from parent
-    source.async_load(true, function(msg) { source.objbrowser(source._hash, null, parent, false );}, null);
+    return source.p_fetch(verbose)
+        .then((msg) => source.objbrowser(source._hash, null, parent, false ));
 };
 
 // ==== NON OBJECT ORIENTED FUNCTIONS ==============
 
-exports.async_dwebfile = function(table, hash, path, successmethod, error) {  console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_*
+exports.p_dwebfile = function(table, hash, path, successmethod) {
     // Simple utility function to load into a hash without dealing with individual objects
     // successmethod - see "path()" for definition.
     let verbose = false;
     if (path && (path.length > 0)) {
         path = path.split('/');
     }
-    if (verbose) { console.log("Dweb.async_dwebfile",table,hash,path,successmethod);}
+    if (verbose) { console.log("Dweb.p_dwebfile",table,hash,path,successmethod);}
     if (table === "mb") {
         //(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose)
         const mb = new exports.MutableBlock(hash, null, false, null, false, null, null, null, verbose, null);
         // Call chain is mb.load > CL.fetchlist > THttp.rawlist > Thttp.load > MB.fetchlist.success > caller.success
         // for dwebfile:mb, we want to apply the success function to the file - which is in the content after fetchlist
-        mb.async_loadandfetchlist(verbose, function(msg) { mb.async_path(path, verbose, successmethod, error);}, error);
+        return mb.p_loadandfetchlist(verbose)
+            .then(() => mb.p_path(path, verbose, successmethod))
         // Note success is applied once after list is fetched, content isn't loaded before that.
     } else if (table === "sb") {
         const sb = new exports.StructuredBlock(hash, null, verbose);
-        sb.async_load(verbose, function(msg) {sb.async_path(path, verbose, successmethod, error);}, error);
+        sb.p_fetch(verbose)
+            .then((msg) => sb.p_path(path, verbose, successmethod))
     } else {
         alert("dwebfile called with invalid table="+table);
     }
 };
 
-exports.async_dwebupdate = function(hash, type, data, successmethod, error) { console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_*
+
+exports.p_dwebupdate = function(hash, type, data, successmethod) {
     let verbose = false;
     //(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose)
     let mbm = new exports.MutableBlock(hash, null, true, null, false, null, null, null, verbose, null);
@@ -125,14 +127,14 @@ exports.async_dwebupdate = function(hash, type, data, successmethod, error) { co
         function(msg){
             if (successmethod) {
                 let methodname = successmethod.shift();
-                //if (verbose) console.log("async_elem",methodname, successmethod);
+                //if (verbose) console.log("p_elem",methodname, successmethod);
                 mbm[methodname](...successmethod); // Spreads successmethod into args, like *args in python
             }
         },
         error);
 };
 
-exports.async_dweblist = function(div, hash, verbose, success, successmethodeach, error) { console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_*
+exports.p_dweblist = function(div, hash, verbose, success, successmethodeach) {
     //Retrieve a list, and create <li> elements of div to hold it.
     //success, if present, is run after list retrieved, asynchronous with elements retrieved
     //successeach, is run on each object in the list.
@@ -140,13 +142,10 @@ exports.async_dweblist = function(div, hash, verbose, success, successmethodeach
     //(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose)
     const mb = new exports.MutableBlock(hash, null, false, null, false, null, null, null, verbose, null);
     // Call chain is mb.load > CL.fetchlist > THttp.rawlist > Thttp.load > MB.fetchlist.success
-    mb.async_loadandfetchlist(verbose,
-        function(msg) {
-            mb.async_elem(div, verbose, successmethodeach, error); // async_elem loads the block
-            if (success) {success(null);}    // Note success will fire async with list elements being loaded
-        },
-        error);
+    return mb.p_loadandfetchlist(verbose)
+        .then(()=> mb.p_elem(div, verbose, successmethodeach)) // p_elem loads the block
 };
+
 // ======== EXPERIMENTAL ZONA ==================
 
 //TODO BROWSER----

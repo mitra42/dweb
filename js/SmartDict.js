@@ -80,7 +80,7 @@ class SmartDict extends Transportable {
         }
     }
     addtokeysonload(obj, success) {
-        //method sent to new block from UnknownBlock.async_load - use to add to the KeyChain
+        //method sent to new block from UnknownBlock.p_fetch - use to add to the KeyChain
         //console.log("addtoarronload success:",obj._keysloading);
         obj._keysloading -= 1;
         let arr = obj._keys;
@@ -176,7 +176,7 @@ class SmartDict extends Transportable {
                             //noinspection ES6ConvertVarToLetConst
                             spanval = document.createElement('span');
                             if (prop === "_needsfetch") {
-                                li2.setAttribute('onclick','Dweb.utils.async_objbrowserfetch(this.parentNode.parentNode);');
+                                li2.setAttribute('onclick','Dweb.utils.p_objbrowserfetch(this.parentNode.parentNode);');
                             }
                         }
                         //noinspection JSUnfilteredForInLoop

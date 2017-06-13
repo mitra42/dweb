@@ -87,7 +87,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         :return:
         """
         try:
-            #print "XXX@_dispatch",self.headers
+            #asyncprint "XXX@_dispatch",self.headers
             verbose=True   # Cant pass through vars as they are postvariables
             o = urlparse(self.path)
             argvars =  dict(parse_qsl(o.query))     # Look for arguments in URL

@@ -1,6 +1,5 @@
 //const AccessControlList = require("./AccessControlList"); // Including this for some reason makes the result unavailable, maybe a loop ?
 //const KeyChain = require("./KeyChain"); // Including this for some reason makes the result unavailable, maybe a loop ?
-//TODO-IPFS gradually uncomment file as required
 
 //IPFS packages needed
 const multihashes = require('multihashes');

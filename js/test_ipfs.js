@@ -42,9 +42,9 @@ let sb;
 /* path tests not done ... old ones
  console.log("Now test path using dwebfile and sb =======");
  verbose=false;
- Dweb.async_dwebfile("sb", sbhash, "langs/readme.md", ["async_elem", "myList.2", verbose, null, null], null);
+ Dweb.p_dwebfile("sb", sbhash, "langs/readme.md", ["p_elem", "myList.2", verbose, null]);
  console.log("Now test path using dwebfile and mb =======");
- Dweb.async_dwebfile("mb", mbhash, "langs/readme.md", ["async_elem", "myList.3", verbose, null, null], null);
+ Dweb.p_dwebfile("mb", mbhash, "langs/readme.md", ["p_elem", "myList.3", verbose, null]);
  console.log("END testing previouslyworking()");
 
  */

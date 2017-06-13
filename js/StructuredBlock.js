@@ -29,21 +29,6 @@ class StructuredBlock extends SmartDict {
         return this; // For chaining
 
     }
-    async_store(verbose, success, error) { console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_*
-        /*
-         Store content if not already stored (note it must have been stored prior to signing)
-         Store any signatures in the Transport layer
-         */
-        if (!this._hash) {
-            super.async_store(verbose, success, error);    //Sets self._hash doesnt store if hasnt changed
-        }
-        for (let i in this._signatures) {
-            let s = this._signatures[i];
-            //PY makes copy of s, but this is because the json procedure damages the object which doesnt happen in Crypto.dumps in JS
-            Dweb.transport.async_add(this, this._hash, s.date, s.signature, s.signedby, null, verbose, success, error);
-        }
-        return this; // For chaining
-    }
 
     __setattr__(name, value) {
         // Call chain is ...  or constructor > _setdata > _setproperties > __setattr__
@@ -80,31 +65,7 @@ class StructuredBlock extends SmartDict {
                 if (verbose) { console.log("p_path success:",methodname, successmethod); }
                 this[methodname](...successmethod); // Spreads successmethod into args, like *args in python
             }
-            console.log("TODO-IPFS @SB.82 - confirm this next is really a Noop")
             return new Promise((resolve, reject)=> resolve(null));  // I think this should be a noop - fetched already
-        }
-    }
-
-    async_path(patharr, verbose, successmethod, error) { console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_*
-        // We cant use a function here, since the closure means it would apply to the object calling this, not the object loaded.
-        // successmethod is an array [ nameofmethod, args... ]
-        // Warning - may change the signature of this as discover how its used.
-        if (verbose) { console.log("sb.async_path",patharr, successmethod, "links=",this.links); }
-        if (patharr && patharr.length && this.links.length ) { // Have a path and can do next bit of it on this sb
-            let next = patharr.shift(); // Takes first element of patharr, leaves patharr as rest
-            if (verbose) { console.log("StructuredBlock:path next=",next); }
-            let obj = this.link(next);   //TODO handle error if not found
-            return obj.async_load(verbose, function(msg) { obj.async_path(patharr, verbose, successmethod, error); }, error);
-        } else if (patharr && patharr.length) {
-            console.log("ERR Can't follow path",patharr);
-            if (error) error(undefined);
-        } else {  // Reached end of path, can apply success
-            //if (success) { success(undefined); } //note this wont work as success defined on different object as "this"
-            if (successmethod) {
-                let methodname = successmethod.shift();
-                if (verbose) { console.log("async_path success:",methodname, successmethod); }
-                this[methodname](...successmethod); // Spreads successmethod into args, like *args in python
-            }
         }
     }
 
@@ -199,8 +160,8 @@ class StructuredBlock extends SmartDict {
                         if (verbose) console.assert(sb2.data === teststr, "SB should round trip", sb2.data, "!==", teststr)
                     })
                     /* //TODO-IPFS create a test set of SB's that have a path
-                    .then(() => sb.p_path(["langs", "readme.md"], verbose, ["async_elem", el, verbose, null, null]))
-                    //To debug, uncomment the el.textContent line in Transportable.async_elem
+                    .then(() => sb.p_path(["langs", "readme.md"], verbose, ["p_elem", el, verbose, null]))
+                    //To debug, uncomment the el.textContent line in Transportable.p_elem
                      */
                     .then(() => {
                         if (verbose) console.log("StructuredBlock.test promises complete")

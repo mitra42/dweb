@@ -9,13 +9,13 @@ class AccessControlList extends CommonList {
         super(hash, data, master, keypair, keygen, mnemonic, verbose, options);
         this.table = "acl";
     }
-    _async_storepublic(verbose, success, error) { // See KeyChain for example
-        console.assert(false, "XXX Undefined function AccessControlList._async_storepublic");
+    _p_storepublic(verbose, success, error) { // See KeyChain for example
+        console.assert(false, "XXX Undefined function AccessControlList._p_storepublic");
         //mb = new MutableBlock(keypair=this.keypair, name=this.name)
     }
 
     decrypt(data, viewerkeypair, verbose) {
-        console.assert(false, "XXX Undefined function AccessControlList._async_storepublic");
+        console.assert(false, "XXX Undefined function AccessControlList.decrypt");
     }
 }
 exports = module.exports = AccessControlList;

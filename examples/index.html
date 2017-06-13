@@ -24,7 +24,7 @@
             hash = "BLAKE2.pOutfp-rmccZaPlx3vF-PjC0o8Mpz38khpwjn79WEJI="; // The privatehash of the "snippet.html editable - should be a parameter
             // alert(content);
             type = "text%2Fhtml";
-            Dweb.async_dwebupdate(hash, type, content, ["async_elem","myDiv", verbose, null, null], null); // Post to Dweb and store URL at myDiv
+            Dweb.p_dwebupdate(hash, type, content, ["p_elem","myDiv", verbose, null]); // Post to Dweb and store URL at myDiv
         }
     });
 
@@ -34,20 +34,18 @@
     /*
      console.log("Block=======");
      let b = new Block("BLAKE2.A5JOSLvsRV-dFuFqNlpQeBP5OojtIuJmUq9mmoAJXkA=", null); // Block with "clever dog..."
-     b.async_load(verbose,
-     function(msg) { b.async_elem("myList.0", verbose, null, null); },
-     null);     // Load block in background
+     b.p_fetch(verbose)
+     .then((msg) => b.p_elem("myList.0", verbose, null)); // Load block in background
      // Now of SB
      console.log("StructuredBlock=======");
      let sb = new StructuredBlock("BLAKE2.PE5U0ifHdgpnr4768BRLD8htZIJ14XOc_sgvmUs7JPI="); // This comes from looking in list/..hash of MB below..
-     sb.async_load(verbose,
-     function(msg) { sb.async_elem("myList.1", verbose, null, null); },
-     null); // hash of SB containing data containing "I'm a paragraph" // Load SB in background
-     */
+     sb.p_fetch(verbose)
+     .then((msg) => sb.p_elem("myList.1", verbose, null)) // hash of SB containing data containing "I'm a paragraph" // Load SB in background
+    */
     verbose=true;
     // Now MB
     console.log("MutableBlock=======");
-    Dweb.async_dweblist("List2", "BLAKE2.x6uk_DPyAiV6_QpaNScTP4PgowErzNM7sjeCaVWUDdo=", true, null, null, null);  // Hash of snippet.html
+    Dweb.p_dweblist("List2", "BLAKE2.x6uk_DPyAiV6_QpaNScTP4PgowErzNM7sjeCaVWUDdo=", true, null);  // Hash of snippet.html
     </script>
 
 </head>

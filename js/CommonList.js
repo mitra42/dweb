@@ -17,7 +17,7 @@ class CommonList extends SmartDict {
         } else {
             this._setkeypair(keypair, verbose);
         }
-        this._master = master;  // Note this must be AFTER _setkeypair since that sets based on keypair found and _async_storepublic for example wants to force !master
+        this._master = master;  // Note this must be AFTER _setkeypair since that sets based on keypair found and _p_storepublic for example wants to force !master
         if (!this._master) { this._publichash = hash; }
     }
     keytype() { return Dweb.KEYPAIRKEYTYPESIGN; }
@@ -74,24 +74,7 @@ class CommonList extends SmartDict {
         }
     }
 
-    async_load(verbose, success, error) { console.trace(); console.assert(false, "OBSOLETE CL.async_Load"); //TODO-IPFS obsolete with p_fetch   // Python can also fetch based on just having key
-        if (this._needsfetch) { // Only load if need to
-            if (verbose) { console.log("CommonList.load:",this._hash)}
-            this._needsfetch = false;
-            // Need to fetch body and only then fetchlist since for a list the body might include the publickey whose hash is needed for the list
-            let self = this;
-            Dweb.transport.async_rawfetch(this, this._hash, verbose,
-                function(data) {
-                    if (data) {self._setdata(JSON.parse(data))}
-                    if (success) { success(undefined);}
-                },
-                error);
-        } else {
-            if (success) {success(undefined);} // Pass to success as if loaded, and see what action reqd
-        }
-    }
-
-    p_fetchlist(verbose) { // obsoletes async_fetchlist
+    p_fetchlist(verbose) {
         // Load a list, note it does not load the individual items, just the Signatures. To do that, append a ".then" to loop over them afterwards.
         // Call chain is mb.load > CL.fetchlist > THttp.rawlist > Thttp.load > CL|MB.fetchlist.success > callers.success
         let self = this;
@@ -99,7 +82,7 @@ class CommonList extends SmartDict {
         if (!this._publichash) this._p_storepublic(verbose); // Async, but sets _publichash immediately
         return Dweb.transport.p_rawlist(this._publichash, verbose)
             .then((lines) => {
-                //console.log("async_fetchlist:",lines[0]); // Should be a full line, not just "[" which suggests unparsed.
+                //console.log("p_fetchlist:",lines[0]); // Should be a full line, not just "[" which suggests unparsed.
                 //lines = JSON.parse(lines))   Should already by a list
                 console.log("CommonList:p_fetchlist.success", self._hash, "len=", lines.length);
                 self._list = [];    //TODO rewrite loop to replace with lines.map(...)
@@ -113,31 +96,7 @@ class CommonList extends SmartDict {
             })
     }
 
-    async_fetchlist(verbose, success, error) { console.trace(); console.assert(false, "OBSOLETE CL.async_fetchlist"); //TODO-IPFS obsolete with p_fetch
-        // Load a list, note it does not load the individual items, just the Signatures. To do that, provide a "success" to loop over them afterwards.
-        // Call chain is mb.load > CL.fetchlist > THttp.rawlist > Thttp.load > CL|MB.fetchlist.success > callers.success
-        let self = this;
-        if (!this._master && !this._publichash)  this._publichash = this._hash;  // We aren't master, so publichash is same as hash
-        if (!this._publichash) this._async_storepublic(verbose, null, error); // Async, but sets _publichash immediately
-        Dweb.transport.async_rawlist(this, this._publichash, verbose,
-            function(lines) {
-                //console.log("async_fetchlist:",lines[0]); // Should be a full line, not just "[" which suggests unparsed.
-                //lines = JSON.parse(lines))   Should already by a list
-                console.log("CommonList:async_fetchlist.success", self._hash, "len=", lines.length);
-                self._list = [];
-                for (let i in lines) {
-                    //TODO verify signature
-                    //if CryptoLib.verify(s):
-                    //noinspection JSUnfilteredForInLoop
-                    let s = new Signature(null, lines[i], verbose);        // Signature ::= {date, hash, privatekey etc }
-                    self._list.push(s);
-                }
-                if (success) {success(undefined);}
-            },
-            error);
-    }
-
-    p_loadandfetchlist(verbose) { // Obsoletes async_loadandfetchlist
+    p_loadandfetchlist(verbose) {
         // Utility function to simplify nested functions
         // Need to fetch body and only then fetchlist since for a list the body might include the publickey whose hash is needed for the list
         let self=this;
@@ -145,15 +104,8 @@ class CommonList extends SmartDict {
             .then(()=>self.p_fetchlist(verbose))
     }
 
-    async_loadandfetchlist(verbose, success, error) { console.trace(); console.assert(false, "OBSOLETE CL.async_loadandfetchlist"); //TODO-IPFS obsolete with p_fetch
-        // Utility function to simplify nested functions
-        let self=this;
-        this.async_load(verbose,
-            function(msg) { self.async_fetchlist(verbose, success, error) },
-            error);
-    }
     blocks(verbose) {
-        console.assert(false, "XXX@CL.blocks - checking if this ever gets used as should be handled by async_fetchlist.success");
+        console.assert(false, "XXX@CL.blocks - checking if this ever gets used as should be handled by p_fetchlist.then");
         let results = {};   // Dictionary of { SHA... : StructuredBlock(hash=SHA... _signatures:[Signature*] ] ) }
         for (let i in this._list) {
             let s = this._list[i];
@@ -175,11 +127,7 @@ class CommonList extends SmartDict {
         console.assert(false, "Intentionally XXX Undefined function CommonList._p_storepublic - should implement in subclasses");
     }
 
-    _async_storepublic(verbose, success, error) {
-        console.assert(false, "Intentionally XXX Undefined function CommonList._async_storepublic - should implement in subclasses");
-    }
-
-    p_store(verbose) { // Obsoletes async_store
+    p_store(verbose) {
         //if (verbose) { console.log("CL.store", this); }
         if (this._master && ! this._publichash) {
             this._p_storepublic(verbose); //Stores asynchronously, but _publichash set immediately
@@ -189,19 +137,6 @@ class CommonList extends SmartDict {
         } else {
             return new Promise((resolve, reject)=> resolve(null));  // I think this should be a noop - fetched already
         }
-    }
-
-    async_store(verbose, success, error) { console.trace(); console.assert(false, "OBSOLETE CL.async_store"); //TODO-IPFS obsolete with p_fetch  // Based on python
-        //if (verbose) { console.log("CL.store", this); }
-        if (this._master && ! this._publichash) {
-            this._async_storepublic(verbose, success, error); //Stores asynchronously, but hash set immediately
-        }
-        if ( ! (this._master && this.dontstoremaster)) {
-            super.async_store(verbose, success, error);    // Transportable.store(verbose)
-        } else {
-            if (success) { success(null); }
-        }
-        return this;
     }
 
     publicurl() { console.assert(false, "XXX Undefined function CommonList.publicurl"); }   // For access via web
@@ -225,26 +160,6 @@ class CommonList extends SmartDict {
             })
     }
 
-    async_signandstore(obj, verbose, success, error) { console.trace(); console.assert(false, "OBSOLETE CL.async_signandstore"); //TODO-IPFS obsolete with p_fetch
-        /*
-         Sign and store a StructuredBlock on a list - via the SB's signatures - see add for doing independent of SB
-
-         :param StructuredBlock obj:
-         :param verbose:
-         :param options:
-         :return:
-         */
-        let self = this;
-        this.async_load(verbose,
-            function(msg) {
-                console.assert(self._master, "ForbiddenException: Signing a new entry when not a master list");
-                // The obj.store stores signatures as well (e.g. see StructuredBlock.store)
-                obj.sign(self, verbose).async_store(verbose, success, error);
-            },
-            error);
-        return this; // For chaining
-    }
-
     _makesig(hash, verbose) {
         console.assert(hash, "Empty string or undefined or null would be an error");
         console.assert(this._master, "Must be master to sign something");
@@ -257,21 +172,5 @@ class CommonList extends SmartDict {
         return Dweb.transport.p_add(hash, sig.date, sig.signature, sig.signedby, null, verbose);
     }
 
-    async_add(obj, verbose, success, error) { console.trace(); console.assert(false, "OBSOLETE CL.async_add"); //TODO-IPFS obsolete with p_fetch
-        /*
-         Add a object, typically MBM or ACL (i.e. not a StructuredBlock) to a List,
-         COPIED TO JS 2017-05-24
-
-         :param obj: Object to store on this list or a hash string.
-         :param success: function(msg) to run on success
-         :param error: function(msg) to run on success
-         :returns Signature: Returns the Signature immediately for adding to local copy
-         */
-        let hash = (typeof obj === "string") ? obj : obj._hash;
-        let sig = this._makesig(hash, verbose);
-        Dweb.transport.async_add(this, hash, sig.date, sig.signature, sig.signedby, null, verbose, success, error);
-        return sig;  // Return sig immediately, typically for adding to local copy of list
-        // Caller will probably want to add obj to list , not done here since MB handles differently from KC etc
-    }
 }
 exports = module.exports = CommonList;

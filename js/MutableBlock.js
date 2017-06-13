@@ -16,17 +16,13 @@ class MutableBlock extends CommonList {
         this.table = "mb"
     }
 
-    p_elem(){ console.assert(false, "Need to define p_ function")}
-
-    async_elem(el, verbose, successmethodeach, error) { console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_fetch
+    p_elem(el, verbose, successmethodeach) {
         if (this._needsfetch) {
-            let self = this;
-            this.async_load(verbose, function (msg) {
-                self.async_elem(el, verbose, successmethodeach, error);
-            }, null);
+            return this.p_fetch(verbose)
+                .then((self) => self.p_elem(el, verbose, successmethodeach))
         } else {
-            // this._current should be setup, it might not be loaded, but async_elem can load it
-            this._current.async_elem(el, verbose, successmethodeach, error);    // Typically _current will be a SB
+            // this._current should be setup, it might not be loaded, but p_elem can load it
+            return this._current.p_elem(el, verbose, successmethodeach);    // Typically _current will be a SB
         }
     }
 
@@ -43,24 +39,7 @@ class MutableBlock extends CommonList {
         })
     }
 
-    async_fetchlist(verbose, success, error) {  // Check callers of fetchlist and how pass parameters //TODO-IPFS obsolete this
-        // Call chain is mb.load > MB.fetchlist > THttp.rawlist > Thttp.list > MB.fetchlist.success > caller's success
-        let self = this;
-        super.async_fetchlist(verbose,
-            function (unused) {
-                // Called after CL.async_fetchlist has unpacked data into Signatures in _list
-                if (self._list.length) {
-                    let sig = self._list[self._list.length - 1];  // Get most recent
-                    self._current = new StructuredBlock(sig.hash, null, verbose);   // Store in _current
-                }
-                if (success) { success(undefined); }  // Note success is applied to the MB, not to the content, and the content might not have been loaded.
-            },
-            error);
-    }
-
-    p_updatelist(){ console.assert(false, "Need to define p_ function")}
-
-    async_updatelist(ul, verbose, successmethodeach, error) { console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_fetch
+    p_updatelist(ul, verbose, successmethodeach) {
         // You can't pass "success" to updatelist as it spawns multiple threads
         //successmethodeach is method to apply to each element, see the path() function for definition
         while (ul.hasChildNodes()) {
@@ -72,11 +51,8 @@ class MutableBlock extends CommonList {
             let i = blocks[ii];
             let li = document.createElement("li");
             ul.appendChild(li);
-            i.async_load(verbose,
-                function (msg) {
-                    i.async_elem(li, verbose, successmethodeach, error);
-                },
-                error);
+            i.p_fetch(verbose)
+                .then((self) => i.p_elem(li, verbose, successmethodeach));
         }
     }
 
@@ -95,14 +71,6 @@ class MutableBlock extends CommonList {
         return prom;    // Have to return prom after set publichash
     }
 
-    _async_storepublic(verbose, success, error) { console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_fetch
-        // Note that this returns immediately after setting hash, so caller may not need to wait for success
-        //(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose, options)
-        let mb = new MutableBlock(null, null, false, this.keypair, false, null, null, null, verbose, {"name": this.name});
-        mb.async_store(verbose, success, error);    // Returns immediately but sets _hash first
-        this._publichash = mb._hash;
-    }
-
     contentacl() {console.assert(false, "XXX Undefined function MutableBlock.contentacl setter and getter"); }   // Encryption of content
 
     p_fetch(verbose) {
@@ -114,18 +82,6 @@ class MutableBlock extends CommonList {
         let self = this;
         return super.p_fetch(verbose)
         .then(() => { self.p_fetchlist(); return self})
-    }
-
-    async_load(verbose, success, error) { console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_fetch
-        /*
-         COPIED FROM JS MutableBlock.fetch 2017-05-24
-         :return: self for chaining
-         */
-        if (verbose) console.log("MutableBlock.fetch pubkey=", self._hash);
-        let self = this;
-        super.async_load(verbose, function (msg) {
-            self.async_fetchlist(success, error); }, error);
-        return self;
     }
 
     content() {
@@ -151,39 +107,12 @@ class MutableBlock extends CommonList {
         return super.p_signandstore(this._current, verbose) // ERR SignedBlockEmptyException, ForbiddenException
     }
 
-    async_signandstore(verbose, success, error) { console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_fetch
-        /*
-         Sign and Store a version, or entry in MutableBlock master
-         Exceptions: SignedBlockEmptyException if neither hash nor structuredblock defined, ForbiddenException if !master
-
-         :return: self to allow chaining of functions
-         */
-        if ((!this._current._acl) && this.contentacl) {
-            this._current._acl = this.contentacl;    //Make sure SB encrypted when stored
-            this._current.dirty();   // Make sure stored again if stored unencrypted. - _hash will be used by signandstore
-        }
-        return super.async_signandstore(this._current, verbose, success, error) // ERR SignedBlockEmptyException, ForbiddenException
-    }
-
-    p_path(patharr, verbose, successmethod) { // obsoletes async_path
-        if (verbose) console.log("mb.async_path", patharr, successmethod);
-        //sb.async_path(patharr, verbose, successmethod, error) {
+    p_path(patharr, verbose, successmethod) {
+        if (verbose) console.log("mb.p_path", patharr, successmethod);
+        //sb.p_path(patharr, verbose, successmethod) {
         let curr = this._current;
         return curr.p_fetch(verbose)
             .then((obj) => obj.p_path(patharr, verbose, successmethod));
-    }
-
-    async_path(patharr, verbose, successmethod, error) { console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_fetch
-        if (verbose) {
-            console.log("mb.async_path", patharr, successmethod);
-        }
-        //sb.async_path(patharr, verbose, successmethod, error) {
-        let curr = this._current;
-        curr.async_load(verbose,
-            function (msg) {
-                curr.async_path(patharr, verbose, successmethod, error);
-            },
-            error);
     }
 
     static p_new(acl, contentacl, name, _allowunsafestore, content, signandstore, verbose) {
@@ -218,6 +147,7 @@ class MutableBlock extends CommonList {
                 .then(() => mblockm)
         }
     }
+
 
     static test(sb, transport, verbose) {
         let mb;

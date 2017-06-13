@@ -37,9 +37,9 @@ function previouslyworking() {   console.trace(); console.assert(false, "OBSOLET
         null);
     console.log("Now test path using dwebfile and sb =======");
     verbose=false;
-    Dweb.async_dwebfile("sb", sbhash, "langs/readme.md", ["async_elem", "myList.2", verbose, null, null], null);
+    Dweb.async_dwebfile("sb", sbhash, "langs/readme.md", ["p_elem", "myList.2", verbose, null], null);
     console.log("Now test path using dwebfile and mb =======");
-    Dweb.async_dwebfile("mb", mbhash, "langs/readme.md", ["async_elem", "myList.3", verbose, null, null], null);
+    Dweb.async_dwebfile("mb", mbhash, "langs/readme.md", ["p_elem", "myList.3", verbose, null], null);
     console.log("END testing previouslyworking()");
 }
 
@@ -110,7 +110,7 @@ function cryptotest() { //TODO-CRYPTO Still working on this
     // This is _makeacl() in test.py
     if (verbose) console.log("Creating AccessControlList");
     //Create a acl for testing, - full breakout is in test_keychain
-    let accesskey=CryptoLib.randomkey();
+    let accesskey=CryptoLibrandomkey();
     //hash, data, master, keypair, keygen, mnemonic, verbose, options
     let key = self.keyfromfile("test_acl1"+self.keytail, private=True, keytype=KeyPair.KEYTYPESIGN)
     let accesskey=CryptoLib.b64enc(accesskey);

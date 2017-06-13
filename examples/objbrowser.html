@@ -22,9 +22,9 @@
             let verbose=true;
             let obj = new Dweb.MutableBlock(mb2hash);
             let path = []; // [ 'langs', 'readme.md' ]  // Direct to a file
-            obj.async_load(verbose,
-                function(msg) { obj.async_fetchlist(verbose, function(msg) { obj.objbrowser(obj._hash, path, "ObjBrowser", verbose); }, null); },
-                null);
+            obj.p_fetch(verbose)
+            .then((msg) => obj.p_fetchlist(verbose))
+            .then((msg) => obj.objbrowser(obj._hash, path, "ObjBrowser", verbose))
         }
     </script>
     <style type="text/css">

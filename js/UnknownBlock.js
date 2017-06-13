@@ -19,7 +19,7 @@ class UnknownBlock extends SmartDict {
     /*
      A class for when we don't know if its a StructuredBlock, or MutableBlock or something else
 
-     You could use this by: (OBSOLETED) foo = new UnknownBlock(hash, verbose); foo.async_load(verbose, ["addtoparent",parent])
+     You could use this by: (OBSOLETED) foo = new UnknownBlock(hash, verbose); foo.p_load(verbose, ["addtoparent",parent])
      */
 
     constructor(hash, verbose) {
@@ -44,32 +44,11 @@ class UnknownBlock extends SmartDict {
                 let newobj = new cls(self._hash, data);
                 if (successmethod) {
                     let methodname = successmethod.shift();
-                    //if (verbose) console.log("async_elem",methodname, successmethod);
+                    //if (verbose) console.log("p_elem",methodname, successmethod);
                     newobj[methodname](...successmethod); // Spreads successmethod into args, like *args in python
                 }
                 return newobj;    // For chaining
             })
-    }
-
-    async_load(verbose, successmethod, error) { console.assert(false, "Obsolete");
-        if (verbose) console.log("Unknownblock loading", this._hash);
-        let self = this;
-        Dweb.transport.async_rawfetch(this, this._hash, verbose,
-            function(data) {
-                if (typeof data === 'string') {    // Assume it must be JSON
-                    data = JSON.parse(data);
-                }   // Else assume its json already
-                let table = data["table"];
-                let cls = LetterToClass[table];
-                console.assert(cls, "UnknownBlock.async_load:",table,"isnt implemented in LetterToClass");
-                let newobj = new cls(self._hash, data);
-                if (successmethod) {
-                    let methodname = successmethod.shift();
-                    //if (verbose) console.log("async_elem",methodname, successmethod);
-                    newobj[methodname](...successmethod); // Spreads successmethod into args, like *args in python
-                }
-            },
-            error);
     }
 }
 

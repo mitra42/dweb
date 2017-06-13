@@ -13,15 +13,9 @@ TODO-IPFS-MULTILIST
 For now we use one list, and filter by hash, at some point we'll need lots of lists and its unclear where to split
 - at listener; partition or list within that (resources / hits) or have to filter on content
 
-TODO-IPFS - working from bottom of list
-Work back up file stash:
-    Done: Transport, TransportIPFS
-    ComeBckFor: TransportHTTP & TransportLocal (make use promises)
-    Obsoletes: T.async_rawfetch T.async_rawstore T.async_rawlist T.async_rawadd Transportable.async_store Transportable.async_load
-    Functions needing work: SmartDict.preflight, SmartDict.objbrowser,
+TODO-IPFS ComeBackFor: TransportHTTP & TransportHTTPBase (make use promises)
 
 */
-
 
 
 // Library packages other than IPFS
@@ -42,11 +36,6 @@ const Transport = require('./Transport.js');
 const Dweb = require('./Dweb.js')
 
 //Debugging only
-
-
-
-let globaltransport;  //TODO-IPFS move to use from Dweb
-let globalannotationList;  //TODO-IPFS move to use from Dweb
 
 let defaultipfsoptions = {
     repo: '/tmp/ipfs_dweb20170612', //TODO-IPFS think through where, esp for browser
@@ -87,7 +76,6 @@ class TransportIPFS extends Transport {
         //let ipfs = new IPFS(ipfsoptions); // Without CRDT (for lists)
         const res = IIIFDB(iiifoptions); //Note this doesn't start either IPFS or annotationlist
         const ipfs = res.ipfs;
-        let annotationList;
         return new Promise((resolve, reject) => {
             ipfs.version()
                 .then((version) => console.log("Version=", version))
@@ -97,11 +85,10 @@ class TransportIPFS extends Transport {
                 //.then((unused) => ipfs.start())
                 .then((unused) => console.log("IPFS node",ipfs.isOnline() ? "and online" : "but offline"))    //TODO throw error if not online
                 .then(() => {
-                    annotationList = res.annotationList(annotationlistexample);    //TODO-IPFS move this to the list command - means splitting stuff under it that calls bootstrap
-                    globalannotationList = annotationList;  //TODO-IPFS remove need for global
-                    annotationList.on('started', (event) => {
+                    Dweb.annotationList = res.annotationList(annotationlistexample);    //TODO-IPFS-MULTILIST move this to the list command - means splitting stuff under it that calls bootstrap
+                    Dweb.annotationList.on('started', (event) => {
                         console.log("IPFS node after annotation list start",ipfs.isOnline() ? "now online" : "but still offline");   //TODO throw error if not online
-                        if (verbose) { console.log("annotationList started, list at start = ", ...Dweb.utils.consolearr(annotationList.getResources())); }
+                        if (verbose) { console.log("annotationList started, list at start = ", ...Dweb.utils.consolearr(Dweb.annotationList.getResources())); }
                         resolve(ipfs)   // Cant resolve till annotation list online
                     });
                 })
@@ -137,7 +124,7 @@ class TransportIPFS extends Transport {
     static cid2link(cid) {
         //console.log(cid.multihash[0],cid.multihash[1],cid.multihash[2]);
         return "/ipfs/"+cid.toBaseEncodedString()
-    }  //TODO-IPFS this might not be right, (TODO-IPFS-Q)
+    }  //TODO-IPFS this might not be right, (TODO-IPFS-Q-CID)
 
     static link2cid(link) {
         let arr = link.split('/');
@@ -152,13 +139,8 @@ class TransportIPFS extends Transport {
             //.then((result) => {console.log("XXX@p_rawfetch data=",result.data.toString()); return result;})
             .then((result)=> result.data.toString())
     }
-    async_rawfetch(self, hash, verbose, success, error) {  console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_*
-        this.p_rawfetch(hash, verbose).then((data)=>success(data)).catch((err) => error(err));
-        if (verbose) console.log("async_rawfetch continuining")
-    }
 
-
-    p_rawlist(hash, verbose) { //TODO-IPFS move initialization of annotation list here
+    p_rawlist(hash, verbose) { //TODO-IPFS-MULTILIST move initialization of annotation list here
         // obj being loaded
         // Locate and return a list, based on its multihash
         // Call chain is mb.load > CL.fetchlist > THttp.rawlist > Thttp.load > CL|MB.fetchlist.success > callers.success
@@ -167,7 +149,7 @@ class TransportIPFS extends Transport {
         // notify is NOT part of the Python interface, needs implementing there.
         console.assert(hash, "TransportHTTP.p_rawlist: requires hash");
         return new Promise((resolve, reject) => {
-            let res = globalannotationList.getResources()
+            let res = Dweb.annotationList.getResources()
                 .filter((obj) => (obj.signedby === hash))
             if (verbose) console.log("p_rawlist found",...Dweb.utils.consolearr(res));
             resolve(res);
@@ -176,7 +158,7 @@ class TransportIPFS extends Transport {
     listmonitor(hash, callback, verbose) {
         // Typically called immediately after a p_rawlist to get notification of future items
         //TODO-IPFS-MULTILIST will want to make more efficient.
-        globalannotationList.on('resource inserted', (event) => {
+        Dweb.annotationList.on('resource inserted', (event) => {
             let obj = event.value;
             if (verbose) console.log('resource inserted', obj)
             //obj["signature"] = obj["@id"];
@@ -184,10 +166,6 @@ class TransportIPFS extends Transport {
             //console.log('resource after transform', obj);
             if (callback && (obj.signedby === hash)) callback(obj);
         })
-    }
-
-    async_rawlist(self, hash, verbose, success, error) { console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_*
-        this.p_rawlist(hash, verbose).then((res)=>success(res)).catch((err)=>error(err));
     }
 
     rawreverse() { console.assert(false, "XXX Undefined function TransportHTTP.rawreverse"); }
@@ -198,16 +176,12 @@ class TransportIPFS extends Transport {
         let buf = (data instanceof Buffer) ? data : new Buffer(data);
         return this.promisified.ipfs.block.put(buf).then((block) => TransportIPFS.cid2link(block.cid));
     }
-    async_rawstore(self, data, verbose, success, error) {   console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_*
-        this.p_rawstore(data, verbose).then((hash)=>success(hash)).catch((err) => error(err));
-        if (verbose) console.log("async_rawstore continuining")
-    }
 
     rawadd(hash, date, signature, signedby, verbose) {
         console.assert(hash && signature && signedby, "p_rawadd args",hash,signature,signedby);
         if (verbose) console.log("p_rawadd", hash, date, signature, signedby);
         let value = {"@id": signature, "hash": hash, "date": date, "signature": signature, "signedby": signedby};
-        globalannotationList.pushResource(value);   //TODO-IPFS remove need for globalannotationList
+        Dweb.annotationList.pushResource(value);
     }
     p_rawadd(hash, date, signature, signedby, verbose) {
         return new Promise((resolve, reject)=> { try {
@@ -216,14 +190,6 @@ class TransportIPFS extends Transport {
         } catch(err) {
             reject(err);
         } })
-    }
-    async_rawadd(self, hash, date, signature, signedby, verbose, success, error) { console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_*
-        try {
-            this.rawadd(hash, date, signature, signedby, verbose);
-        } catch (err) {
-            console.log("async_rawadd failed", err);
-            if (error) error(err);
-        }
     }
 
     async_update(self, hash, type, data, verbose, success, error) { console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_*
@@ -252,12 +218,11 @@ class TransportIPFS extends Transport {
                         hashqbf = hash;
                     })
                     /*
-                    .then(() => transport.async_rawstore(null, rold, verbose,
-                        function (hash) {
-                            if (verbose) console.log("async_rawstore got", hash);
+                    .then(() => transport.p_rawstore(null, rold, verbose))
+                    .then((hash) => {
+                            if (verbose) console.log("p_rawstore got", hash);
                             hashrold = hash;
-                        }, null
-                    ))
+                        })
                     */
                     // Note above returns immediately and runs async, we don't wait for it before below
                     .then(() => transport.p_rawfetch(hashqbf, verbose))
