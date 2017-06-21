@@ -1,6 +1,5 @@
 const Dweb = require('./Dweb.js');
 //TODO Move all these into Dweb.StructuredBlock etc
-const StructuredBlock = require('./StructuredBlock.js');
 const MutableBlock = require('./MutableBlock.js');
 const KeyChain = require('./KeyChain.js');
 const KeyPair = require('./KeyPair.js');
@@ -22,7 +21,7 @@ const sbhash="BLAKE2.spTuo7yuSJEQyYy3rUFV2G0SCDxhkZEHhQQttozxWtQ="; // This is t
 function previouslyworking() {   console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_*      // This was previously working in examples
     let verbose=false;
     console.log("StructuredBlock=======");
-    let sb = new StructuredBlock(sbhash);
+    let sb = new Dweb.StructuredBlock(sbhash);
     let el = document.getElementById("myList.0");
     //console.log("el=",el);
     sb.async_load(true,
@@ -125,7 +124,7 @@ function cryptotest() { //TODO-CRYPTO Still working on this
      sb = self._makesb(acl=acl)   # Encrypted obj
      assert KeyChain.myviewerkeys()[0].name == vkpname, "Should find viewerkeypair stored above"
      if (verbose) console.log("KEYCHAIN 6: Check can fetch and decrypt - should use viewerkeypair stored above"
-     sb2 = StructuredBlock(hash=sb._hash, verbose=self.verbose).fetch(verbose=self.verbose) # Fetch & decrypt
+     sb2 = Dweb.StructuredBlock(hash=sb._hash, verbose=self.verbose).fetch(verbose=self.verbose) # Fetch & decrypt
      assert sb2.data == self.quickbrownfox, "Data should survive round trip"
      if (verbose) console.log("KEYCHAIN 7: Check can store content via an MB"
      mblockm = MutableBlock.new(contentacl=acl, name="mblockm", _allowunsafestore=True, content=self.quickbrownfox, signandstore=True, verbose=self.verbose)  # Simulate other end

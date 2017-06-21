@@ -1,5 +1,4 @@
 const TransportIPFS = require('./TransportIPFS');
-//const Block= require('./Block')
 const Dweb = require('./Dweb');
 
 // Utility packages (ours) Aand one-loners
