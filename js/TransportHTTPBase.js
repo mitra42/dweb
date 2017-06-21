@@ -1,9 +1,6 @@
 const Transport = require('./Transport.js');
-
 const request = require('request');
-
 const isNode=new Function("try {return this===global;}catch(e){return false;}");
-
 const myrequest = request.defaults({pool: {maxSockets: 2}, forever: true});
 //const myrequest = request.defaults({forever: true});
 

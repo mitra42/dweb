@@ -4,21 +4,22 @@ class Transport {
     //noinspection JSUnusedLocalSymbols
     constructor(verbose, options) { }
     setup() { console.assert(false, "XXX Undefined function Transport.setup"); }
+    p_setup() { console.assert(false, "XXX Undefined function Transport.p_setup"); }
     _lettertoclass() { console.assert(false, "XXX Undefined function Transport._lettertoclass"); }
     info() { console.assert(false, "XXX Undefined function Transport.info"); }
-    p_rawfetch() { console.assert(false, "XXX Undefined function Transport.rawfetch"); }
+    p_rawfetch() { console.assert(false, "XXX Undefined function Transport.p_rawfetch"); }
     //noinspection JSUnusedGlobalSymbols
-    p_fetch() { console.assert(false, "XXX Undefined function Transport.fetch"); }
-    p_rawlist() { console.assert(false, "XXX Undefined function Transport.rawlist"); }
-    p_list() { console.assert(false, "XXX Undefined function Transport.list"); }
+    p_fetch() { console.assert(false, "XXX Undefined function Transport.p_fetch"); }
+    p_rawlist() { console.assert(false, "XXX Undefined function Transport.p_rawlist"); }
+    p_list() { console.assert(false, "XXX Undefined function Transport.p_list"); }
     //noinspection JSUnusedGlobalSymbols
-    p_rawreverse() { console.assert(false, "XXX Undefined function Transport.rawreverse"); }
+    p_rawreverse() { console.assert(false, "XXX Undefined function Transport.p_rawreverse"); }
     //noinspection JSUnusedGlobalSymbols
-    p_reverse() { console.assert(false, "XXX Undefined function Transport.reverse"); }
-    p_rawstore() { console.assert(false, "XXX Undefined function Transport.rawstore"); }
-    p_store() { console.assert(false, "XXX Undefined function Transport.store"); }
+    p_reverse() { console.assert(false, "XXX Undefined function Transport.p_reverse"); }
+    p_rawstore() { console.assert(false, "XXX Undefined function Transport.p_rawstore"); }
+    p_store() { console.assert(false, "XXX Undefined function Transport.p_store"); }
     //noinspection JSUnusedLocalSymbols
-    p_rawadd(hash, date, signature, signedby, verbose) { console.assert(false, "XXX Undefined function Transport.rawadd"); }
+    p_rawadd(hash, date, signature, signedby, verbose) { console.assert(false, "XXX Undefined function Transport.p_rawadd"); }
 
     p_add(hash, date, signature, signedby, obj, verbose) {
         if (obj && !hash) hash = obj._hash;

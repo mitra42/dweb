@@ -163,7 +163,7 @@ class MutableBlock extends CommonList {
                     //TODO-IPFS uncomment next line when have crypto etc
                     // .then(() => console.assert(mb._current.data === sb.data, "Should have retrieved"))
                     //.then(() => mb.p_path(["langs", "readme.md"], verbose, ["p_elem", "myList.1", verbose,]))
-                    .then(() => console.log("MutableBlock.test promises done"))
+                    .then(() => { if (verbose) console.log("MutableBlock.test promises done"); })
                     .then(() => resolve({mb: mb}))
                     .catch((err) => {
                         console.log("Error in MutableBlock.test", err);   // Log since maybe "unhandled" if just throw

@@ -30,7 +30,7 @@ let sb;
     .then((testobjs) => sb = testobjs.sb)
     .then(() => Dweb.MutableBlock.test(sb, Dweb.transport, verbose))
     .then(() => Dweb.CryptoLib.test(verbose))
-    .then(() => verbose = true)
+    //.then(() => verbose = true)
     .then(() => Dweb.KeyChain.test(verbose))
     .then(() => console.log("delaying 10 secs"))
     .then(() => delay(10000))

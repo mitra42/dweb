@@ -114,7 +114,7 @@ class KeyChain extends CommonList {
 
     _p_storepublic(verbose) {
         // Note - doesnt return a promise, the store is happening in the background
-        console.log("KeyChain._p_storepublic");
+        if (verbose) console.log("KeyChain._p_storepublic");
         let kc = new KeyChain(null, {"name": this.name}, false, this.keypair, false, null, verbose);
         kc.p_store(verbose); // Async, but will set _hash immediately
         this._publichash = kc._hash;  //returns immediately with precalculated hash

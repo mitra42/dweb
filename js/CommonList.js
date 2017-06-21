@@ -84,7 +84,7 @@ class CommonList extends SmartDict {
             .then((lines) => {
                 //console.log("p_fetchlist:",lines[0]); // Should be a full line, not just "[" which suggests unparsed.
                 //lines = JSON.parse(lines))   Should already by a list
-                console.log("CommonList:p_fetchlist.success", self._hash, "len=", lines.length);
+                if (verbose) console.log("CommonList:p_fetchlist.success", self._hash, "len=", lines.length);
                 self._list = [];    //TODO rewrite loop to replace with lines.map(...)
                 for (let i in lines) {
                     //TODO verify signature
