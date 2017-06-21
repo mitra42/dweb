@@ -102,7 +102,7 @@ class TransportIPFS extends Transport {
     }
 
 
-    static setup(ipfsoptions, verbose, options) {
+    static p_setup(ipfsoptions, verbose, options) {
         let combinedipfsoptions = Object.assign(defaultipfsoptions, ipfsoptions);
         let t = new TransportIPFS(combinedipfsoptions, verbose, options);
         return new Promise((resolve, reject) => {
@@ -258,6 +258,7 @@ class TransportIPFS extends Transport {
                     });
             } catch (err) {
                     console.log("Exception thrown in TransportIPFS.test", err)
+                    reject(err);
             }
         })
     }

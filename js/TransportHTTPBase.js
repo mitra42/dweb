@@ -9,11 +9,13 @@ class TransportHTTPBase extends Transport {
         super(verbose, options);
         this.ipandport = ipandport;
         this.baseurl = "http://" + ipandport[0] + ":" + ipandport[1] + "/";
+        this.hashtype = "BLAKE2";   //
     }
-    async_load(command, hash, verbose, success, error) { console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_*
+    async_load(command, hash, verbose, success, error) {
         // Locate and return a block, based on its multihash
         // Call chain for list is mb.load > CL.fetchlist > THttp.rawlist > Thttp.load > CL|MB.fetchlist.success > callers.succes
-        if (verbose) { console.log("TransportHTTP async_load:",command, ":hash=", hash); }
+        if (verbose) {
+            console.log("TransportHTTP async_load:",command, ":hash=", hash); }
         let url = this.url(command, hash);
         if (verbose) { console.log("TransportHTTP:async_load: url=",url); }
         /*
@@ -54,9 +56,20 @@ class TransportHTTPBase extends Transport {
         });
 
     }
-    async_post(command, hash, type, data, verbose, success, error) { console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_*
+
+    //TODO-IPFS replace this and async_load with a more standard promised XHR
+    p_load(command, hash, verbose) {
+        return new Promise((resolve, reject) => {
+            this.async_load(command, hash, verbose,
+                (msg) => resolve(msg),
+                (xhr, status, error) => reject(undefined)
+            )
+        })
+    }
+
+    async_post(command, hash, type, data, verbose, success, error) {
         // Locate and return a block, based on its multihash
-        verbose=true;
+        //verbose=true;
         if (verbose) console.log("TransportHTTP post:", command,":hash=", hash);
         let url = this.url(command, hash);
         if (verbose) { console.log("TransportHTTP:post: url=",url); }
@@ -94,6 +107,16 @@ class TransportHTTPBase extends Transport {
             }
 
         });
+    }
+
+    //TODO-IPFS replace this and async_post with a more standard promised XHR
+    p_post(command, hash, type, data, verbose) {
+        return new Promise((resolve, reject) => {
+            this.async_post(command, hash, type, data, verbose,
+                (msg) => resolve(msg),
+                (xhr, status, error) => reject(undefined)
+            )
+        })
     }
     info() { console.assert(false, "XXX Undefined function Transport.info"); }
 

@@ -15,10 +15,14 @@ const Dweb = require("./Dweb");
 //CryptoLib.Curlhash = function(data) { return "BLAKE2."+ sodium.crypto_generichash(32, data, null, 'urlsafebase64'); }
 //Specific to IPFS
 exports.Curlhash = function(data) {
-    let b2 = (data instanceof Buffer) ? data : new Buffer(data);
-    let b3 = crypto.createHash('sha256').update(b2).digest();
-    hash = multihashes.toB58String(multihashes.encode(b3, 'sha2-256'));  //TODO-IPFS-Q unclear how to make generic
-    return "/ipfs/"+hash
+    if (Dweb.transport.hashtype == "BLAKE2") {
+        return "BLAKE2."+ sodium.crypto_generichash(32, data, null, 'urlsafebase64');
+    } else {    //TransportIPFS
+        let b2 = (data instanceof Buffer) ? data : new Buffer(data);
+        let b3 = crypto.createHash('sha256').update(b2).digest();
+        hash = multihashes.toB58String(multihashes.encode(b3, 'sha2-256'));  //TODO-IPFS-Q unclear how to make generic
+        return "/ipfs/" + hash
+    }
 }
 exports._signable = function(date, data) {
         /*

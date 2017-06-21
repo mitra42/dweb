@@ -1,4 +1,5 @@
 const TransportIPFS = require('./TransportIPFS');
+const TransportHTTP = require('./TransportHTTP');
 const Dweb = require('./Dweb');
 
 // Utility packages (ours) Aand one-loners
@@ -14,17 +15,19 @@ const dom = new JSDOM(htmlfake);
 document = dom.window.document;   // Note in JS can't see "document" like can in python
 
 
+//let transportclass = TransportIPFS
+let transportclass = TransportHTTP
 let verbose = false;
 let blk;
 let blk2;
 let sb;
 
-    TransportIPFS.setup({}, verbose, {})
+    transportclass.p_setup({}, verbose, {})
     .then((t) => {
         if (verbose) console.log("setup returned and transport set - including annoationList");
         Dweb.transport = t;
     })
-    .then(() => TransportIPFS.test(Dweb.transport, verbose))
+    .then(() => transportclass.test(Dweb.transport, verbose))
     .then(() => Dweb.Block.test(Dweb.transport, verbose))
     .then(() => Dweb.StructuredBlock.test(Dweb.transport, document, verbose))
     .then((testobjs) => sb = testobjs.sb)
