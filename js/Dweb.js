@@ -1,4 +1,4 @@
-//exports.TransportHTTP = require('./TransportHTTP');   //TODO-IPFS HTTP ONLY temporarily commented out
+//exports.TransportHTTP = require('./TransportHTTP');   //TODO-IPFS breaks
 exports.Block = require('./Block');
 exports.StructuredBlock = require('./StructuredBlock');
 exports.MutableBlock = require('./MutableBlock');

@@ -6,7 +6,7 @@ const multihashes = require('multihashes');
 
 //Other packages needed
 const sodium = require("libsodium-wrappers");
-const crypto = require ('crypto')
+const crypto = require ('crypto');
 const Dweb = require("./Dweb");
 
 //CryptoLib = {}

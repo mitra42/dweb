@@ -39,8 +39,12 @@ class TransportHTTPBase extends Transport {
                 if (verbose) { console.log("TransportHTTP X:", command, hash, ": returning data len=", data && data.length ); }
             //TODO handle errors
             if (errorres) {
-                console.assert(false, "TransportHTTP.async_load:", url, ": error", errorres, "response=", response, "data=", data); // Print the error if one occurred //TODO extract useful data to display
-                if (error) error(undefined, undefined, undefined);
+                console.log("TransportHTTP.async_post unable to post url: ",url, "data:", data, "errno: ", errorres.errno,"at:",errorres.address+":"+errorres.port)
+                if (error) {
+                    error(undefined, undefined, undefined)
+                } else {
+                    throw new TransportError("TransportHTTP.async_post unable to post url: "+url+" data: "+data+"errno: "+errorres.errno+"at"+errorres.address+":"+errorres.port)
+                }
             } else {
                 if (response["statusCode"] === 200) {
                     if (response["headers"]['content-type'] === "application/json") {
@@ -97,8 +101,12 @@ class TransportHTTPBase extends Transport {
             if (verbose) { console.log("TransportHTTP post:", command, hash, ": returning data len=", respdata && respdata.length ); }
             //TODO handle errors
             if (errorres) {
-                console.assert(false, "TransportHTTP async_post FAIL:", url, "data:",data, "error:", errorres, "response:", response, "respdata:", respdata); // Print the error if one occurred //TODO extract useful data to display
-                if (error) error(undefined, undefined, undefined);
+                console.log("TransportHTTP.async_post unable to post url: ",url, "data:", data, "errno: ", errorres.errno,"at:",errorres.address+":"+errorres.port)
+                if (error) {
+                    error(undefined, undefined, undefined)
+                } else {
+                    throw new TransportError("TransportHTTP.async_post unable to post url: "+url+" data: "+data+"errno: "+errorres.errno+"at"+errorres.address+":"+errorres.port)
+                }
             } else {
                 if (response["headers"]['content-type'] === "application/json") {
                     respdata = JSON.parse(respdata);
