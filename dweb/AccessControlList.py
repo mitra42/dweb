@@ -19,7 +19,7 @@ class AccessControlList(EncryptionList):
     """
     table = "acl"
 
-    def preflight(self, dd):   #TODO-REFACTOR all preflight to have dd defined by caller (store)
+    def preflight(self, dd):
         if (not self._master) and isinstance(self.keypair._key, nacl.signing.SigningKey):
             dd["naclpublic"] = dd.get("naclpublic") or dd["keypair"].naclpublicexport()   # Store naclpublic for verification
         # Super has to come after above as overrights keypair, also cant put in CommonList as MB's dont have a naclpublic and are only used for signing, not encryption

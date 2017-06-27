@@ -155,7 +155,7 @@ class KeyChain extends CommonList {
         return KeyChain._findbyclass(Dweb.MutableBlock);
     }
 
-    static test(verbose) {
+    static p_test(verbose) {
         if (verbose) console.log("KeyChain.test");
         return new Promise((resolve, reject) => {
             try {
@@ -213,11 +213,12 @@ class KeyChain extends CommonList {
                         console.assert(mbm3 instanceof Dweb.MutableBlock, "Should be a mutable block", mbm3);
                         console.assert(mbm3.name === mbmaster.name, "Names should survive round trip");
                      })
-                /*
                     .then(() => {
+                        verbose=true;
                         let accesskey
                         if (verbose) console.log("KEYCHAIN 5: Check can user ViewerKeyPair");
-                        //acl = self._makeacl()   # Create Access Control List    - dont require encrypting as pretending itssomeone else's
+                        /*
+                        acl = this._makeacl();  //Create Access Control List    - dont require encrypting as pretending itssomeone else's
                         // This is _makeacl() in test.py
                         if (verbose) console.log("Creating AccessControlList");
                         //Create a acl for testing, - full breakout is in test_keychain
@@ -230,8 +231,8 @@ class KeyChain extends CommonList {
                             "accesskey": accesskey
                         }, true, key, false, null, verbose, null);
                         acl._allowunsafestore = True    // Not setting _acl on this
+                         */
                     })
-                 */
                     /*
                     .then(() => acl.p_store(verbose))
                     */
@@ -248,14 +249,15 @@ class KeyChain extends CommonList {
 
                     .then(() => {
                         if (verbose) console.log("KeyChain.test promises complete");
+                        console.log("KeyChain.test requires more tests defined");
                         resolve({kc: kc, mbmaster: mbmaster});
                     })
                     .catch((err) => {
-                        console.log("Error in KeyChain.test", err);   // Log since maybe "unhandled" if just throw
+                        console.log("Error in KeyChain.p_test", err);   // Log since maybe "unhandled" if just throw
                         reject(err);
                     })
             } catch (err) {
-                console.log("Caught exception in KeyChain.test", err);
+                console.log("Caught exception in KeyChain.p_test", err);
                 throw err;
             }
         })
