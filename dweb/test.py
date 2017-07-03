@@ -94,6 +94,11 @@ class Testing(unittest.TestCase):
         return acl
 
     def _makesb(self, acl=None):    # See test_structuredblock for canonical testing of this
+        """
+
+        :param acl:
+        :return:
+        """
         if self.verbose: print "Create Structured Block"
         sb = StructuredBlock()
         sb.name = "test _sb"
