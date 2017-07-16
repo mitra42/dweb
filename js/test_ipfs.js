@@ -15,8 +15,8 @@ const dom = new JSDOM(htmlfake);
 document = dom.window.document;   // Note in JS can't see "document" like can in python
 
 
-//let transportclass = TransportIPFS
-let transportclass = TransportHTTP
+let transportclass = TransportIPFS
+//let transportclass = TransportHTTP
 let verbose = false;
 let blk;
 let blk2;
@@ -31,10 +31,11 @@ let sb;
     .then(() => Dweb.Block.test(Dweb.transport, verbose))
     .then(() => Dweb.StructuredBlock.test(Dweb.transport, document, verbose))
     .then((testobjs) => sb = testobjs.sb)
+    .then(() => console.log("sb=",sb))
     .then(() => Dweb.MutableBlock.test(sb, Dweb.transport, verbose))
     .then(() => Dweb.CryptoLib.test(verbose))
     .then(() => verbose = true)
-    .then(() => Dweb.AccessControlList.p_test(verbose))
+    //.then(() => Dweb.AccessControlList.p_test(verbose))
     .then(() => Dweb.KeyChain.p_test(verbose))
     .then(() => console.log("delaying 10 secs"))
     .then(() => delay(10000))

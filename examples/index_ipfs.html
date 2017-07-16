@@ -1,0 +1,81 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>DWEB Demonstration page</title>
+    <script type="text/javascript" src="/file/mb/BLAKE2.iYiNlcLOfxRU-coIq2foYgTN9V1J4DzPV2yTXqHUN2I="></script><!-- Dweb bundled via Dweb-->
+    <!--<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script><!-- Jquery via Google -->
+    <!--<script type="text/javascript" src="/file/sb/BLAKE2.RXiIhCFXXknh1K54zIpF53Fi2wieHY6SluWML39taS4="></script><!-- jquery-3.1.1.js-->
+    <!--<script type="text/javascript" src="/file/sb/BLAKE2.o2MS3vLprUwCMK8PDcx27A1SdW4OX-V37beCKS_c4tw=/sodium.js"></script><!-- libsodium/sodium.js-->
+    <!--<script type="text/javascript" src="/file/mb/BLAKE2.C0pfg39FLVAO9eCBrT76D5lHQp6XtN32vxmretoFxQE="></script><!-- dweb.js -->
+    <!--<script src='/dweb/tinymce/tinymce.min.js'></script><!-- TinyMCE -->
+    <!--<script src='//cloud.tinymce.com/stable/tinymce.min.js'></script><!-- TinyMCE -->
+    <script src='/file/mb/BLAKE2.dfMoOqTdXvqKhoZo7HPvD5raBXfgH7chXsN2PElizs8=/tinymce.min.js'></script><!-- TinyMCE via relative URL-->
+    <script>//TODO this needs lots of work to be pretty editor
+    // url for content is: SHA3256B64URL.CLw7p4lteb5oxmXBkuk9lDqM89hRic7RPITGWg1AAD4=
+    //dwebfile("mytextarea", "mb", "SHA3256B64URL.CLw7p4lteb5oxmXBkuk9lDqM89hRic7RPITGWg1AAD4="); // Via Public URL
+
+    tinymce.init({
+        selector: '#mytextarea',
+        plugins: "save",
+        toolbar: "save",
+        save_onsavecallback: function() {
+            content = tinyMCE.get('mytextarea').getContent();
+            hash = "BLAKE2.pOutfp-rmccZaPlx3vF-PjC0o8Mpz38khpwjn79WEJI="; // The privatehash of the "snippet.html editable - should be a parameter
+            // alert(content);
+            type = "text%2Fhtml";
+            Dweb.p_dwebupdate(hash, type, content, ["p_elem","myDiv", verbose, null]); // Post to Dweb and store URL at myDiv
+        }
+    });
+
+    // Demonstrate how to load various features using either simplified functions (dwebfile, dweblist) or objects (Block, StructuredBlock)
+    // This is my current testing script first of block
+    let verbose = false;
+    /*
+     console.log("Block=======");
+     let b = new Block("BLAKE2.A5JOSLvsRV-dFuFqNlpQeBP5OojtIuJmUq9mmoAJXkA=", null); // Block with "clever dog..."
+     b.p_fetch(verbose)
+     .then((msg) => b.p_elem("myList.0", verbose, null)); // Load block in background
+     // Now of SB
+     console.log("StructuredBlock=======");
+     let sb = new StructuredBlock("BLAKE2.PE5U0ifHdgpnr4768BRLD8htZIJ14XOc_sgvmUs7JPI="); // This comes from looking in list/..hash of MB below..
+     sb.p_fetch(verbose)
+     .then((msg) => sb.p_elem("myList.1", verbose, null)) // hash of SB containing data containing "I'm a paragraph" // Load SB in background
+    */
+    verbose=true;
+    // Now MB
+    console.log("MutableBlock=======");
+    Dweb.p_dweblist("List2", "BLAKE2.x6uk_DPyAiV6_QpaNScTP4PgowErzNM7sjeCaVWUDdo=", true, null);  // Hash of snippet.html
+    </script>
+
+</head>
+<body>
+<H1>DWEB Demonstration Web</H1>
+<p>This page is a demonstration page for the Decentralized Web.</p>
+<p>It will includue a range of features as they are added to DWEB</p>
+<p>
+    <img src="/file/sb/BLAKE2.qx5KvTXQerCQWyZIp5gXQEIlMjzq28XFgYA9dO5JR4w=" width="50px" align="left"><!--wrench-->
+    This is an image loaded by an absolute dweb URL not via the library</p>
+
+<ul id="myList"><li id="myList.0">Text replaced with a Block</li><li id="myList.1">Text replaced with a StructuredBlock</li></ul>
+<h4>List replaced by MutableBlock</h4>
+<ul id="List2"><li>What was there before - should be replaced</li></ul>
+<h4>Architecture of DWeb</h4>
+<p>
+    <img src="/file/mb/BLAKE2.SSST2rQYjgpJuGrJE92jhgvCi0Q8wUmNteM1pCl3iI0="><!--diagram-->
+</p>
+<form method="post"><!--TODO see if it needs the form-->
+    <textarea id="mytextarea" width="60%">Testing</textarea>
+</form>
+<div>Last saved to:<span id="myDiv" name="myDiv">Unreplaced text</span></div>
+<h3>Experimental from here on down</h3>
+<p>This is a good place to put links to other tests - working or not.</p>
+<a href="/file/mb/BLAKE2.nBWNoMyOJdhm-wrx0URYo7Utw3jG8J3boEBUcXvATVU=/index.html">Documentation in Sphinx</a>
+<a href="/file/mb/BLAKE2.O1C1LsCF12NO4qTKMQEJxXavNmcKBQXL3rww-g5OXJM=">test.html</a>
+<a href="/file/mb/BLAKE2.WDWRXDhNDMt7bI3lSOCzMiImRVkMza_5DFJ7TES-GVc=">Object Browser</a>
+<h4>List to be loaded by a button</h4>
+
+<p>This page is a current test, will just be testing current (usually broken) stuff.</p>
+</body>
+</html>
+

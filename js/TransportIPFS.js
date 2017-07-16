@@ -20,11 +20,16 @@ TODO-IPFS ComeBackFor: TransportHTTP & TransportHTTPBase (make use promises)
 
 // Library packages other than IPFS
 // IPFS components
+
+
 const IPFS = require('ipfs');
 const CID = require('cids');
-const IIIFDB = require('ipfs-iiif-db');  //https://github.com/pgte/ipfs-iiif-db
+//const IIIFDB = require('ipfs-iiif-db');  //https://github.com/pgte/ipfs-iiif-db
+const IIIFDB = IpfsIiifDb;
+
 const multihashing = require('multihashing-async'); //TODO-IPFS Only for testing - can remove
 const multihashes = require('multihashes');  //TODO-IPFS Only for testing - can remove - and use CryptoHash.Curlhash
+
 const crypto = require('crypto'); //TODO-IPFS only for testing - can remove
 
 // Utility packages (ours) Aand one-loners
@@ -33,7 +38,7 @@ function delay(ms, val) { return new Promise(resolve => {setTimeout(() => { reso
 
 // Other Dweb modules
 const Transport = require('./Transport.js');
-const Dweb = require('./Dweb.js')
+const Dweb = require('./Dweb.js');
 
 //Debugging only
 

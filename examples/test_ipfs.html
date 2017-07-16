@@ -5,17 +5,21 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>DWEB Test page</title>
     <!--<script type="text/javascript" src="/file/mb/BLAKE2.iYiNlcLOfxRU-coIq2foYgTN9V1J4DzPV2yTXqHUN2I="></script><!-- Dweb bundled via Dweb-->
-    <script type="text/javascript" src="../dweb_bundled.js"></script><!-- Dweb bundle via local filesystem when testing without Dweb-->
+    <!--<script src="https://unpkg.com/ipfs-iiif-db/dist/browser.js"></script><!--or browser.min.js-->
+    <script src="https://unpkg.com/ipfs-iiif-db@2.4.0/dist/browser.min.js"></script><!--or browser.min.js-->
+    <script type="text/javascript" src="dweb_bundled.js"></script><!-- Dweb bundle via local filesystem when testing without Dweb-->
     <script type="text/javascript">
         // This is a script that previously worked
         mbhash = "BLAKE2.dfMoOqTdXvqKhoZo7HPvD5raBXfgH7chXsN2PElizs8=";  // Hash reported out at tinymce.html
         mb2hash = "BLAKE2.nBWNoMyOJdhm-wrx0URYo7Utw3jG8J3boEBUcXvATVU="; // Hash reported for docs/_build/html
-        sbhash="BLAKE2.spTuo7yuSJEQyYy3rUFV2G0SCDxhkZEHhQQttozxWtQ="; // This is teh hash field from any line of list/..mbhash..
+        //sbhash="BLAKE2.spTuo7yuSJEQyYy3rUFV2G0SCDxhkZEHhQQttozxWtQ="; // This is teh hash field from any line of list/..mbhash..
+        sbhash="/ipfs/QmVgDcfpgc34e2NEnRT6ZpDbq1JRRv27EdHW3CEz8KC7qb"; // Hash as reported by test_ipfs.js
         function working() {
-            let verbose=false;
+            let verbose=true;
             console.log("StructuredBlock=======");
             let sb = new Dweb.StructuredBlock(sbhash);
-            sb.p_load(verbose)
+            if (verbose) console.log("sb=",sb)
+            sb.p_fetch(verbose)
             .then((msg) => sb.p_path(["langs","readme.md"], verbose,  [ "p_elem", "myList.0", verbose, null ]));
             console.log("MutableBlock=======");
             <!-- also works with /file/mb/.....=/langs/readme.md -->
@@ -37,7 +41,7 @@
         }
         function cryptotest() { //TODO-CRYPTO Still working on this
             // First test some of the lower level functionality - create key etc
-            let verbose = false; // Set to true below while testing
+            let verbose = true; // Set to true below while testing
             let qbf="The quick brown fox ran over the lazy duck";
             let key = sodium.randombytes_buf(sodium.crypto_shorthash_KEYBYTES);
             let shash_u64 = sodium.crypto_shorthash('test', key, 'urlsafebase64'); // urlsafebase64 is support added by mitra
@@ -48,7 +52,7 @@
             if (verbose) { console.log("hash_hex = ",shash_u64, hash_hex, hash_64, hash_u64); }
             if (hash_u64 !== "YOanaCqfg3UsKoqlNmVG7SFwLgDyB3aToEmLCH-vOzs=") { console.log("ERR Bad blake2 hash"); }
             let signingkey = sodium.crypto_sign_keypair();
-            if (verbose) { console.log(signingkey); }as
+            if (verbose) { console.log(signingkey); }
             let seedstr = "01234567890123456789012345678901";
             let seed = sodium.from_string(seedstr);
             let boxkey = sodium.crypto_box_seed_keypair(seed);
@@ -81,11 +85,22 @@
 <h4>Encryption testing</h4>
 
 <script type="text/javascript">
-    console.log("STARTING TEST");
+    let transportclass = TransportIPFS;
+    let verbose = true;
+    //let transportclass = TransportHTTP
+
+    transportclass.p_setup({}, verbose, {})
+        .then((t) => {
+            if (verbose) console.log("setup returned and transport set - including annotationList");
+            Dweb.transport = t;
+        })
+        .then(() => console.log("STARTING TEST"))
+        .then(() => working()) //Can comment this line out when debugging browser or cryptotest
+
     //console.log(sodium);
-    //working(); // Can comment this line out when debugging
+    //working(); //
     //browser();
-    cryptotest();
+    //cryptotest();
 </script>
 </body>
 </html>
