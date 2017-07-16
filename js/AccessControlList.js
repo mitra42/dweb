@@ -70,6 +70,7 @@ class AccessControlList extends CommonList {
                 console.log("Caught exception in AccessControlList.p_test", err);
                 throw err;
             }
+        }
     }
 
 }
