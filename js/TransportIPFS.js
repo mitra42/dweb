@@ -57,7 +57,7 @@ let defaultipfsoptions = {
 };
 
 // See https://github.com/pgte/ipfs-iiif-db for options
-let iiifoptions = { ipfs: defaultipfsoptions, store: "leveldb", partition: "dweb20170612" }; //TODO-IIIF try making parition a variable and connecting to multiple
+let defaultiiifoptions = { ipfs: defaultipfsoptions, store: "leveldb", partition: "dweb20170612" }; //TODO-IIIF try making parition a variable and connecting to multiple
 
 const annotationlistexample = { //TODO-IPFS update this to better example
     "@id": "foobar",    // Only required field is @id
@@ -78,7 +78,7 @@ class TransportIPFS extends Transport {
     }
 
     // This chunk starts up IPFS (old version w/o IIIF)
-    static ipfsstart(ipfsoptions, verbose) {
+    static ipfsstart(iiifoptions, verbose) {
         //let ipfs = new IPFS(ipfsoptions); // Without CRDT (for lists)
         const res = IIIFDB(iiifoptions); //Note this doesn't start either IPFS or annotationlist
         const ipfs = res.ipfs;
@@ -107,15 +107,18 @@ class TransportIPFS extends Transport {
     }
 
 
-    static p_setup(ipfsoptions, verbose, options) {
-        let combinedipfsoptions = Object.assign(defaultipfsoptions, ipfsoptions);
+    static p_setup(ipfsiiifoptions, verbose, options) {
+        let combinedipfsoptions = Object.assign(defaultipfsoptions, ipfsiiifoptions.ipfs)
+        let combinediiifoptions = Object.assign(defaultiiifoptions, ipfsiiifoptions.iiif,{ipfs:defaultipfsoptions});   // Top level in this case
+        console.log("XXX@113",combinediiifoptions)
         let t = new TransportIPFS(combinedipfsoptions, verbose, options);
         return new Promise((resolve, reject) => {
-            TransportIPFS.ipfsstart(combinedipfsoptions, verbose)
+            TransportIPFS.ipfsstart(combinediiifoptions, verbose)
             .then((ipfs) => {
                 t.ipfs = ipfs;
                 t.promisified = {ipfs:{}};
                 makepromises(t.ipfs, t.promisified.ipfs, [ { block: ["put", "get"] }]); // Has to be after t.ipfs defined
+                console.log("XXX@TIPFS:p_setup.120",t.promisified.ipfs.block);
                 resolve(t);
             })
             .catch((err) => {
@@ -139,11 +142,16 @@ class TransportIPFS extends Transport {
     }
 
     p_rawfetch(hash, verbose) {
+        if (verbose) console.log("XXX@TIPFS.p_rawfetch:143",hash);
         console.assert(hash, "TransportIPFS.p_rawfetch: requires hash");
         let cid = (hash instanceof CID) ? hash : TransportIPFS.link2cid(hash);
         return this.promisified.ipfs.block.get(cid)
-            //.then((result) => {console.log("XXX@p_rawfetch data=",result.data.toString()); return result;})
+            .then((result) => {console.log("XXX@p_rawfetch data=",result.data.toString()); return result;})
             .then((result)=> result.data.toString())
+            .catch((err) => {
+                console.log("Caught misc error in TransportIPFS.p_rawfetch", err);
+                reject(err);
+            })
     }
 
     p_rawlist(hash, verbose) { //TODO-IPFS-MULTILIST move initialization of annotation list here
@@ -248,7 +256,9 @@ class TransportIPFS extends Transport {
                     .then((res) => console.assert(res.length = listlen + 1, "Should have added one item"))
                     .then(() => console.log("TransportIPFS test complete"))
                     .then(() => { // Can get multihash but not synchrnously. Unclear why that is so hard
-                            multihashing(qbf, 'sha2-256', (err, multihash) => {
+                            multihashing(new Buffer(qbf), 'sha2-256', (err, multihash) => {
+                                if (err) console.log("Multihashing error",err);
+                                console.log("XXX@TI.test.260",multihash);
                                 console.assert(multihashes.toB58String(multihash) === cidmultihash, "Should match multihash format from block.put")
                             })
                     })

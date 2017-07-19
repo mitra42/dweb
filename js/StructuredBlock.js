@@ -6,6 +6,8 @@ const Dweb = require("./Dweb");
 // ######### Parallel development to StructuredBlock.py ########
 
 class StructuredBlock extends SmartDict {
+
+    //p_fetch uses SmartDict ..
     constructor(hash, data, verbose) {
         super(hash, data, verbose); // _hash is _hash of SB, not of data
         this._signatures = [];

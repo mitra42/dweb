@@ -7,7 +7,7 @@ class Transportable {
     constructor(hash, data) {
         this._hash = hash;  // Hash of the _data
         this._setdata(data); // The data being stored - note _setdata usually subclassed
-        if (hash && !data) { this._needsfetch = true; }
+        if (hash && !data) { this._needsfetch = true; console.log("XXX@T10 setting _needsfetch") }
     }
 
     _setdata(value) {
@@ -43,12 +43,14 @@ class Transportable {
     p_fetch(verbose) {
         // Promise equiv of PY:fetch and async_load
         // Resolves whether needs to load or not as will often load and then do something.
-        if (verbose) { console.log("Transportable.p_fetch hash=",this._hash); }
+        if (verbose) { console.log("Transportable.p_fetch hash=",this._hash,this._needsfetch); }
         let self = this;
         if (this._needsfetch) { // Only load if need to
             this._needsfetch = false;    // Set false before return so not multiply fetched
             return Dweb.transport.p_rawfetch(this._hash, verbose)
+                .then((self) => { if (verbose) console.log("XXXp_fetch@51"); return self})
                 .then((data) => { if (data) self._setdata(data); return self})
+                .then((self) => { if (verbose) console.log(self); return self})
         } else {
             return new Promise((resolve, reject)=> resolve(self));  // I think this should be a noop - fetched already
         }

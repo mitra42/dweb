@@ -2,6 +2,12 @@
 <!--suppress HtmlUnknownTarget -->
 <html lang="en">
 <head>
+    <!--
+        TODO-IPFS-Q needs different type of q for browser
+        TODO-IPFS-BROWSER massive CPU usage when testing
+        TODO-IPFS-BROWSER stp by step through test
+        TODO-REFACTOR split into separate library for transport and rest
+    -->
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>DWEB Test page</title>
     <!--<script type="text/javascript" src="/file/mb/BLAKE2.iYiNlcLOfxRU-coIq2foYgTN9V1J4DzPV2yTXqHUN2I="></script><!-- Dweb bundled via Dweb-->
@@ -14,6 +20,10 @@
         mb2hash = "BLAKE2.nBWNoMyOJdhm-wrx0URYo7Utw3jG8J3boEBUcXvATVU="; // Hash reported for docs/_build/html
         //sbhash="BLAKE2.spTuo7yuSJEQyYy3rUFV2G0SCDxhkZEHhQQttozxWtQ="; // This is teh hash field from any line of list/..mbhash..
         sbhash="/ipfs/QmVgDcfpgc34e2NEnRT6ZpDbq1JRRv27EdHW3CEz8KC7qb"; // Hash as reported by test_ipfs.js
+        function test() { // Mirrors test in node version in test_ipfs.js
+
+        }
+
         function working() {
             let verbose=true;
             console.log("StructuredBlock=======");
@@ -21,6 +31,8 @@
             if (verbose) console.log("sb=",sb)
             sb.p_fetch(verbose)
             .then((msg) => sb.p_path(["langs","readme.md"], verbose,  [ "p_elem", "myList.0", verbose, null ]));
+            /*
+
             console.log("MutableBlock=======");
             <!-- also works with /file/mb/.....=/langs/readme.md -->
             let mb = new Dweb.MutableBlock(mbhash, null, false, null, false, null, null, null, verbose, null);
@@ -30,6 +42,7 @@
             Dweb.p_dwebfile("sb", sbhash, "langs/readme.md", ["p_elem", "myList.2", verbose, null]);
             <!-- Now test path using dwebfile -->
             Dweb.p_dwebfile("mb", mbhash, "langs/readme.md", ["p_elem", "myList.3", verbose, null]);
+            */
             console.log("XXX@31 end testing");
         }
         function browser() {
@@ -89,13 +102,16 @@
     let verbose = true;
     //let transportclass = TransportHTTP
 
-    transportclass.p_setup({}, verbose, {})
+    transportclass.p_setup({iiif: {store: "indexeddb"}}, verbose, {})
         .then((t) => {
             if (verbose) console.log("setup returned and transport set - including annotationList");
             Dweb.transport = t;
         })
         .then(() => console.log("STARTING TEST"))
-        .then(() => working()) //Can comment this line out when debugging browser or cryptotest
+        .then(() => transportclass.test(Dweb.transport, verbose))
+        .then(() => console.log("Main end in test_ipfs.html"))
+        //.then(() => test()) //Can comment this line out when debugging browser or cryptotest
+        //.then(() => working()) //Can comment this line out when debugging browser or cryptotest
 
     //console.log(sodium);
     //working(); //
