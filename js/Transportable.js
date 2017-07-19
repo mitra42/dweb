@@ -7,7 +7,7 @@ class Transportable {
     constructor(hash, data) {
         this._hash = hash;  // Hash of the _data
         this._setdata(data); // The data being stored - note _setdata usually subclassed
-        if (hash && !data) { this._needsfetch = true; console.log("XXX@T10 setting _needsfetch") }
+        if (hash && !data) { this._needsfetch = true; }
     }
 
     _setdata(value) {
@@ -48,7 +48,7 @@ class Transportable {
         if (this._needsfetch) { // Only load if need to
             this._needsfetch = false;    // Set false before return so not multiply fetched
             return Dweb.transport.p_rawfetch(this._hash, verbose)
-                .then((self) => { if (verbose) console.log("XXXp_fetch@51"); return self})
+                //.then((self) => { if (verbose) console.log("XXXp_fetch@51"); return self})
                 .then((data) => { if (data) self._setdata(data); return self})
                 .then((self) => { if (verbose) console.log(self); return self})
         } else {

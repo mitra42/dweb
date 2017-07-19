@@ -4,24 +4,35 @@
 <head>
     <!--
         TODO-IPFS-Q needs different type of q for browser
-        TODO-IPFS-BROWSER massive CPU usage when testing
-        TODO-IPFS-BROWSER stp by step through test
+        TODO-IPFS-BROWSER add MB test to write lines
+        TODO-IPFS-BROWSER stp by step through test as complete on node
         TODO-REFACTOR split into separate library for transport and rest
     -->
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>DWEB Test page</title>
     <!--<script type="text/javascript" src="/file/mb/BLAKE2.iYiNlcLOfxRU-coIq2foYgTN9V1J4DzPV2yTXqHUN2I="></script><!-- Dweb bundled via Dweb-->
     <!--<script src="https://unpkg.com/ipfs-iiif-db/dist/browser.js"></script><!--or browser.min.js-->
-    <script src="https://unpkg.com/ipfs-iiif-db@2.4.0/dist/browser.min.js"></script><!--or browser.min.js-->
-    <script type="text/javascript" src="dweb_bundled.js"></script><!-- Dweb bundle via local filesystem when testing without Dweb-->
+    <!--<script src="https://unpkg.com/ipfs-iiif-db@2.4.0/dist/browser.min.js"></script><!--or browser.min.js-->
+    <script src="cached/browser.min.js"></script><!-- cached version so can test offline-->
+    <script type="text/javascript" src="dweb_bundled.js"></script><!-- Dwebbundle via local filesystem when testing without Dweb-->
     <script type="text/javascript">
         // This is a script that previously worked
         mbhash = "BLAKE2.dfMoOqTdXvqKhoZo7HPvD5raBXfgH7chXsN2PElizs8=";  // Hash reported out at tinymce.html
         mb2hash = "BLAKE2.nBWNoMyOJdhm-wrx0URYo7Utw3jG8J3boEBUcXvATVU="; // Hash reported for docs/_build/html
         //sbhash="BLAKE2.spTuo7yuSJEQyYy3rUFV2G0SCDxhkZEHhQQttozxWtQ="; // This is teh hash field from any line of list/..mbhash..
+        hashqbf = "/ipfs/QmUaQcMZfqK4apZpndKFnWoaTMGra1d4Urkqxfs1VSPeE4" // As reported by TransportIPFS.test
         sbhash="/ipfs/QmVgDcfpgc34e2NEnRT6ZpDbq1JRRv27EdHW3CEz8KC7qb"; // Hash as reported by test_ipfs.js
-        function test() { // Mirrors test in node version in test_ipfs.js
 
+        function testing() { // Mirrors test in node version in test_ipfs.js
+            let verbose = false;
+            Dweb.Block.test(Dweb.transport, verbose)
+            .then(() => Dweb.StructuredBlock.test(Dweb.transport, document, verbose))
+            .then((testobjs) => sb = testobjs.sb)
+            .then(() => console.log("sbhash should be set to:",sb._hash))
+            .then(() => Dweb.MutableBlock.test(sb, Dweb.transport, verbose))
+            .then(() => Dweb.CryptoLib.test(verbose))
+
+            .then(() => console.log("test_ipfs.test complete"))
         }
 
         function working() {
@@ -30,9 +41,9 @@
             let sb = new Dweb.StructuredBlock(sbhash);
             if (verbose) console.log("sb=",sb)
             sb.p_fetch(verbose)
-            .then((msg) => sb.p_path(["langs","readme.md"], verbose,  [ "p_elem", "myList.0", verbose, null ]));
+            .then((msg) => sb.p_elem("myList.0", verbose, null))
+            //.then((msg) => sb.p_path(["langs","readme.md"], verbose,  [ "p_elem", "myList.0", verbose, null ]));
             /*
-
             console.log("MutableBlock=======");
             <!-- also works with /file/mb/.....=/langs/readme.md -->
             let mb = new Dweb.MutableBlock(mbhash, null, false, null, false, null, null, null, verbose, null);
@@ -43,7 +54,7 @@
             <!-- Now test path using dwebfile -->
             Dweb.p_dwebfile("mb", mbhash, "langs/readme.md", ["p_elem", "myList.3", verbose, null]);
             */
-            console.log("XXX@31 end testing");
+            .then(() => console.log("XXX@31 end testing"));
         }
         function browser() {
             let verbose = false;
@@ -99,7 +110,7 @@
 
 <script type="text/javascript">
     let transportclass = TransportIPFS;
-    let verbose = true;
+    let verbose = false;
     //let transportclass = TransportHTTP
 
     transportclass.p_setup({iiif: {store: "indexeddb"}}, verbose, {})
@@ -109,8 +120,9 @@
         })
         .then(() => console.log("STARTING TEST"))
         .then(() => transportclass.test(Dweb.transport, verbose))
+        .then(() => testing()) //Can comment this line out when debugging browser or cryptotest
+        .then(() => working())
         .then(() => console.log("Main end in test_ipfs.html"))
-        //.then(() => test()) //Can comment this line out when debugging browser or cryptotest
         //.then(() => working()) //Can comment this line out when debugging browser or cryptotest
 
     //console.log(sodium);

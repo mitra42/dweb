@@ -24,8 +24,7 @@ TODO-IPFS ComeBackFor: TransportHTTP & TransportHTTPBase (make use promises)
 
 const IPFS = require('ipfs');
 const CID = require('cids');
-//const IIIFDB = require('ipfs-iiif-db');  //https://github.com/pgte/ipfs-iiif-db
-const IIIFDB = IpfsIiifDb;
+//const IpfsIiifDb = require('ipfs-iiif-db');  //https://github.com/pgte/ipfs-iiif-db
 
 const multihashing = require('multihashing-async'); //TODO-IPFS Only for testing - can remove
 const multihashes = require('multihashes');  //TODO-IPFS Only for testing - can remove - and use CryptoHash.Curlhash
@@ -80,7 +79,7 @@ class TransportIPFS extends Transport {
     // This chunk starts up IPFS (old version w/o IIIF)
     static ipfsstart(iiifoptions, verbose) {
         //let ipfs = new IPFS(ipfsoptions); // Without CRDT (for lists)
-        const res = IIIFDB(iiifoptions); //Note this doesn't start either IPFS or annotationlist
+        const res = IpfsIiifDb(iiifoptions); //Note this doesn't start either IPFS or annotationlist
         const ipfs = res.ipfs;
         return new Promise((resolve, reject) => {
             ipfs.version()
@@ -118,7 +117,6 @@ class TransportIPFS extends Transport {
                 t.ipfs = ipfs;
                 t.promisified = {ipfs:{}};
                 makepromises(t.ipfs, t.promisified.ipfs, [ { block: ["put", "get"] }]); // Has to be after t.ipfs defined
-                console.log("XXX@TIPFS:p_setup.120",t.promisified.ipfs.block);
                 resolve(t);
             })
             .catch((err) => {
@@ -142,11 +140,9 @@ class TransportIPFS extends Transport {
     }
 
     p_rawfetch(hash, verbose) {
-        if (verbose) console.log("XXX@TIPFS.p_rawfetch:143",hash);
         console.assert(hash, "TransportIPFS.p_rawfetch: requires hash");
         let cid = (hash instanceof CID) ? hash : TransportIPFS.link2cid(hash);
         return this.promisified.ipfs.block.get(cid)
-            .then((result) => {console.log("XXX@p_rawfetch data=",result.data.toString()); return result;})
             .then((result)=> result.data.toString())
             .catch((err) => {
                 console.log("Caught misc error in TransportIPFS.p_rawfetch", err);
@@ -230,6 +226,7 @@ class TransportIPFS extends Transport {
                         let newhash = TransportIPFS.cid2link(newcid);
                         console.assert(hash === newhash, "Should round trip");
                         hashqbf = hash;
+                        //console.log("hashqbf=",hash);
                     })
                     /*
                     .then(() => transport.p_rawstore(null, rold, verbose))
@@ -254,11 +251,10 @@ class TransportIPFS extends Transport {
                     .then(() => delay(500))
                     .then(() => transport.p_rawlist(testhash, verbose))
                     .then((res) => console.assert(res.length = listlen + 1, "Should have added one item"))
-                    .then(() => console.log("TransportIPFS test complete"))
+                    //.then(() => console.log("TransportIPFS test complete"))
                     .then(() => { // Can get multihash but not synchrnously. Unclear why that is so hard
                             multihashing(new Buffer(qbf), 'sha2-256', (err, multihash) => {
                                 if (err) console.log("Multihashing error",err);
-                                console.log("XXX@TI.test.260",multihash);
                                 console.assert(multihashes.toB58String(multihash) === cidmultihash, "Should match multihash format from block.put")
                             })
                     })

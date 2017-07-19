@@ -1,6 +1,7 @@
 const TransportIPFS = require('./TransportIPFS');
 const TransportHTTP = require('./TransportHTTP');
 const Dweb = require('./Dweb');
+const IpfsIiifDb = require('ipfs-iiif-db');  //https://github.com/pgte/ipfs-iiif-db = may need passing to creation in Transport
 
 // Utility packages (ours) Aand one-loners
 const makepromises = require('./utils/makepromises');
@@ -21,7 +22,7 @@ let verbose = false;
 let blk;
 let blk2;
 let sb;
-
+    // Note that this test setup is being mirror in test_ipfs.html
     transportclass.p_setup({}, verbose, {})
     .then((t) => {
         if (verbose) console.log("setup returned and transport set - including annoationList");

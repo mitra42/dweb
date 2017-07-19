@@ -4,6 +4,7 @@ const MutableBlock = require('./MutableBlock.js');
 const KeyChain = require('./KeyChain.js');
 const KeyPair = require('./KeyPair.js');
 const sodium = require("libsodium-wrappers");
+
 //const sodium = require("/Users/mitra/git/mitra_libsodium.js/dist/modules/libsodium-wrappers.js");
 //Uncomment to debug, check urlsafe occurs: console.log("XXX@keypair:2",sodium)
 
