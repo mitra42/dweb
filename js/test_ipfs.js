@@ -15,8 +15,8 @@ const dom = new JSDOM(htmlfake);
 document = dom.window.document;   // Note in JS can't see "document" like can in python
 
 
-//let transportclass = TransportIPFS
-let transportclass = TransportHTTP
+let transportclass = TransportIPFS
+//let transportclass = TransportHTTP
 let verbose = false;
 let blk;
 let blk2;
