@@ -43,6 +43,7 @@ class AccessControlList extends CommonList {
         //mb = new MutableBlock(keypair=this.keypair, name=this.name)
     }
 
+    /*
     p_test(verbose) { // Create and return a acl suitable for other tests, in process test ACL
         if (verbose) console.log("AccessControlList.p_test");
         return new Promise((resolve, reject) => {
@@ -72,6 +73,7 @@ class AccessControlList extends CommonList {
             }
         }
     }
+    */
 
 }
 exports = module.exports = AccessControlList;
