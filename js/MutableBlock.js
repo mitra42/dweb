@@ -26,8 +26,9 @@ class MutableBlock extends CommonList {
         }
     }
 
-    p_fetchlist(verbose) {  // Check callers of fetchlist and how pass parameters
+    p_fetchlist(verbose) {
         // Call chain is mb.load > MB.fetchlist > THttp.rawlist > Thttp.list > MB.fetchlist.success > caller's success
+        // Superclasses CL.p_fetchlist as need to set _current on a MB
         let self = this;
         return super.p_fetchlist(verbose)   // Return is a promise
         .then(() => { // Called after CL.p_fetchlist has unpacked data into Signatures in _list
@@ -73,15 +74,20 @@ class MutableBlock extends CommonList {
 
     contentacl() {console.assert(false, "XXX Undefined function MutableBlock.contentacl setter and getter"); }   // Encryption of content
 
-    p_fetch(verbose) {
+    p_fetch_then_list_then_current(verbose) {
         /*
-         COPIED FROM JS MutableBlock.fetch 2017-05-24
-         :return: self for chaining
+         Fetch a MB, then fetch list, then content.
+
+         :return: Returns a promise that itself returns self for chaining
          */
         if (verbose) console.log("MutableBlock.p_fetch hash=", this._hash);
         let self = this;
-        return super.p_fetch(verbose)
-        .then(() => { self.p_fetchlist(); return self})
+        return super.p_fetch_then_list(verbose)
+            //.then(() => console.log("XXX@mb.p_fetch_then_list_then_current.86",self._current))
+            .then(() => self._current && self._current.p_fetch(verbose))   //TODO-TEST the next XXX@..88 executing before code in here
+            //.then((xxx) => console.log("XXX@MB.pftlnc.88",xxx))
+            //.then(() => console.log("XXX@mb.p_fetch_then_list_then_current.88",self._current.data))
+            .then(() => self )
     }
 
     content() {
@@ -93,7 +99,7 @@ class MutableBlock extends CommonList {
         console.assert(false, "XXX Undefined function MutableBlock.store");
     }   // Retrieving data
 
-    p_signandstore(verbose){
+    p_signandstore(verbose){    //TODO-AUTHENTICATION - add options to remove old signatures by same
         /*
          Sign and Store a version, or entry in MutableBlock master
          Exceptions: SignedBlockEmptyException if neither hash nor structuredblock defined, ForbiddenException if !master
@@ -155,14 +161,23 @@ class MutableBlock extends CommonList {
         return new Promise((resolve, reject) => {
             try {
                 //(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose, options
-                let mb1 = new Dweb.MutableBlock(null, null, true, null, false, null, sb._hash, null, verbose, null);
-                mb1.p_store(verbose) // Async, should set hash immediately but wait to retrieve after stored.
-                    .then(() => mb = new MutableBlock(mb1._hash, null, false, null, false, null, null, null, verbose, null))
-                    .then(() => mb.p_loadandfetchlist(verbose))
-                    .then(() => console.log("TODO-IPFS This isn't finished yet, mb will not have the data as mb1 didnt publish it yet which needs crypto")) //sb, mb1, mb
-                    //TODO-IPFS uncomment next line when have crypto etc
-                    // .then(() => console.assert(mb._current.data === sb.data, "Should have retrieved"))
-                    //.then(() => mb.p_path(["langs", "readme.md"], verbose, ["p_elem", "myList.1", verbose,]))
+                let mb1 = new Dweb.MutableBlock(null, null, true, null, true, null, sb._hash, null, verbose, null);
+                mb1._allowunsafestore = true; // No ACL, so shouldnt normally store, but dont want this test to depend on ACL
+                let siglength = mb1._list.length; // Will check for size below
+                mb1.p_signandstore(verbose) // Async, should set hash immediately but wait to retrieve after stored.
+                    //.then(() => console.log("mb1.test after signandstore=",mb1))
+                    .then(() => console.assert(mb1._list.length = siglength+1))
+                    //.then(() => console.log("XXX-----@166"))
+                    //MutableBlock(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose, options) {
+                    .then(() => mb = new MutableBlock(mb1._publichash, null, false, null, false, null, null, null, verbose, null))
+                    //.then(() => console.log("XXX-----@168"))
+                    .then(() => mb.p_fetch_then_list_then_current(verbose))
+                    //.then(() => console.log("XXX-----@170"))
+                    //.then(() => console.log("mb.test retrieved=",mb))
+                    .then(() => console.assert(mb._list.length = siglength+1))
+                    //.then(() => console.log("SB",sb,"MB1",mb1,"MB",mb))
+                    .then(() => console.assert(mb._current.data === sb.data, "Should have retrieved"))
+                    //.then(() => mb.p_path(["langs", "readme.md"], verbose, ["p_elem", "myList.1", verbose,])) //TODO-JS need a path based test
                     .then(() => { if (verbose) console.log("MutableBlock.test promises done"); })
                     .then(() => resolve({mb: mb}))
                     .catch((err) => {

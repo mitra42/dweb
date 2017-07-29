@@ -106,7 +106,7 @@ exports.p_dwebfile = function(table, hash, path, successmethod) {
         const mb = new exports.MutableBlock(hash, null, false, null, false, null, null, null, verbose, null);
         // Call chain is mb.load > CL.fetchlist > THttp.rawlist > Thttp.load > MB.fetchlist.success > caller.success
         // for dwebfile:mb, we want to apply the success function to the file - which is in the content after fetchlist
-        return mb.p_loadandfetchlist(verbose)
+        return mb.p_fetch_then_list_then_current(verbose)
             .then(() => mb.p_path(path, verbose, successmethod))
         // Note success is applied once after list is fetched, content isn't loaded before that.
     } else if (table === "sb") {
@@ -135,14 +135,17 @@ exports.p_dwebupdate = function(hash, type, data, successmethod) {
 };
 
 exports.p_dweblist = function(div, hash, verbose, success, successmethodeach) {
+    //TODO-UNUSED doesnt appear to be used, though should have been in example.html
     //Retrieve a list, and create <li> elements of div to hold it.
     //success, if present, is run after list retrieved, asynchronous with elements retrieved
     //successeach, is run on each object in the list.
+    //TODO-LISTS this should probably be a different lsit from MB where multiple is assumed.
+    //TODO-LISTS success isnt used, presume something in chain runs success
     verbose = false;
     //(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose)
     const mb = new exports.MutableBlock(hash, null, false, null, false, null, null, null, verbose, null);
     // Call chain is mb.load > CL.fetchlist > THttp.rawlist > Thttp.load > MB.fetchlist.success
-    return mb.p_loadandfetchlist(verbose)
+    return mb.p_fetch_then_list_then_elements(verbose)
         .then(()=> mb.p_elem(div, verbose, successmethodeach)) // p_elem loads the block
 };
 

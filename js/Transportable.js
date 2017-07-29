@@ -50,7 +50,7 @@ class Transportable {
             return Dweb.transport.p_rawfetch(this._hash, verbose)
                 //.then((self) => { if (verbose) console.log("XXXp_fetch@51"); return self})
                 .then((data) => { if (data) self._setdata(data); return self})
-                .then((self) => { if (verbose) console.log(self); return self})
+                //.then((self) => { if (verbose) console.log("XXX@------53------",self); return self})
         } else {
             return new Promise((resolve, reject)=> resolve(self));  // I think this should be a noop - fetched already
         }

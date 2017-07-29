@@ -1,7 +1,7 @@
 const TransportIPFS = require('./TransportIPFS');
+TransportIPFS.IpfsIiifDb = require('ipfs-iiif-db');  //https://github.com/pgte/ipfs-iiif-db
 const TransportHTTP = require('./TransportHTTP');
 const Dweb = require('./Dweb');
-const IpfsIiifDb = require('ipfs-iiif-db');  //https://github.com/pgte/ipfs-iiif-db = may need passing to creation in Transport
 
 // Utility packages (ours) Aand one-loners
 const makepromises = require('./utils/makepromises');
@@ -33,9 +33,9 @@ let sb;
     .then(() => Dweb.StructuredBlock.test(Dweb.transport, document, verbose))
     .then((testobjs) => sb = testobjs.sb)
     .then(() => console.log("sb=",sb))
-    .then(() => Dweb.MutableBlock.test(sb, Dweb.transport, verbose))
-    .then(() => Dweb.CryptoLib.test(verbose))
     .then(() => verbose = true)
+    .then(() => Dweb.MutableBlock.test(sb, Dweb.transport, verbose))    //TODO-TEST still completing subtasks of MB.test
+    .then(() => Dweb.CryptoLib.test(verbose))
     //NEXT TEST FAILS
     //.then(() => Dweb.AccessControlList.p_test(verbose))
     //.then(() => Dweb.KeyChain.p_test(verbose))

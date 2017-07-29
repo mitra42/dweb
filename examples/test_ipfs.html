@@ -28,26 +28,29 @@
             Dweb.Block.test(Dweb.transport, verbose)
             .then(() => Dweb.StructuredBlock.test(Dweb.transport, document, verbose))
             .then((testobjs) => sb = testobjs.sb)
-            .then(() => console.log("sbhash should be set to:",sb._hash))
+            .then(() => verbose ? console.log("sbhash should be set to:",sb._hash) : undefined)
             .then(() => Dweb.MutableBlock.test(sb, Dweb.transport, verbose))
             .then(() => Dweb.CryptoLib.test(verbose))
-
+            //TODO-TEST expand this to include all tests in test_ipfs.js
             .then(() => console.log("test_ipfs.test complete"))
         }
 
         function working() {
             let verbose=true;
+            let mb;
             console.log("StructuredBlock=======");
             let sb = new Dweb.StructuredBlock(sbhash);
             if (verbose) console.log("sb=",sb)
             sb.p_fetch(verbose)
             .then((msg) => sb.p_elem("myList.0", verbose, null))
             //.then((msg) => sb.p_path(["langs","readme.md"], verbose,  [ "p_elem", "myList.0", verbose, null ]));
-            /*
-            console.log("MutableBlock=======");
-            <!-- also works with /file/mb/.....=/langs/readme.md -->
+            .then(() => console.log("MutableBlock======="))
+            // also works with /file/mb/.....=/langs/readme.md -->
+            .then(()=> mb = Dweb.MutableBlock.p_new(null, null, "test_ipfs.MB", false, sb, true, verbose))
+            .then(() => console.log("test_ipfs.working finished up to point completed"))
+            /* TODO-TEST gradually uncomment below
             let mb = new Dweb.MutableBlock(mbhash, null, false, null, false, null, null, null, verbose, null);
-            mb.p_loadandfetchlist(verbose)
+            mb.p_fetch_then_list_then_content(verbose)
             .then((msg) => mb.p_path(["langs","readme.md"], verbose, ["p_elem", "myList.1", verbose, null]));
             <!-- Now test path using dwebfile -->
             Dweb.p_dwebfile("sb", sbhash, "langs/readme.md", ["p_elem", "myList.2", verbose, null]);
@@ -120,13 +123,10 @@
         })
         .then(() => console.log("STARTING TEST"))
         .then(() => transportclass.test(Dweb.transport, verbose))
-        .then(() => testing()) //Can comment this line out when debugging browser or cryptotest
-        .then(() => working())
+        .then(() => testing()) //Can comment this line out when testing other module
+        //.then(() => working())    //TODO-TEST reenable
         .then(() => console.log("Main end in test_ipfs.html"))
-        //.then(() => working()) //Can comment this line out when debugging browser or cryptotest
 
-    //console.log(sodium);
-    //working(); //
     //browser();
     //cryptotest();
 </script>

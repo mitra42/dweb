@@ -62,7 +62,8 @@ class CommonList extends SmartDict {
     }
 
     p_fetch(verbose) {
-        // See also p_loadandfetchlist as need to fetch body and only then fetchlist since for a list the body might include the publickey whose hash is needed for the list
+        // See also p_fetch_then_list, p_fetch_then_list_then_current, p_fetch_then_list_then_elements
+        // as need to fetch body and only then fetchlist since for a list the body might include the publickey whose hash is needed for the list
         let self = this;
         if (this._needsfetch) { // Only load if need to
             if (verbose) { console.log("CommonList.load:",this._hash)}
@@ -86,6 +87,7 @@ class CommonList extends SmartDict {
                 //lines = JSON.parse(lines))   Should already by a list
                 if (verbose) console.log("CommonList:p_fetchlist.success", self._hash, "len=", lines.length);
                 self._list = [];    //TODO rewrite loop to replace with lines.map(...)
+                //TODO-LIST can refactor as a map
                 for (let i in lines) {
                     //TODO verify signature
                     //if CryptoLib.verify(s):
@@ -96,13 +98,23 @@ class CommonList extends SmartDict {
             })
     }
 
-    p_loadandfetchlist(verbose) {
+    p_fetch_then_list(verbose) {
         // Utility function to simplify nested functions
         // Need to fetch body and only then fetchlist since for a list the body might include the publickey whose hash is needed for the list
         let self=this;
         return this.p_fetch(verbose)
             .then(()=>self.p_fetchlist(verbose))
     }
+
+    p_fetch_then_list_then_elements(verbose) {
+        // Utility function to simplify nested functions
+        // Need to fetch body and only then fetchlist since for a list the body might include the publickey whose hash is needed for the list
+        let self=this;
+        return this.p_fetch_then_list(verbose)
+            .then(() => Promise.all(Dweb.Signature.filterduplicates(self._list) // Dont load multiple copies of items on list (might need to be an option?)
+                .map((sig) => new Dweb.UnknownBlock(sig.hash, verbose))
+                .map((ub) => ub.p_fetch(verbose)))) // Return is array result of p_fetch which is array of new objs (suitable for storing in keys etc)
+        }
 
     blocks(verbose) {
         console.assert(false, "XXX@CL.blocks - checking if this ever gets used as should be handled by p_fetchlist.then");
@@ -153,7 +165,7 @@ class CommonList extends SmartDict {
         let self = this;
         return this.p_fetch(verbose)
             .then(() => {
-                console.assert(self._master, "ForbiddenException: Signing a new entry when not a master list");
+                console.assert(self._master && self.keypair, "ForbiddenException: Signing a new entry when not a master list");
                 // The obj.store stores signatures as well (e.g. see StructuredBlock.store)
                 obj.sign(self, verbose).p_store(verbose);
                 return obj;

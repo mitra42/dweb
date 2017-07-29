@@ -20,7 +20,7 @@
             console.log("MutableBlock=======");
             <!-- also works with /file/mb/.....=/langs/readme.md -->
             let mb = new Dweb.MutableBlock(mbhash, null, false, null, false, null, null, null, verbose, null);
-            mb.p_loadandfetchlist(verbose)
+            mb.p_fetch_then_list_then_content(verbose)
             .then((msg) => mb.p_path(["langs","readme.md"], verbose, ["p_elem", "myList.1", verbose, null]));
             <!-- Now test path using dwebfile -->
             Dweb.p_dwebfile("sb", sbhash, "langs/readme.md", ["p_elem", "myList.2", verbose, null]);

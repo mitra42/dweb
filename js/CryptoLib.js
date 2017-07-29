@@ -46,6 +46,7 @@ exports.signature = function(keypair, date, hash, verbose) {
         :return: signature that can be verified with verify
         COPIED FROM PYTHON 2017-05-23 excluding RSA and WordHashKey support
         */
+        console.assert(keypair && date && hash)
         let signable = Dweb.CryptoLib._signable(date, hash); // A string we can sign
         if (keypair._key.sign.privateKey) {
             //if (keypair._key instanceof nacl.signing.SigningKey):

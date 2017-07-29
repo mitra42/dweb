@@ -21,7 +21,7 @@ class KeyChain extends CommonList {
         let kc = new KeyChain(null, { "name": name }, true, null, keygen, mnemonic, verbose);
         return kc.p_store(verbose) // Dont need to wait on store to load and fetchlist but will do so to avoid clashes
             .then(() => KeyChain.addkeychains(kc))
-            .then(() => kc.p_loadandfetchlist(verbose))
+            .then(() => kc.p_fetch_then_list(verbose))  //TODO can use p_fetch_then_list_then_elements instead of scucess
             .then(() => kc) //Fetches blocks in p_loadandfetchlist.success
             // Note kc returned from promise NOT from p_new so have to catch in a ".then"
         //if verbose: print "Created keychain for:", kc.keypair.private.mnemonic
@@ -30,13 +30,15 @@ class KeyChain extends CommonList {
 
     keytype() { return Dweb.KEYPAIRKEYTYPESIGNANDENCRYPT; }  // Inform keygen
 
-    p_fetchlist(verbose) {
+    p_fetchlist(verbose) {  //TODO-LIST
         // Call chain is kc.p_new > kc.loadandfetchlist > KC.p_fetchlist > THttp.p_rawlist > Thttp.list > KC.fetchlist.success > caller's success
         let self = this;
         return super.p_fetchlist(verbose)
             // Called after CL.p_fetchlist has unpacked data into Signatures in _list
             //.then(() => self._keys = Dweb.Signature.filterduplicates(self._list).map((sig) => new Dweb.UnknownBlock(sig.hash, verbose)))
-            .then(() => Promise.all(Dweb.Signature.filterduplicates(self._list).map((sig) => new Dweb.UnknownBlock(sig.hash, verbose)).map((ub) => ub.p_fetch(verbose)))) // Return is result of p_fetch which is new obj
+            .then(() => Promise.all(Dweb.Signature.filterduplicates(self._list)
+                .map((sig) => new Dweb.UnknownBlock(sig.hash, verbose))
+                .map((ub) => ub.p_fetch(verbose)))) // Return is result of p_fetch which is new obj
             .then((keys) => self._keys = keys)
             .then(() => { if (verbose) console.log("KC.fetchlist Got keys", ...Dweb.utils.consolearr(self._keys))})
     }
