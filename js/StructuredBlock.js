@@ -176,7 +176,7 @@ class StructuredBlock extends SmartDict {
                     })
             } catch (err) {
                 console.log("Caught exception in StructuredBlock.test", err)
-                raise(err)
+                throw(err)
             }
         })
     }

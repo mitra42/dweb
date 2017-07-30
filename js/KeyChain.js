@@ -30,7 +30,7 @@ class KeyChain extends CommonList {
 
     keytype() { return Dweb.KEYPAIRKEYTYPESIGNANDENCRYPT; }  // Inform keygen
 
-    p_fetchlist(verbose) {  //TODO-LIST
+    p_fetchlist(verbose) {
         // Call chain is kc.p_new > kc.loadandfetchlist > KC.p_fetchlist > THttp.p_rawlist > Thttp.list > KC.fetchlist.success > caller's success
         let self = this;
         return super.p_fetchlist(verbose)

@@ -39,7 +39,7 @@ class KeyPair extends SmartDict {
     }
 
     key_setter(value) {
-        if (typeof value === "string") {
+        if (typeof value === "string" || Array.isArray(value)) {
             this._importkey(value);
         } else {
             this._key = value;
@@ -76,7 +76,6 @@ class KeyPair extends SmartDict {
     _importkey(value) {
         //First tackle standard formats created by exporting functionality on keys
         // Call route is ... data.setter > ...> key.setter > _importkey
-
         //TODO - Note fingerprint different from Python - this stores the key, change the Python
         if (typeof value === "object") {    // Should be array, not dict
             for (let i in value) {
@@ -94,7 +93,7 @@ class KeyPair extends SmartDict {
             } else if (tag === "NACL PRIVATE")   { console.assert(false, "XXX _importkey: Cant (yet) import Private key"+value);
             } else if (tag === "NACL SIGNING")   { console.assert(false, "XXX _importkey: Cant (yet) import Signing key"+value);
             } else if (tag === "NACL SEED")      { this._key = KeyPair._keyfromseed(hasharr, Dweb.KEYPAIRKEYTYPESIGNANDENCRYPT);
-            } else if (tag === "NACL VERIFY")    { this._key["sign"] = {"publicKey": sodium.from_urlsafebase64(hasharr)};
+            } else if (tag === "NACL VERIFY")    { this._key["sign"] = {"publicKey": hasharr};
             } else                              { console.assert(false, "XXX _importkey: Cant (yet) import "+value); }
         }
     }

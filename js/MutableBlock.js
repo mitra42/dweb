@@ -184,7 +184,7 @@ class MutableBlock extends CommonList {
                     })
             } catch (err) {
                 console.log("Caught exception in MutableBlock.test", err)
-                raise(err)
+                throw(err)
             }
         })
     }
