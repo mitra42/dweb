@@ -30,8 +30,7 @@
             .then((testobjs) => sb = testobjs.sb)
             .then(() => verbose ? console.log("sbhash should be set to:",sb._hash) : undefined)
             .then(() => Dweb.MutableBlock.test(sb, Dweb.transport, verbose))
-            .then(() => console.log("test_ipfs.html - unsure if CryptoLib.test is working - I think it should be"))
-            // .then(() => Dweb.CryptoLib.test(verbose))
+            .then(() => Dweb.CryptoLib.test(verbose))
             //TODO-TEST expand this to include all tests in test_ipfs.js
             .then(() => console.log("test_ipfs.test complete"))
         }
@@ -131,7 +130,7 @@
         .then(() => console.log("STARTING TEST"))
         .then(() => transportclass.test(Dweb.transport, verbose))
         .then(() => testing()) //Can comment this line out when testing other module
-        //.then(() => working())    //TODO-TEST reenable
+        .then(() => working())
         .then(() => console.log("Main end in test_ipfs.html"))
 
     //browser();

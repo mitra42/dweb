@@ -34,7 +34,7 @@ let sb;
     .then((testobjs) => sb = testobjs.sb)
     .then(() => console.log("sb=",sb))
     //.then(() => verbose = true)
-    .then(() => Dweb.MutableBlock.test(sb, Dweb.transport, verbose))    //TODO-TEST still completing subtasks of MB.test
+    .then(() => Dweb.MutableBlock.test(sb, Dweb.transport, verbose))
     .then(() => Dweb.CryptoLib.test(verbose))
     //NEXT TEST FAILS
     //.then(() => Dweb.AccessControlList.p_test(verbose))

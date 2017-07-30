@@ -84,7 +84,7 @@ class MutableBlock extends CommonList {
         let self = this;
         return super.p_fetch_then_list(verbose)
             //.then(() => console.log("XXX@mb.p_fetch_then_list_then_current.86",self._current))
-            .then(() => self._current && self._current.p_fetch(verbose))   //TODO-TEST the next XXX@..88 executing before code in here
+            .then(() => self._current && self._current.p_fetch(verbose))
             //.then((xxx) => console.log("XXX@MB.pftlnc.88",xxx))
             //.then(() => console.log("XXX@mb.p_fetch_then_list_then_current.88",self._current.data))
             .then(() => self )
@@ -175,7 +175,7 @@ class MutableBlock extends CommonList {
                     //.then(() => console.log("mb.test retrieved=",mb))
                     .then(() => console.assert(mb._list.length === siglength+1, "Expect list",siglength+1,"got",mb._list.length))
                     .then(() => console.assert(mb._current.data === sb.data, "Should have retrieved"))
-                    //.then(() => mb.p_path(["langs", "readme.md"], verbose, ["p_elem", "myList.1", verbose,])) //TODO-JS need a path based test
+                    //.then(() => mb.p_path(["langs", "readme.md"], verbose, ["p_elem", "myList.1", verbose,])) //TODO-PATH need a path based test
                     .then(() => { if (verbose) console.log("MutableBlock.test promises done"); })
                     .then(() => resolve({mb: mb}))
                     .catch((err) => {
