@@ -111,12 +111,13 @@ class StructuredBlock extends SmartDict {
          Add a signature to a StructuredBlock
          Note if the SB has a _acl field it will be encrypted first, then the hash of the encrypted block used for signing.
          :param CommonList commonlist:   List its going on - has a ACL with a private key
-         :return: self
+         :return: sig so that CommonList can add to _list
          */
         if (!this._hash) this.p_store(verbose);  // Sets _hash immediately which is needed for signatures
         if (!commonlist._publichash) commonlist.p_store(verbose);    // Set _publichash immediately (required for Signature.sign)
-        this._signatures.push(Signature.sign(commonlist, this._hash, verbose));
-        return this;  // For chaining
+        let sig = Signature.sign(commonlist, this._hash, verbose)
+        this._signatures.push(sig);
+        return sig;  // so that CommonList can add to _list
     }
     verify() { console.assert(false, "XXX Undefined function StructuredBlock.verify"); }
 

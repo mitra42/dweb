@@ -160,14 +160,18 @@ class CommonList extends SmartDict {
 
          :param StructuredBlock obj:
          :param verbose:
-         :return:
+         :return: this - for chaining
          */
+        console.log("XXX@CL.p_signandstore.165")
         let self = this;
         return this.p_fetch(verbose)
             .then(() => {
                 console.assert(self._master && self.keypair, "ForbiddenException: Signing a new entry when not a master list");
                 // The obj.store stores signatures as well (e.g. see StructuredBlock.store)
-                obj.sign(self, verbose).p_store(verbose);
+                let sig = obj.sign(self, verbose);
+                obj.p_store(verbose);
+                console.log("XXX@CL.p_signandstore.172",self);
+                self._list.push(sig);
                 return obj;
             })
     }

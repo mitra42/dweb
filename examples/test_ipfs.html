@@ -37,7 +37,8 @@
 
         function working() {
             let verbose=true;
-            let mb;
+            let mb1;    // Holds MutableBlock created from the SB
+            let mb;     // Holds MutableBlock created by fetching mb1
             console.log("StructuredBlock=======");
             let sb = new Dweb.StructuredBlock(sbhash);
             if (verbose) console.log("sb=",sb)
@@ -46,11 +47,19 @@
             //.then((msg) => sb.p_path(["langs","readme.md"], verbose,  [ "p_elem", "myList.0", verbose, null ]));
             .then(() => console.log("MutableBlock======="))
             // also works with /file/mb/.....=/langs/readme.md -->
-            .then(()=> mb = Dweb.MutableBlock.p_new(null, null, "test_ipfs.MB", false, sb, true, verbose))
-            .then(() => console.log("test_ipfs.working finished up to point completed"))
+            // MB.p_new(acl, contentacl, name, _allowunsafestore, content, signandstore, verbose)
+            .then(()=> Dweb.MutableBlock.p_new(null, null, "test_ipfs.MB", true, "The quick brown mutable fox", true, verbose))
+            .then((newmb) => mb1 = newmb)
+            .then(() => console.log("test_ipfs.working and tested to this point"))
+            .then(() => console.log("XXX@53",mb1))
+            // MB(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose, options)
+            .then(() => { mb = new Dweb.MutableBlock(mb1._hash, null, false, null, false, null, null, null, verbose, null)})
+            .then(() => console.log("XXX@57",mb))
+            .then(() => mb.p_fetch_then_list_then_current(verbose))
+            .then(() => console.log("XXX@58",mb))
+            .then(() => mb.p_elem("myList.1", verbose, null))
             /* TODO-TEST gradually uncomment below
-            let mb = new Dweb.MutableBlock(mbhash, null, false, null, false, null, null, null, verbose, null);
-            mb.p_fetch_then_list_then_content(verbose)
+            //TODO-PATH need a test of path
             .then((msg) => mb.p_path(["langs","readme.md"], verbose, ["p_elem", "myList.1", verbose, null]));
             <!-- Now test path using dwebfile -->
             Dweb.p_dwebfile("sb", sbhash, "langs/readme.md", ["p_elem", "myList.2", verbose, null]);
@@ -123,8 +132,8 @@
         })
         .then(() => console.log("STARTING TEST"))
         .then(() => transportclass.test(Dweb.transport, verbose))
-        .then(() => testing()) //Can comment this line out when testing other module
-        //.then(() => working())    //TODO-TEST reenable
+        //.then(() => testing()) //Can comment this line out when testing other module
+        .then(() => working())    //TODO-TEST reenable
         .then(() => console.log("Main end in test_ipfs.html"))
 
     //browser();

@@ -217,7 +217,7 @@ class TransportIPFS extends Transport {
                 let hashrold;
                 let qbf = "The quick brown fox";
                 let rold = "Ran over the lazy dog";
-                let testhash = "1114";
+                let testhash = "1114";  // Just a predictable number can work with
                 let listlen;    // Holds length of list run intermediate
                 let cidmultihash;   // Store cid from first block in form of multihash
                 transport.p_rawstore(qbf, verbose)
