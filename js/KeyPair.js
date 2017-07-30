@@ -103,6 +103,7 @@ class KeyPair extends SmartDict {
         let res = [];
         if (this._key.encrypt) { res.push("NACL PUBLIC:"+sodium.to_urlsafebase64(this._key.encrypt.publicKey)) }
         if (this._key.sign) { res.push("NACL VERIFY:"+sodium.to_urlsafebase64(this._key.sign.publicKey)) }
+        return res;
     }
 
     key() { console.assert(false, "XXX Undefined function KeyPair.key"); }

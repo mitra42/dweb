@@ -32,8 +32,8 @@ let sb;
     .then(() => Dweb.Block.test(Dweb.transport, verbose))
     .then(() => Dweb.StructuredBlock.test(Dweb.transport, document, verbose))
     .then((testobjs) => sb = testobjs.sb)
-    .then(() => console.log("sb=",sb))
-    .then(() => verbose = true)
+    //.then(() => console.log("sb=",sb))
+    //.then(() => verbose = true)
     .then(() => Dweb.MutableBlock.test(sb, Dweb.transport, verbose))    //TODO-TEST still completing subtasks of MB.test
     .then(() => Dweb.CryptoLib.test(verbose))
     //NEXT TEST FAILS

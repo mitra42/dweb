@@ -106,7 +106,6 @@ class MutableBlock extends CommonList {
 
          :return: self to allow chaining of functions
          */
-        console.log("XXX@MB.p_signandstore:109",this);
         if ((!this._current._acl) && this.contentacl) {
             this._current._acl = this.contentacl;    //Make sure SB encrypted when stored
             this._current.dirty();   // Make sure stored again if stored unencrypted. - _hash will be used by signandstore
@@ -168,7 +167,6 @@ class MutableBlock extends CommonList {
                 mb1.p_signandstore(verbose) // Async, should set hash immediately but wait to retrieve after stored.
                     //.then(() => console.log("mb1.test after signandstore=",mb1))
                     .then(() => console.assert(mb1._list.length === siglength+1))
-                    //.then(() => console.log("XXX-----@166"))
                     //MutableBlock(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose, options) {
                     .then(() => mb = new MutableBlock(mb1._publichash, null, false, null, false, null, null, null, verbose, null))
                     //.then(() => console.log("XXX-----@168"))
@@ -176,7 +174,6 @@ class MutableBlock extends CommonList {
                     //.then(() => console.log("XXX-----@170"))
                     //.then(() => console.log("mb.test retrieved=",mb))
                     .then(() => console.assert(mb._list.length === siglength+1, "Expect list",siglength+1,"got",mb._list.length))
-                    .then(() => console.log("SB",sb,"MB1",mb1,"MB",mb))
                     .then(() => console.assert(mb._current.data === sb.data, "Should have retrieved"))
                     //.then(() => mb.p_path(["langs", "readme.md"], verbose, ["p_elem", "myList.1", verbose,])) //TODO-JS need a path based test
                     .then(() => { if (verbose) console.log("MutableBlock.test promises done"); })

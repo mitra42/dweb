@@ -162,7 +162,6 @@ class CommonList extends SmartDict {
          :param verbose:
          :return: this - for chaining
          */
-        console.log("XXX@CL.p_signandstore.165")
         let self = this;
         return this.p_fetch(verbose)
             .then(() => {
@@ -170,7 +169,6 @@ class CommonList extends SmartDict {
                 // The obj.store stores signatures as well (e.g. see StructuredBlock.store)
                 let sig = obj.sign(self, verbose);
                 obj.p_store(verbose);
-                console.log("XXX@CL.p_signandstore.172",self);
                 self._list.push(sig);
                 return obj;
             })
