@@ -9,6 +9,7 @@ exports.MutableBlock = require("./MutableBlock");
 exports.KeyPair = require("./KeyPair");
 exports.UnknownBlock = require("./UnknownBlock");
 exports.Signature = require("./Signature");
+exports.AccessControlList = require("./AccessControlList");
 
 // Javascript library for dweb
 // The crypto uses https://github.com/jedisct1/libsodium.js but https://github.com/paixaop/node-sodium may also be suitable if we move to node
@@ -54,7 +55,7 @@ class TransportError extends Error {
         // See MDN definition of error, may need to set stack
     }
 }
-exports.errors.TransportError = TransportError
+exports.errors.TransportError = TransportError;
 
 
 // Utility functions

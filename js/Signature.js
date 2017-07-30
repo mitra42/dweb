@@ -31,7 +31,7 @@ class Signature extends SmartDict {
      */
 
     static filterduplicates(arr) {
-        let res = {}
+        let res = {};
         // Remove duplicate signatures
         return arr.filter((x) => (!res[x.hash] && (res[x.hash] = true)))
     }

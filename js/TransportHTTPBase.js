@@ -1,6 +1,6 @@
 const Transport = require('./Transport.js');
 const request = require('request');
-const isNode=new Function("try {return this===global;}catch(e){return false;}");
+//UNUSED: const isNode=new Function("try {return this===global;}catch(e){return false;}");
 const myrequest = request.defaults({pool: {maxSockets: 2}, forever: true});
 //const myrequest = request.defaults({forever: true});
 
@@ -39,7 +39,7 @@ class TransportHTTPBase extends Transport {
                 if (verbose) { console.log("TransportHTTP X:", command, hash, ": returning data len=", data && data.length ); }
             //TODO handle errors
             if (errorres) {
-                console.log("TransportHTTP.async_post unable to post url: ",url, "data:", data, "errno: ", errorres.errno,"at:",errorres.address+":"+errorres.port)
+                console.log("TransportHTTP.async_post unable to post url: ",url, "data:", data, "errno: ", errorres.errno,"at:",errorres.address+":"+errorres.port);
                 if (error) {
                     error(undefined, undefined, undefined)
                 } else {
@@ -52,7 +52,7 @@ class TransportHTTPBase extends Transport {
                     }
                     if (success) success(data);
                 } else {
-                    console.log("Error status=",response["statusCode"],response["statusMessage"])
+                    console.log("Error status=",response["statusCode"],response["statusMessage"]);
                     if (error) error(undefined, undefined, undefined);
                 }
             }
@@ -101,7 +101,7 @@ class TransportHTTPBase extends Transport {
             if (verbose) { console.log("TransportHTTP post:", command, hash, ": returning data len=", respdata && respdata.length ); }
             //TODO handle errors
             if (errorres) {
-                console.log("TransportHTTP.async_post unable to post url: ",url, "data:", data, "errno: ", errorres.errno,"at:",errorres.address+":"+errorres.port)
+                console.log("TransportHTTP.async_post unable to post url: ",url, "data:", data, "errno: ", errorres.errno,"at:",errorres.address+":"+errorres.port);
                 if (error) {
                     error(undefined, undefined, undefined)
                 } else {

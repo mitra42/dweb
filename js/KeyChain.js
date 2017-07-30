@@ -169,13 +169,13 @@ class KeyChain extends CommonList {
                 const qbf="The quick brown fox ran over the lazy duck";
                 const vkpname="test_keychain viewerkeypair";
                 let mbm2;
-                let keypair
-                let viewerkeypair
-                let kcs2
-                let mm
-                let mbm3
-                let key
-                let acl
+                let keypair;
+                let viewerkeypair;
+                let kcs2;
+                let mm;
+                let mbm3;
+                let key;
+                let acl;
                 const keypairexport =  "NACL SEED:w71YvVCR7Kk_lrgU2J1aGL4JMMAHnoUtyeHbqkIi2Bk="; // So same result each time
                 if (verbose) {
                     console.log("Keychain.test 0 - create");
@@ -217,7 +217,7 @@ class KeyChain extends CommonList {
                      })
                     .then(() => {
                         verbose=true;
-                        let accesskey
+                        let accesskey;
                         if (verbose) console.log("KEYCHAIN 5: Check can user ViewerKeyPair");
                         /*
                         acl = this._makeacl();  //Create Access Control List    - dont require encrypting as pretending itssomeone else's

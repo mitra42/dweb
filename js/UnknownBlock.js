@@ -13,7 +13,7 @@ const LetterToClass = { // Each of these needs a constructor that takes hash, da
     "kp": KeyPair,
     "mb": MutableBlock,
     "acl": AccessControlList
-}
+};
 
 class UnknownBlock extends SmartDict {
     /*

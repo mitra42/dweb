@@ -25,11 +25,11 @@
 
         function testing() { // Mirrors test in node version in test_ipfs.js
             let verbose = false;
-            Dweb.Block.test(Dweb.transport, verbose)
-            .then(() => Dweb.StructuredBlock.test(Dweb.transport, document, verbose))
+            Dweb.Block.test(verbose)
+            .then(() => Dweb.StructuredBlock.test(document, verbose))
             .then((testobjs) => sb = testobjs.sb)
             .then(() => verbose ? console.log("sbhash should be set to:",sb._hash) : undefined)
-            .then(() => Dweb.MutableBlock.test(sb, Dweb.transport, verbose))
+            .then(() => Dweb.MutableBlock.test(sb, verbose))
             .then(() => Dweb.CryptoLib.test(verbose))
             //TODO-TEST expand this to include all tests in test_ipfs.js
             .then(() => console.log("test_ipfs.test complete"))

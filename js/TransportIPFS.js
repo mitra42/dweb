@@ -69,7 +69,7 @@ const annotationlistexample = { //TODO-IPFS update this to better example
 class TransportIPFS extends Transport {
 
     constructor(ipfsoptions, verbose, options) {
-        super(options);
+        super(verbose, options);
         this.ipfs = undefined;  // Not yet defined
         this.ipfsoptions = ipfsoptions; // Dictionary of options, currently unused
         this.options = options;
@@ -80,7 +80,7 @@ class TransportIPFS extends Transport {
     static ipfsstart(iiifoptions, verbose) {
         //let ipfs = new IPFS(ipfsoptions); // Without CRDT (for lists)
         // Next line is for browser compatibility - there is a bug in browserify so IIIF has to be loaded separately in browser, by test_ipfs.js for node
-        let IIIF = typeof IpfsIiifDb == "undefined" ? TransportIPFS.IpfsIiifDb : IpfsIiifDb;
+        let IIIF = typeof IpfsIiifDb === "undefined" ? TransportIPFS.IpfsIiifDb : IpfsIiifDb;
         const res = IIIF(iiifoptions); //Note this doesn't start either IPFS or annotationlist
         const ipfs = res.ipfs;
         return new Promise((resolve, reject) => {
@@ -109,9 +109,9 @@ class TransportIPFS extends Transport {
 
 
     static p_setup(ipfsiiifoptions, verbose, options) {
-        let combinedipfsoptions = Object.assign(defaultipfsoptions, ipfsiiifoptions.ipfs)
+        let combinedipfsoptions = Object.assign(defaultipfsoptions, ipfsiiifoptions.ipfs);
         let combinediiifoptions = Object.assign(defaultiiifoptions, ipfsiiifoptions.iiif,{ipfs:defaultipfsoptions});   // Top level in this case
-        console.log("IPFS options",combinediiifoptions)
+        console.log("IPFS options",combinediiifoptions);
         let t = new TransportIPFS(combinedipfsoptions, verbose, options);
         return new Promise((resolve, reject) => {
             TransportIPFS.ipfsstart(combinediiifoptions, verbose)
@@ -162,7 +162,7 @@ class TransportIPFS extends Transport {
         console.assert(hash, "TransportHTTP.p_rawlist: requires hash");
         return new Promise((resolve, reject) => {
             let res = Dweb.annotationList.getResources()
-                .filter((obj) => (obj.signedby === hash))
+                .filter((obj) => (obj.signedby === hash));
             if (verbose) console.log("p_rawlist found",...Dweb.utils.consolearr(res));
             resolve(res);
         })
@@ -172,7 +172,7 @@ class TransportIPFS extends Transport {
         //TODO-IPFS-MULTILIST will want to make more efficient.
         Dweb.annotationList.on('resource inserted', (event) => {
             let obj = event.value;
-            if (verbose) console.log('resource inserted', obj)
+            if (verbose) console.log('resource inserted', obj);
             //obj["signature"] = obj["@id"];
             //delete obj["@id"];
             //console.log('resource after transform', obj);
@@ -214,9 +214,7 @@ class TransportIPFS extends Transport {
         return new Promise((resolve, reject) => {
             try {
                 let hashqbf;
-                let hashrold;
                 let qbf = "The quick brown fox";
-                let rold = "Ran over the lazy dog";
                 let testhash = "1114";  // Just a predictable number can work with
                 let listlen;    // Holds length of list run intermediate
                 let cidmultihash;   // Store cid from first block in form of multihash
@@ -224,7 +222,7 @@ class TransportIPFS extends Transport {
                     .then((hash) => {
                         if (verbose) console.log("rawstore returned", hash);
                         let newcid = TransportIPFS.link2cid(hash);  // Its a CID which has a buffer in it
-                        cidmultihash = hash.split('/')[2]
+                        cidmultihash = hash.split('/')[2];
                         let newhash = TransportIPFS.cid2link(newcid);
                         console.assert(hash === newhash, "Should round trip");
                         hashqbf = hash;
@@ -252,7 +250,7 @@ class TransportIPFS extends Transport {
                     .then((res) => { if (verbose) console.log("rawlist returned ", ...Dweb.utils.consolearr(res)) }) // Note not showing return
                     .then(() => delay(500))
                     .then(() => transport.p_rawlist(testhash, verbose))
-                    .then((res) => console.assert(res.length = listlen + 1, "Should have added one item"))
+                    .then((res) => console.assert(res.length === listlen + 1, "Should have added one item"))
                     //.then(() => console.log("TransportIPFS test complete"))
                     .then(() => { // Can get multihash but not synchrnously. Unclear why that is so hard
                             multihashing(new Buffer(qbf), 'sha2-256', (err, multihash) => {
@@ -270,7 +268,7 @@ class TransportIPFS extends Transport {
                         reject(err)
                     });
             } catch (err) {
-                    console.log("Exception thrown in TransportIPFS.test", err)
+                    console.log("Exception thrown in TransportIPFS.test", err);
                     reject(err);
             }
         })

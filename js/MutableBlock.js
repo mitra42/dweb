@@ -155,7 +155,7 @@ class MutableBlock extends CommonList {
     }
 
 
-    static test(sb, transport, verbose) {
+    static test(sb, verbose) {
         let mb;
         if (verbose) console.log("MutableBlock.test starting");
         return new Promise((resolve, reject) => {
@@ -183,7 +183,7 @@ class MutableBlock extends CommonList {
                         reject(err);
                     })
             } catch (err) {
-                console.log("Caught exception in MutableBlock.test", err)
+                console.log("Caught exception in MutableBlock.test", err);
                 throw(err)
             }
         })

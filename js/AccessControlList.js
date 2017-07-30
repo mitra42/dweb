@@ -22,7 +22,7 @@ class AccessControlList extends CommonList {
     }
 
     preflight(dd) {
-        console.log("XXX@25",self.keypair._key) //Looking for instance of sodium.signing.SigningKey or similar
+        console.log("XXX@25",self.keypair._key); //Looking for instance of sodium.signing.SigningKey or similar
         if ((!this._master) && (self.keypair._key instanceof sodium.signing.SigningKey)) {
             dd["naclpublic"] = dd.naclpublic || dd.keypair.naclpublicexport();   // Store naclpublic for verification
         }

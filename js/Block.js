@@ -13,12 +13,12 @@ class Block extends Transportable {
         return this._data;
     }
 
-    static test(transport, verbose) {
+    static test(verbose) {
         if (verbose) {console.log("Block.test")}
         return new Promise((resolve, reject) => {
             let blk;
             let blk2;
-            blk = new Block(null, "The dirty old chicken")      // Create a block with some data
+            blk = new Block(null, "The dirty old chicken");      // Create a block with some data
             blk.p_store(verbose)                                // Store it to transport
             .then(() => {blk2 = new Block(blk._hash, null)})    // Create a new block with the hash of the old
             .then(() => blk2.p_fetch(verbose))                  // and fetch it

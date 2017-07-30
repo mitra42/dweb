@@ -4,7 +4,7 @@ const TransportHTTP = require('./TransportHTTP');
 const Dweb = require('./Dweb');
 
 // Utility packages (ours) Aand one-loners
-const makepromises = require('./utils/makepromises');
+//UNUSED: const makepromises = require('./utils/makepromises');
 function delay(ms, val) { return new Promise(resolve => {setTimeout(() => { resolve(val); },ms)})}
 
 // Fake a browser like environment for some tests
@@ -16,11 +16,9 @@ const dom = new JSDOM(htmlfake);
 document = dom.window.document;   // Note in JS can't see "document" like can in python
 
 
-let transportclass = TransportIPFS
+let transportclass = TransportIPFS;
 //let transportclass = TransportHTTP
 let verbose = false;
-let blk;
-let blk2;
 let sb;
     // Note that this test setup is being mirror in test_ipfs.html
     transportclass.p_setup({}, verbose, {})
@@ -29,12 +27,12 @@ let sb;
         Dweb.transport = t;
     })
     .then(() => transportclass.test(Dweb.transport, verbose))
-    .then(() => Dweb.Block.test(Dweb.transport, verbose))
-    .then(() => Dweb.StructuredBlock.test(Dweb.transport, document, verbose))
+    .then(() => Dweb.Block.test(verbose))
+    .then(() => Dweb.StructuredBlock.test(document, verbose))
     .then((testobjs) => sb = testobjs.sb)
     .then(() => console.log("sb=",sb))
     //.then(() => verbose = true)
-    .then(() => Dweb.MutableBlock.test(sb, Dweb.transport, verbose))
+    .then(() => Dweb.MutableBlock.test(sb, verbose))
     .then(() => Dweb.CryptoLib.test(verbose))
     //TODO-TEST NEXT TEST FAILS
     .then(() => Dweb.AccessControlList.p_test(verbose))
@@ -42,7 +40,7 @@ let sb;
     .then(() => console.log("delaying 10 secs"))
     .then(() => delay(10000))
     .then(()=>console.log("Completed test"))
-    .catch((err) => console.log("Test failed", err))
+    .catch((err) => console.log("Test failed", err));
 
 
 /* path tests not done ... old ones

@@ -13,6 +13,8 @@ const CryptoLib = require("./CryptoLib");
 
 
 class Transport {
+    constructor(verbose, options) {}    // Doesnt do anything, its all done by SuperClasses
+
     p_setup(transportoptions, verbose, options) {
         /*
         Setup the resource and open any P2P connections etc required to be done just once.

@@ -115,7 +115,7 @@ class StructuredBlock extends SmartDict {
          */
         if (!this._hash) this.p_store(verbose);  // Sets _hash immediately which is needed for signatures
         if (!commonlist._publichash) commonlist.p_store(verbose);    // Set _publichash immediately (required for Signature.sign)
-        let sig = Signature.sign(commonlist, this._hash, verbose)
+        let sig = Signature.sign(commonlist, this._hash, verbose);
         this._signatures.push(sig);
         return sig;  // so that CommonList can add to _list
     }
@@ -144,13 +144,13 @@ class StructuredBlock extends SmartDict {
         return 0;
     }
 
-    static test(transport, document, verbose) {
-        if (verbose) console.log("StructuredBlock.test")
+    static test(document, verbose) {
+        if (verbose) console.log("StructuredBlock.test");
         return new Promise((resolve, reject) => {
             let el = document.getElementById("myList.0");
             console.log("XXX@make assert: el=", el);
             try {
-                let teststr = "The well structured block"
+                let teststr = "The well structured block";
                 let sb = new StructuredBlock(null, {"data": teststr});
                 let sb2;
                 if (verbose) {
@@ -167,7 +167,7 @@ class StructuredBlock extends SmartDict {
                     //To debug, uncomment the el.textContent line in Transportable.p_elem
                      */
                     .then(() => {
-                        if (verbose) console.log("StructuredBlock.test promises complete")
+                        if (verbose) console.log("StructuredBlock.test promises complete");
                         resolve({sb: sb, sb2: sb2});
                     })
                     .catch((err) => {
@@ -175,7 +175,7 @@ class StructuredBlock extends SmartDict {
                         reject(err);
                     })
             } catch (err) {
-                console.log("Caught exception in StructuredBlock.test", err)
+                console.log("Caught exception in StructuredBlock.test", err);
                 throw(err)
             }
         })

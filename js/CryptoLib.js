@@ -15,15 +15,15 @@ const Dweb = require("./Dweb");
 //CryptoLib.Curlhash = function(data) { return "BLAKE2."+ sodium.crypto_generichash(32, data, null, 'urlsafebase64'); }
 //Specific to IPFS
 exports.Curlhash = function(data) {
-    if (Dweb.transport.hashtype == "BLAKE2") {
+    if (Dweb.transport.hashtype === "BLAKE2") {
         return "BLAKE2."+ sodium.crypto_generichash(32, data, null, 'urlsafebase64');
     } else {    //TransportIPFS
         let b2 = (data instanceof Buffer) ? data : new Buffer(data);
         let b3 = crypto.createHash('sha256').update(b2).digest();
-        hash = multihashes.toB58String(multihashes.encode(b3, 'sha2-256'));  //TODO-IPFS-Q unclear how to make generic
+        let hash = multihashes.toB58String(multihashes.encode(b3, 'sha2-256'));  //TODO-IPFS-Q unclear how to make generic
         return "/ipfs/" + hash
     }
-}
+};
 exports._signable = function(date, data) {
         /*
          Returns a string suitable for signing and dating, current implementation includes date and storage hash of data.
@@ -35,7 +35,7 @@ exports._signable = function(date, data) {
          COPIED TO JS 2017-05-23
          */
         return date.toISOString() + data;
-    }
+    };
 
 exports.signature = function(keypair, date, hash, verbose) {
         /*
@@ -46,7 +46,7 @@ exports.signature = function(keypair, date, hash, verbose) {
         :return: signature that can be verified with verify
         COPIED FROM PYTHON 2017-05-23 excluding RSA and WordHashKey support
         */
-        console.assert(keypair && date && hash)
+        console.assert(keypair && date && hash);
         let signable = Dweb.CryptoLib._signable(date, hash); // A string we can sign
         if (keypair._key.sign.privateKey) {
             //if (keypair._key instanceof nacl.signing.SigningKey):
@@ -56,13 +56,13 @@ exports.signature = function(keypair, date, hash, verbose) {
         } else {
             Dweb.utils.ToBeImplementedException("signature for key =",keypair._key);
         }
-    }
-exports.verify = function() { console.assert(false, "XXX Undefined function CryptoLib.verify"); }
-exports.b64dec = function() { console.assert(false, "XXX Undefined function CryptoLib.b64dec"); }
-exports.b64enc = function() { console.assert(false, "XXX Undefined function CryptoLib.b64enc"); }
+    };
+exports.verify = function() { console.assert(false, "XXX Undefined function CryptoLib.verify"); };
+exports.b64dec = function() { console.assert(false, "XXX Undefined function CryptoLib.b64dec"); };
+exports.b64enc = function() { console.assert(false, "XXX Undefined function CryptoLib.b64enc"); };
 
-exports.dumps = function(obj) { return JSON.stringify(obj); }   // Uses toJSON methods on objects (equivalent of dumps methods on python)
-exports.loads = function(str) { return JSON.parse(str); }
+exports.dumps = function(obj) { return JSON.stringify(obj); };   // Uses toJSON methods on objects (equivalent of dumps methods on python)
+exports.loads = function(str) { return JSON.parse(str); };
 
 exports.decryptdata = function(value, verbose) {
         /*
@@ -86,16 +86,16 @@ exports.decryptdata = function(value, verbose) {
         } else {
             return value;
         }
-    }
+    };
 
 
-exports.randomkey = function() { console.assert(false, "XXX Undefined function CryptoLib.randomkey"); }
-exports.sym_encrypt = function() { console.assert(false, "XXX Undefined function CryptoLib.sym_encrypt"); }
-exports.sym_decrypt = function() { console.assert(false, "XXX Undefined function CryptoLib.sym_decrypt"); }
+exports.randomkey = function() { console.assert(false, "XXX Undefined function CryptoLib.randomkey"); };
+exports.sym_encrypt = function() { console.assert(false, "XXX Undefined function CryptoLib.sym_encrypt"); };
+exports.sym_decrypt = function() { console.assert(false, "XXX Undefined function CryptoLib.sym_decrypt"); };
 
 exports.test = function(verbose) {
      // First test some of the lower level functionality - create key etc
-    if (verbose) console.log("CryptoLib.test starting")
+    if (verbose) console.log("CryptoLib.test starting");
     let qbf="The quick brown fox ran over the lazy duck";
     let key = sodium.randombytes_buf(sodium.crypto_shorthash_KEYBYTES);
     let shash_u64 = sodium.crypto_shorthash('test', key, 'urlsafebase64'); // urlsafebase64 is support added by mitra
@@ -111,6 +111,6 @@ exports.test = function(verbose) {
     let seed = sodium.from_string(seedstr);
     let boxkey = sodium.crypto_box_seed_keypair(seed);
     //FAILS - No round trip yet: if (verbose) { console.log("XXX@57 to_string=",sodium.to_string(boxkey.privateKey)); }
-}
+};
 //exports = module.exports = CryptoLib;
 

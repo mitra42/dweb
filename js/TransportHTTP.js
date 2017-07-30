@@ -3,7 +3,7 @@ const TransportHTTPBase = require('./TransportHTTPBase.js');
 
 defaulthttpoptions = {
     ipandport: [ 'localhost',4243]
-}
+};
 
 class TransportHTTP extends TransportHTTPBase {
 
@@ -20,7 +20,7 @@ class TransportHTTP extends TransportHTTPBase {
                 let t = new TransportHTTP(combinedhttpoptions.ipandport, verbose, options);
                 resolve(t);
             } catch (err) {
-                console.log("Exception thrown in TransportHTTP.p_setup")
+                console.log("Exception thrown in TransportHTTP.p_setup");
                 reject(err);
             }
         })

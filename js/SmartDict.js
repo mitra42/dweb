@@ -38,7 +38,7 @@ class SmartDict extends Transportable {
         for (let i in dd) {
             if (i.indexOf('_') !== 0) { // Ignore any attributes starting _
                 if (dd[i] instanceof Transportable) {
-                    dd[i].p_store(verbose)  // Stores async, but sets hash first
+                    dd[i].p_store(verbose);  // Stores async, but sets hash first
                     res[i] = dd[i]._hash
                 } else {
                     res[i] = dd[i];
@@ -81,6 +81,7 @@ class SmartDict extends Transportable {
     }
     addtokeysonload(obj, success) {
         //method sent to new block from UnknownBlock.p_fetch - use to add to the KeyChain
+        //TODO-UNUSED check if this is used on JS (maybe just holdover from Python)
         //console.log("addtoarronload success:",obj._keysloading);
         obj._keysloading -= 1;
         let arr = obj._keys;
