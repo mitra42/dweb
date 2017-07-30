@@ -50,14 +50,11 @@
             // MB.p_new(acl, contentacl, name, _allowunsafestore, content, signandstore, verbose)
             .then(()=> Dweb.MutableBlock.p_new(null, null, "test_ipfs.MB", true, "The quick brown mutable fox", true, verbose))
             .then((newmb) => mb1 = newmb)
-            .then(() => console.log("test_ipfs.working and tested to this point"))
-            .then(() => console.log("XXX@53",mb1))
             // MB(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose, options)
-            .then(() => { mb = new Dweb.MutableBlock(mb1._hash, null, false, null, false, null, null, null, verbose, null)})
-            .then(() => console.log("XXX@57",mb))
+            .then(() => { mb = new Dweb.MutableBlock(mb1._publichash, null, false, null, false, null, null, null, verbose, null)})
             .then(() => mb.p_fetch_then_list_then_current(verbose))
-            .then(() => console.log("XXX@58",mb))
             .then(() => mb.p_elem("myList.1", verbose, null))
+            .then(() => console.log("test_ipfs.working and tested to this point"))
             /* TODO-TEST gradually uncomment below
             //TODO-PATH need a test of path
             .then((msg) => mb.p_path(["langs","readme.md"], verbose, ["p_elem", "myList.1", verbose, null]));
