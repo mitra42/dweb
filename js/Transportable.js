@@ -20,9 +20,9 @@ class Transportable {
     p_store(verbose) {    // Python has a "data" parameter to override this._data but probably not needed
         //TODO-IPFS callers can't use hash till after stored
         let data = this._getdata();
-        if (verbose) console.log("Transportable.store data=", data);
+        if (verbose) console.log("Transportable.p_store data=", data);
         this._hash = Dweb.CryptoLib.Curlhash(data); //store the hash since the HTTP is async
-        if (verbose) console.log("Transportable.store hash=", this._hash);
+        if (verbose) console.log("Transportable.p_store hash=", this._hash);
         let self = this;
         return Dweb.transport.p_rawstore(data, verbose)
             .then((msg) => {

@@ -54,6 +54,15 @@ class TransportError extends Error {
 }
 exports.errors.TransportError = TransportError;
 
+class ForbiddenError extends Error {
+    constructor(message) {
+        super(message || "Forbidden failure");
+        this.name = "ForbiddenError"
+        // See MDN definition of error, may need to set stack
+    }
+}
+exports.errors.ForbiddenError = ForbiddenError;
+
 
 // Utility functions
 

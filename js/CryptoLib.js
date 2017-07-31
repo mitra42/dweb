@@ -91,7 +91,15 @@ exports.decryptdata = function(value, verbose) {
 
 exports.randomkey = function() { return sodium.randombytes_buf(sodium.crypto_secretbox_KEYBYTES); };
 
-exports.sym_encrypt = function() { console.assert(false, "XXX Undefined function CryptoLib.sym_encrypt"); };
+exports.sym_encrypt = function(data, sym_key, b64) {
+    // May need to handle different forms of sym_key
+    sym_key = sodium.from_urlsafebase64(sym_key);
+    const nonce = sodium.randombytes_buf(sodium.crypto_secretbox_NONCEBYTES);
+    return sodium.crypto_secretbox_easy(data, nonce, sym_key, 'urlsafebase64');  // message, nonce, key, outputFormat
+};
+
+
+
 exports.sym_decrypt = function() { console.assert(false, "XXX Undefined function CryptoLib.sym_decrypt"); };
 
 exports.test = function(verbose) {

@@ -31,6 +31,8 @@
             .then(() => verbose ? console.log("sbhash should be set to:",sb._hash) : undefined)
             .then(() => Dweb.MutableBlock.test(sb, verbose))
             .then(() => Dweb.CryptoLib.test(verbose))
+            .then(() => Dweb.AccessControlList.p_test(verbose))
+            .then((acl) => Dweb.KeyChain.p_test(acl, verbose))
             //TODO-TEST expand this to include all tests in test_ipfs.js
             .then(() => console.log("test_ipfs.test complete"))
         }
@@ -63,7 +65,7 @@
             <!-- Now test path using dwebfile -->
             Dweb.p_dwebfile("mb", mbhash, "langs/readme.md", ["p_elem", "myList.3", verbose, null]);
             */
-            .then(() => console.log("XXX@31 end testing"));
+            .then(() => console.log("test_ipfs.html.working END"));
         }
         function browser() {
             let verbose = false;

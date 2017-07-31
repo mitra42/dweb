@@ -34,9 +34,8 @@ let sb;
     .then(() => Dweb.MutableBlock.test(sb, verbose))
     .then(() => Dweb.CryptoLib.test(verbose))
     .then(() => Dweb.AccessControlList.p_test(verbose))
-    //TODO-TEST NEXT TEST FAILS
-    .then(() => verbose = true)
-    //.then(() => Dweb.KeyChain.p_test(verbose))
+    .then((newacl) => acl = newacl)
+    .then(() => Dweb.KeyChain.p_test(acl, verbose))
     .then(() => console.log("delaying 10 secs"))
     .then(() => delay(10000))
     .then(()=>console.log("Completed test"))

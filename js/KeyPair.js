@@ -50,8 +50,8 @@ class KeyPair extends SmartDict {
         if (KeyPair._key_has_private(dd._key) && !dd._acl && !this._allowunsafestore) {
             Dweb.SecurityWarning("Probably shouldnt be storing private key",dd);
         }
-        if (dd.key) { //Based on whether the CommonList is master, rather than if the key is (key could be master, and CL not)
-            dd.key = KeyPair._key_has_private(dd._key) ? this.privateexport : this.publicexport;
+        if (dd._key) { //Based on whether the CommonList is master, rather than if the key is (key could be master, and CL not)
+            dd.key = KeyPair._key_has_private(dd._key) ? this.privateexport() : this.publicexport();
         }
         return super.preflight(dd)
     }
