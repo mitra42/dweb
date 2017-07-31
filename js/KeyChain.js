@@ -28,7 +28,7 @@ class KeyChain extends CommonList {
         //if verbose and not mnemonic: print "Record these words if you want to access again"
     }
 
-    keytype() { return Dweb.KEYPAIRKEYTYPESIGNANDENCRYPT; }  // Inform keygen
+    keytype() { return Dweb.KeyPair.KEYTYPESIGNANDENCRYPT; }  // Inform keygen
 
     p_fetchlist(verbose) {
         // Call chain is kc.p_new > kc.loadandfetchlist > KC.p_fetchlist > THttp.p_rawlist > Thttp.list > KC.fetchlist.success > caller's success
@@ -219,14 +219,14 @@ class KeyChain extends CommonList {
                         verbose=true;
                         let accesskey;
                         if (verbose) console.log("KEYCHAIN 5: Check can user ViewerKeyPair");
-                        /*
+                        /* TODO-TEST uncomment when ACL.test is working
                         acl = this._makeacl();  //Create Access Control List    - dont require encrypting as pretending itssomeone else's
                         // This is _makeacl() in test.py
                         if (verbose) console.log("Creating AccessControlList");
                         //Create a acl for testing, - full breakout is in test_keychain
                         accesskey = Dweb.CryptoLib.randomkey();
                         //hash, data, master, keypair, keygen, mnemonic, verbose, options
-                        key = self.keyfromfile("test_acl1" + self.keytail, private = True, keytype = KeyPair.KEYTYPESIGN)
+                        key = self.keyfromfile("test_acl1" + self.keytail, private = True, keytype = Dweb.KeyPair.KEYTYPESIGN)
                         accesskey = Dweb.CryptoLib.b64enc(accesskey);
                         acl = Dweb.AccessControlList(null, {
                             "name": "test_acl.acl",
@@ -265,6 +265,7 @@ class KeyChain extends CommonList {
         })
     }
 }
+
 
 
 exports = module.exports = KeyChain;

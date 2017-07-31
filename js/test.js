@@ -75,7 +75,7 @@ function cryptotest() { //TODO-CRYPTO Still working on this
     kc.async_add(mblockm, verbose, null, null);   //Sign and store on KC's list (returns immediately with Sig)
     if (verbose) { console.log("KEYCHAIN 2 - add viewerkeypair to it"); }
     let vkpname="test_keychain viewerkeypair";
-    //let keypair = KeyPair.keygen(Dweb.KEYPAIRKEYTYPEENCRYPT);    // TODO type getting moved to Dweb.KeyPair.KEYTYPE.ENCRYPT
+    //let keypair = KeyPair.keygen(Dweb.KeyPair.KEYTYPEENCRYPT);    // TODO type getting moved to Dweb.KeyPair.KEYTYPEENCRYPT
     //let keypairexport = true ? keypair.privateexport() : keypair.publicexport()
     //console.log("keypairexport=",keypairexport);
     let keypairexport = "NACL SEED:w71YvVCR7Kk_lrgU2J1aGL4JMMAHnoUtyeHbqkIi2Bk="; // So same result each time
@@ -112,7 +112,7 @@ function cryptotest() { //TODO-CRYPTO Still working on this
     //Create a acl for testing, - full breakout is in test_keychain
     let accesskey=CryptoLibrandomkey();
     //hash, data, master, keypair, keygen, mnemonic, verbose, options
-    let key = self.keyfromfile("test_acl1"+self.keytail, private=True, keytype=KeyPair.KEYTYPESIGN)
+    let key = self.keyfromfile("test_acl1"+self.keytail, private=True, keytype=Dweb.KeyPair.KEYTYPESIGN)
     let accesskey=CryptoLib.b64enc(accesskey);
     let acl = AccessControlList(null, {"name":"test_acl.acl", "accesskey": accesskey }, true, key, false, null, verbose, null);
     acl._allowunsafestore = True    // Not setting _acl on this

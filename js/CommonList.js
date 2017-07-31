@@ -20,7 +20,7 @@ class CommonList extends SmartDict {
         this._master = master;  // Note this must be AFTER _setkeypair since that sets based on keypair found and _p_storepublic for example wants to force !master
         if (!this._master) { this._publichash = hash; }
     }
-    keytype() { return Dweb.KEYPAIRKEYTYPESIGN; }
+    keytype() { return Dweb.KeyPair.KEYTYPESIGN; }
 
     __setattr__(name, value) {
         // Call chain is ...  or constructor > _setdata > _setproperties > __setattr__

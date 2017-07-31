@@ -5,6 +5,7 @@ const Dweb = require("./Dweb");
 
 class KeyPair extends SmartDict {
     // This class is (partially) pulled from Crypto.py
+
     constructor(hash, data, verbose) {
         super(hash, data, verbose);    // SmartDict takes data=json or dict
         this.table = "kp";
@@ -60,10 +61,10 @@ class KeyPair extends SmartDict {
         //console.assert(sodium.crypto_box_SEEDBYTES === sodium.crypto_sign_SEEDBYTES, "KeyPair.keygen assuming seed lengths same");
         console.assert(sodium.crypto_box_SEEDBYTES === seed.length, "Seed should be", sodium.crypto_box_SEEDBYTES, "but is", seed.length);
         key.seed = seed;
-        if (keytype === Dweb.KEYPAIRKEYTYPESIGN || keytype === Dweb.KEYPAIRKEYTYPESIGNANDENCRYPT) {
+        if (keytype === Dweb.KeyPair.KEYTYPESIGN || keytype === Dweb.KeyPair.KEYTYPESIGNANDENCRYPT) {
             key.sign = sodium.crypto_sign_seed_keypair(key.seed); // Object { publicKey: Uint8Array[32], privateKey: Uint8Array[64], keyType: "ed25519" }
         }
-        if (keytype === Dweb.KEYPAIRKEYTYPEENCRYPT || keytype === Dweb.KEYPAIRKEYTYPESIGNANDENCRYPT) {
+        if (keytype === Dweb.KeyPair.KEYTYPEENCRYPT || keytype === Dweb.KeyPair.KEYTYPESIGNANDENCRYPT) {
             key.encrypt = sodium.crypto_box_seed_keypair(key.seed); // Object { publicKey: Uint8Array[32], privateKey: Uint8Array[64] } <<maybe other keyType
             // note this doesnt have the keyType field
             //console.log("XXX write this into KeyPair.js line 32", key.encrypt);
@@ -92,7 +93,7 @@ class KeyPair extends SmartDict {
             if (tag === "NACL PUBLIC")           { console.assert(false, "XXX _importkey: Cant (yet) import Public key"+value);
             } else if (tag === "NACL PRIVATE")   { console.assert(false, "XXX _importkey: Cant (yet) import Private key"+value);
             } else if (tag === "NACL SIGNING")   { console.assert(false, "XXX _importkey: Cant (yet) import Signing key"+value);
-            } else if (tag === "NACL SEED")      { this._key = KeyPair._keyfromseed(hasharr, Dweb.KEYPAIRKEYTYPESIGNANDENCRYPT);
+            } else if (tag === "NACL SEED")      { this._key = KeyPair._keyfromseed(hasharr, Dweb.KeyPair.KEYTYPESIGNANDENCRYPT);
             } else if (tag === "NACL VERIFY")    { this._key["sign"] = {"publicKey": hasharr};
             } else                              { console.assert(false, "XXX _importkey: Cant (yet) import "+value); }
         }
@@ -115,13 +116,11 @@ class KeyPair extends SmartDict {
         // Matches functionality in Python BUT uses NACL SEED when know seed
         let key = this._key;
         if (key.seed) {
-            return "NACL SEED:" +sodium.to_urlsafebase64(key.seed);
+            return "NACL SEED:" + (typeof(key.seed) === "string" ? key.seed : sodium.to_urlsafebase64(key.seed));
         } else {
             console.assert(false, "XXX Undefined function KeyPair.privateexport.public", key);  //TODO should export full set of keys prob as JSON
         }
     }
-
-
 
     static _key_has_private(key) {
         if ((key.encrypt && key.encrypt.privateKey) || (key.sign && key.sign.privateKey) || key.seed) { return true; }
@@ -131,7 +130,7 @@ class KeyPair extends SmartDict {
 
     naclprivate() { return this._key.encrypt.privateKey; }
     naclpublic() { return this._key.encrypt.publicKey; }
-    naclpublicexport() { console.assert(false, "XXX Undefined function KeyPair.naclpublicexport"); }
+    naclpublicexport() { console.assert(false, "XXX Undefined function KeyPair.naclpublicexport"); } // Use publicexport
 
     has_private() {
         return KeyPair._key_has_private(this._key)
@@ -178,5 +177,10 @@ class KeyPair extends SmartDict {
     }
 
 }
+
+KeyPair.KEYTYPESIGN = 1;
+KeyPair.KEYTYPEENCRYPT = 2;
+KeyPair.KEYTYPESIGNANDENCRYPT = 3;
+
 
 exports = module.exports = KeyPair;

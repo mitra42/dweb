@@ -25,9 +25,6 @@ exports.dwebport = '4243';
 exports.keychains = [];
 
 // Constants    //TODO move these to KeyPair
-exports.KEYPAIRKEYTYPESIGN = 1;
-exports.KEYPAIRKEYTYPEENCRYPT = 2;
-exports.KEYPAIRKEYTYPESIGNANDENCRYPT = 3;
 
 //TODO-ASYNC-SIGN - sign and signandstore
 //TODO-ASYNC - search on TODO-ASYNC

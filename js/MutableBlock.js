@@ -69,7 +69,6 @@ class MutableBlock extends CommonList {
         let mb = new MutableBlock(null, null, false, this.keypair, false, null, null, null, verbose, {"name": this.name});
         let prom = mb.p_store(verbose);    // Returns immediately but sets _hash first
         this._publichash = mb._hash;
-        return prom;    // Have to return prom after set publichash
     }
 
     contentacl() {console.assert(false, "XXX Undefined function MutableBlock.contentacl setter and getter"); }   // Encryption of content
