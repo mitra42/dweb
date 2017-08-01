@@ -61,19 +61,6 @@ class CommonList extends SmartDict {
         console.assert(false, "XXX Undefined function CommonList.fetch replace carefully with load");
     }
 
-    p_fetch(verbose) {
-        // See also p_fetch_then_list, p_fetch_then_list_then_current, p_fetch_then_list_then_elements
-        // as need to fetch body and only then fetchlist since for a list the body might include the publickey whose hash is needed for the list
-        let self = this;
-        if (this._needsfetch) { // Only load if need to
-            if (verbose) { console.log("CommonList.load:",this._hash)}
-            this._needsfetch = false;
-            return Dweb.transport.p_rawfetch(this._hash, verbose)   //TODO-IPFS change to use dag storage
-                .then((data) => { self._setdata(JSON.parse(data)); return self;})
-        } else {
-            return new Promise((resolve, reject)=> resolve(self));  // I think this should be a noop - fetched already
-        }
-    }
 
     p_fetchlist(verbose) {
         // Load a list, note it does not load the individual items, just the Signatures. To do that, append a ".then" to loop over them afterwards.

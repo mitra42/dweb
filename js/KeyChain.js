@@ -78,11 +78,11 @@ class KeyChain extends CommonList {
         /*
          :param data: String from json, b64 encoded
          :param verbose:
-         :return: decrypted text
+         :return: decrypted text as string
          */
         let key = this.keypair._key;
         if (key.encrypt) { // NACL key
-            return this.keypair.decrypt(data, true, this); //data, b64, signer
+            return this.keypair.decrypt(data, this, "text"); //data, b64, signer
         } else {
             Dweb.utils.ToBeImplementedException("Keypair.decrypt for ", key);
         }
@@ -175,6 +175,7 @@ class KeyChain extends CommonList {
                 let mm;
                 let mbm3;
                 let key;
+                let sb2;
                 const keypairexport =  "NACL SEED:w71YvVCR7Kk_lrgU2J1aGL4JMMAHnoUtyeHbqkIi2Bk="; // So same result each time
                 if (verbose) {
                     console.log("Keychain.test 0 - create");
@@ -199,7 +200,7 @@ class KeyChain extends CommonList {
                         mbm2 = new Dweb.MutableBlock(mbmaster._hash, null, true, null, false, null, null, null, verbose, null);
                     })
                     .then(() =>  mbm2.p_fetch(verbose))
-                    .then(() => console.assert(mbm2.name === mbmaster.name, "Names should survive round trip"))
+                    .then(() => console.assert(mbm2.name === mbmaster.name, "Names should survive round trip",mbm2.name,"!==",mbmaster.name))
                     .then(() => {
                         if (verbose) console.log("KEYCHAIN 4: reconstructing KeyChain and fetch");
                         Dweb.keychains = []; // Clear Key Chains
@@ -219,15 +220,33 @@ class KeyChain extends CommonList {
                         // Uses acl passed in from AccessControlList.acl
                         acl._allowunsafestore = true;
                     })
+                    .then(() => verbose = true)
                     .then(() => acl.p_add(viewerkeypair._hash, verbose))   //Add us as viewer
                     .then(() => {
+                        console.assert("acl._list.length === 1", "Should have added exactly 1 viewerkeypair",acl)
                         let sb = new Dweb.StructuredBlock(null, {"name": "test_sb", "data": qbf, "_acl": acl}, verbose); //hash,data,verbose
                         sb.p_store(verbose);
+                        return sb;
                     })
-                    .then(() => {
+                    .then((sb) => {
                         let mvk = KeyChain.myviewerkeys();
                         console.assert(mvk[0].name === vkpname, "Should find viewerkeypair stored above");
+                        if (verbose) console.log("KEYCHAIN 6: Check can fetch and decrypt - should use viewerkeypair stored above");
+                        sb2 = new Dweb.StructuredBlock(sb._hash, null, verbose);
+                        sb2.p_fetch(verbose);   //Fetch & decrypt
                     })
+                    .then(() => {
+                        console.assert(sb2.data === qbf, "Data should survive round trip");
+                        if (verbose) console.log("KEYCHAIN 7: Check can store content via an MB");
+                    })
+
+/*  TODO-TEST - got to here with testing
+                mblockm = MutableBlock.new(contentacl=acl, name="mblockm", _allowunsafestore=True, content=self.quickbrownfox, signandstore=True, verbose=self.verbose)  # Simulate other end
+                mb = MutableBlock(name="test_acl mb", hash=mblockm._publichash, verbose=self.verbose)
+                assert mb.content(verbose=self.verbose) == self.quickbrownfox, "should round trip through acl"
+*/
+
+
                     .then(() => {
                         if (verbose) console.log("KeyChain.test promises complete");
                         //console.log("KeyChain.test requires more tests defined");

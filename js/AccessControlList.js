@@ -58,10 +58,66 @@ class AccessControlList extends CommonList {
             .then(() => self);
     }
 
-    tokens() { console.assert(false, "XXX Undefined function AccessControlList.tokens"); };
+    tokens(viewerkeypair, decrypt, verbose) {
+        /*
+        Find the entries for a specific viewer
+        There might be more than one if either the accesskey changed or the person was added multiple times.
+        Entries are StructuredBlocks with token being the decryptable token we want
+
+        :param viewerkeypair:  KeyPair of viewer
+        :param verbose:
+        :param options:
+        :return:
+        */
+
+        if (verbose) console.log("AccessControlList.tokens decrypt=",decrypt);
+        console.assert(!this._needsfetch, "Dont attampt without doing a p_fetch first");
+        let viewerhash = viewerkeypair._hash;
+        if (! this._list.length) { return []};  //TODO-TEST can remove this line when below working
+        let toks = this._list
+            .filter((sig) => sig.data.viewer === viewerhash)    // Find any sigs that match this viewerhash - doesnt guarrantee decrypting
+            .map((sig) => sig.data.token);
+        if (decrypt) {
+            toks = toks.map((tok) => viewerkeypair.decrypt(tok, this, "uint8array"));
+        }
+        return toks;
+    }
+
+    p_fetch_then_list_then_elements(verbose) {  // Like superclass, but fetch the blocks the sigs point to.
+        return super.p_fetch_then_list_then_elements(verbose)
+            .then(() => Promise.all(
+                this._list.map((sig) => {return sig.p_block(verbose)})))
+    }
+
     encrypt(data, b64) { return Dweb.CryptoLib.sym_encrypt(data, this.accesskey, b64); };
+
     decrypt(data, viewerkeypair, verbose) {
-        console.assert(false, "XXX Undefined function AccessControlList.decrypt");
+        /*
+             Chain is SD.p_fetch > CryptoLib.p_decryptdata > ACL.decrypt > SD.setdata
+
+            :param data: string from json - b64 encrypted
+            :param viewerkeypair:
+            :param verbose:
+            :return:
+        */
+        console.assert(!this._needsfetch, "Dont attampt without doing a p_fetch_fetch_then_list_then_elements first");
+        let vks = viewerkeypair || Dweb.KeyChain.myviewerkeys();
+        if (!Array.isArray(vks)) { vks = [ vks ]; }
+        for (let i in vks) {
+            let vk = vks[i];
+            let toks = this.tokens(vk, true, verbose); //viewerkeypair, decrypt, verbose //TODO-TEST will need to be any or something like that
+            for (let j in toks) {
+                let symkey = toks[j];
+                try {
+                    let r = Dweb.CryptoLib.sym_decrypt(data, symkey, "text"); //data. symkey #Exception DecryptionFail
+                    return r;
+                } catch(err) {
+                    //Should really only catch DecryptionFail
+                    //do nothing,
+                }
+            }
+        }
+        throw new Dweb.errors.AuthenticationError("ACL.decrypt: No valid keys found");
     };
 
     /* BELOW COMES FROM ITEMS PUT HERE PRIOR TO IMPLEMENTATION ABOVE WHICH COMES FROM ACL.py */

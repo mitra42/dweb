@@ -63,6 +63,15 @@ class ForbiddenError extends Error {
 }
 exports.errors.ForbiddenError = ForbiddenError;
 
+class AuthenticationError extends Error {
+    constructor(message) {
+        super(message || "Authentication failure");
+        this.name = "AuthenticationError"
+        // See MDN definition of error, may need to set stack
+    }
+}
+exports.errors.AuthenticationError = AuthenticationError;
+
 
 // Utility functions
 

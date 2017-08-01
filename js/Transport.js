@@ -37,9 +37,9 @@ class Transport {
         :param boolean verbose: True for debugging output
         :resolve string: hash of data stored
          */
-        console.assert(false, "XXX Undefined function Transport.p_rawstore");
+        console.assert(false, "Intentionally undefined function Transport.p_rawstore should have been subclassed");
     }
-    p_store() { console.assert(false, "XXX Undefined function Transport.p_store"); }
+    p_store() { console.assert(false, "XXX Undefined function Transport.p_store - may define higher level semantics here (see Python)"); }
     //noinspection JSUnusedLocalSymbols
 
     p_rawfetch(hash, verbose) {
@@ -53,9 +53,9 @@ class Transport {
         :param boolean verbose: True for debugging output
         :resolve string: Return the object being fetched, (note currently returned as a string, may refactor to return Buffer)
          */
-        console.assert(false, "XXX Undefined function Transport.p_rawfetch");
+        console.assert(false, "Intentionally undefined  function Transport.p_rawfetch should have been subclassed");
     }
-    p_fetch() { console.assert(false, "XXX Undefined function Transport.p_rawlist"); }
+    p_fetch() { console.assert(false, "Intentionally Undefined function Transport.p_fetch - may define higher level semantics here (see Python)"); }
     p_rawadd(hash, date, signature, signedby, verbose) {
         /*
         Store a new list item, it should be stored so that it can be retrieved either by "signedby" (using p_rawlist) or

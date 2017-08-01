@@ -64,43 +64,62 @@ exports.b64enc = function(data) { return sodium.to_urlsafebase64(data);; };     
 exports.dumps = function(obj) { return JSON.stringify(obj); };   // Uses toJSON methods on objects (equivalent of dumps methods on python)
 exports.loads = function(str) { return JSON.parse(str); };
 
-exports.decryptdata = function(value, verbose) {
-        /*
-         Takes a dictionary that may contain { acl, encrypted } and returns the decrypted data.
-         No assumption is made about what is in the decrypted data
+exports.p_decryptdata = function(value, verbose) {
+    /*
+     Takes a
+     checks if encrypted and returns immediately if not
+     Otherwise if can find the ACL's hash in our KeyChain then decrypt with it.
+     Else returns a promise that resolves to the data
+     No assumption is made about what is in the decrypted data
 
-         :param value:
-         :return:
-         */
-        if (value.encrypted) {
-            let hash = value.acl;
-            let kc = Dweb.KeyChain.find(hash);  // Matching KeyChain or None
-            if (kc) {
-                return kc.decrypt(value.encrypted, verbose) // Exception: DecryptionFail - unlikely since publichash matches
-            } else {
-                //(hash, data, master, keypair, keygen, mnemonic, verbose, options)
-                let acl = new Dweb.AccessControlList(hash, null, null, null, false, null, verbose);  // TODO-AUTHENTICATION probably add person - to - person version
-                console.log("XXX@65 - TODO-AUTHENTICATION probably not loaded may need function to go async");
-                return acl.decrypt(value.encrypted, null, verbose);
-            }
+     Chain is SD.p_fetch > CryptoLib.p_decryptdata > ACL.decrypt > SD.setdata
+
+         :param value: object from parsing incoming JSON that may contain {acl, encrypted}
+         :return: data or promise that resolves to data
+         :errors: AuthenticationError if cant decrypt
+     */
+    if (! value.encrypted) {
+        return value;
+    } else {
+        let aclhash = value.acl;
+        let kc = Dweb.KeyChain.find(aclhash);  // Matching KeyChain or None
+        if (kc) {
+            return kc.decrypt(value.encrypted, verbose) // Exception: DecryptionFail - unlikely since publichash matches
         } else {
-            return value;
+            //ACL(hash, data, master, keypair, keygen, mnemonic, verbose, options)
+            let acl = new Dweb.AccessControlList(aclhash, null, null, null, false, null, verbose);  // TODO-AUTHENTICATION probably add person - to - person version
+            return acl.p_fetch_then_list_then_elements(verbose) // Will load blocks in sig as well
+                .then(() => acl.decrypt(value.encrypted, null, verbose))  // Resolves to data
+                .catch((err) => { console.log("Unable to decrypt:",value); throw(err);});
         }
-    };
+    }
+}
 
 
 exports.randomkey = function() { return sodium.randombytes_buf(sodium.crypto_secretbox_KEYBYTES); };
 
 exports.sym_encrypt = function(data, sym_key, b64) {
-    // May need to handle different forms of sym_key
+    // May need to handle different forms of sym_key for now assume urlbase64 encoded string
     sym_key = sodium.from_urlsafebase64(sym_key);
     const nonce = sodium.randombytes_buf(sodium.crypto_secretbox_NONCEBYTES);
-    return sodium.crypto_secretbox_easy(data, nonce, sym_key, 'urlsafebase64');  // message, nonce, key, outputFormat
+    const ciphertext = sodium.crypto_secretbox_easy(data, nonce, sym_key, "uint8array");  // message, nonce, key, outputFormat
+    const combined = Dweb.utils.mergeTypedArraysUnsafe(nonce, ciphertext);
+    return b64 ? sodium.to_urlsafebase64(combined) : sodium.to_string(combined);
 };
 
 
 
-exports.sym_decrypt = function() { console.assert(false, "XXX Undefined function CryptoLib.sym_decrypt"); };
+exports.sym_decrypt = function(data, sym_key, outputformat) {
+//        sodium.crypto_secretbox_open_easy(data, nonce, key, outputFormat)
+    console.assert(data, "Cryptolib.sym_decrypt: meaningless to decrypt undefined, null or empty strings");
+    // Note may need to convert data from unicode to str
+    if (typeof(data) === "string") {   // If its a string turn into a Uint8Array
+        data = sodium.from_urlsafebase64(data);
+    }
+    let nonce = data.slice(0,sodium.crypto_box_NONCEBYTES);
+    data = data.slice(sodium.crypto_box_NONCEBYTES);
+    return sodium.crypto_secretbox_open_easy(data, nonce, sym_key, outputformat);
+}
 
 exports.test = function(verbose) {
      // First test some of the lower level functionality - create key etc

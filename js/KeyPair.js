@@ -90,9 +90,9 @@ class KeyPair extends SmartDict {
             let hasharr = sodium.from_urlsafebase64(hash);
             //See https://github.com/jedisct1/libsodium.js/issues/91 for issues
             if (!this._key) { this._key = {}}   // Only handles NACL style keys
-            if (tag === "NACL PUBLIC")           { console.assert(false, "XXX _importkey: Cant (yet) import Public key"+value);
-            } else if (tag === "NACL PRIVATE")   { console.assert(false, "XXX _importkey: Cant (yet) import Private key"+value);
-            } else if (tag === "NACL SIGNING")   { console.assert(false, "XXX _importkey: Cant (yet) import Signing key"+value);
+            if (tag === "NACL PUBLIC")           { this._key["encrypt"] = {"publicKey": hasharr};
+            } else if (tag === "NACL PRIVATE")   { console.assert(false, "XXX _importkey: Cant (yet) import Private key "+value+" normally use SEED");
+            } else if (tag === "NACL SIGNING")   { console.assert(false, "XXX _importkey: Cant (yet) import Signing key "+value+" normally use SEED");
             } else if (tag === "NACL SEED")      { this._key = KeyPair._keyfromseed(hasharr, Dweb.KeyPair.KEYTYPESIGNANDENCRYPT);
             } else if (tag === "NACL VERIFY")    { this._key["sign"] = {"publicKey": hasharr};
             } else                              { console.assert(false, "XXX _importkey: Cant (yet) import "+value); }
@@ -154,23 +154,24 @@ class KeyPair extends SmartDict {
         const combined = Dweb.utils.mergeTypedArraysUnsafe(nonce, ciphertext);
         return b64 ? sodium.to_urlsafebase64(combined) : sodium.to_string(combined);
     }
-    decrypt(data, b64, signer) {
+    decrypt(data, signer, outputformat) {
         /*
          Decrypt date encrypted with encrypt (above)
 
          :param data:
-         :b64 bool:  Try if want result encoded
+         :b64 bool:  Try if data is urlbase64 encoded
          :signer AccessControlList: If result was signed (currently ignored for RSA, reqd for NACL)
         */
         console.assert(data, "KeyPair.decrypt: meaningless to decrypt undefined, null or empty strings");
         if (this._key.encrypt.privateKey) {
             console.assert(signer, "Until PyNaCl bindings have secretbox we require a signer and have to add authentication");
              // Note may need to convert data from unicode to str
-             if (b64) { data = sodium.from_urlsafebase64(data); }
+             if (typeof(data) === "string") {   // If its a string turn into a Uint8Array
+                data = sodium.from_urlsafebase64(data);
+             }
              let nonce = data.slice(0,sodium.crypto_box_NONCEBYTES);
              data = data.slice(sodium.crypto_box_NONCEBYTES);
-             let dec =  sodium.crypto_box_open_easy(data, nonce, signer.keypair.naclpublic(), this.naclprivate());
-             return sodium.to_string(dec);
+             return sodium.crypto_box_open_easy(data, nonce, signer.keypair.naclpublic(), this.naclprivate(), outputformat);
          } else {
             Dweb.utils.ToBeImplementedException("KeyPair.decrypt for ", this._key);
          }

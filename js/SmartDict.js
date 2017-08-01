@@ -64,21 +64,32 @@ class SmartDict extends Transportable {
         return res
     }    // Should be being called on outgoing _data includes dumps and encoding etc
 
-    _setdata(value) {
+    _setdata(value) { //TODO-TEST Obsoleting this with p_decryptdata and parsing JSON in p_fetch
         // Note SmartDict expects value to be a dictionary, which should be the case since the HTTP requester interprets as JSON
         // Call chain is ...  or constructor > _setdata > _setproperties > __setattr__
         // COPIED FROM PYTHON 2017-5-27
-        if (value) {    // Skip if no data
-            if (typeof value === 'string') {    // Assume it must be JSON
-                value = JSON.parse(value);
-            }
-            if (value.encrypted) {
-                value = Dweb.CryptoLib.loads(Dweb.CryptoLib.decryptdata(value))
-            }
-            // value should be a dict by now, not still json as it is in Python
-            this._setproperties(value); // Note value should not contain a "_data" field, so wont recurse even if catch "_data" at __setattr__()
+        value = typeof(value) === "string" ? JSON.parse(value) : value; // If its a string, interpret as JSON
+        console.assert(!( value && value.encrypted), "Should have been decrypted in p_fetch");
+        this._setproperties(value); // Note value should not contain a "_data" field, so wont recurse even if catch "_data" at __setattr__()
+    }
+
+    p_fetch(verbose) {
+        // See also p_fetch_then_list, p_fetch_then_list_then_current, p_fetch_then_list_then_elements
+        // as in CL etc need to fetch body and only then fetchlist since for a list the body might include the publickey whose hash is needed for the list
+        // :errors: Authentication Error
+        let self = this;
+        if (this._needsfetch) { // Only load if need to
+            if (verbose) { console.log("CommonList.load:",this._hash)}
+            this._needsfetch = false;
+            return Dweb.transport.p_rawfetch(this._hash, verbose)   //TODO-IPFS change to use dag storage
+                .then((data) => Dweb.CryptoLib.p_decryptdata(JSON.parse(data), verbose))
+                .then((data) => { self._setdata(data); return self;})
+                .catch((err) => { console.log("Unable to fetch",this._hash,err); throw(err); })
+        } else {
+            return new Promise((resolve, reject)=> resolve(self));  // I think this should be a noop - fetched already
         }
     }
+
     addtokeysonload(obj, success) {
         //method sent to new block from UnknownBlock.p_fetch - use to add to the KeyChain
         //TODO-UNUSED check if this is used on JS (maybe just holdover from Python)

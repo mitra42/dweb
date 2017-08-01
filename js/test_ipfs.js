@@ -20,6 +20,7 @@ let transportclass = TransportIPFS;
 //let transportclass = TransportHTTP
 let verbose = false;
 let sb;
+let acl;
     // Note that this test setup is being mirror in test_ipfs.html
     transportclass.p_setup({}, verbose, {})
     .then((t) => {

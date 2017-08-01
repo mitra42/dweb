@@ -33,14 +33,17 @@ class UnknownBlock extends SmartDict {
          */
         if (verbose) console.log("Unknownblock loading", this._hash);
         let self = this;
+        let cls;
         return Dweb.transport.p_rawfetch(this._hash, verbose)
             .then((data) => {
-                if (typeof data === 'string') {    // Assume it must be JSON
-                    data = JSON.parse(data);
-                }   // Else assume its json already
+                data = JSON.parse(data);    // Parse JSON
                 let table = data["table"];
-                let cls = LetterToClass[table];
+                cls = LetterToClass[table];
                 console.assert(cls, "UnknownBlock.p_fetch:",table,"isnt implemented in LetterToClass");
+                return data;
+            })
+            .then((data) => Dweb.CryptoLib.p_decryptdata(data, verbose))    // decrypt - may return string or obj
+            .then((data) => {
                 let newobj = new cls(self._hash, data);
                 if (successmethod) {
                     let methodname = successmethod.shift();
@@ -49,6 +52,7 @@ class UnknownBlock extends SmartDict {
                 }
                 return newobj;    // For chaining
             })
+            .catch((err) => {console.log("cant fetch and decrypt",this); throw(err)});
     }
 }
 
