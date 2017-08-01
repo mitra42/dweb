@@ -164,18 +164,9 @@ class KeyChain extends CommonList {
                 // Set mnemonic to value that generates seed "01234567890123456789012345678901"
                 const mnemonic = "coral maze mimic half fat breeze thought champion couple muscle snack heavy gloom orchard tooth alert cram often ask hockey inform broken school cotton"; // 32 byte
                 // Test sequence extracted from test.py
-                let kc;
-                let mbmaster;
                 const qbf="The quick brown fox ran over the lazy duck";
                 const vkpname="test_keychain viewerkeypair";
-                let mbm2;
-                let keypair;
-                let viewerkeypair;
-                let kcs2;
-                let mm;
-                let mbm3;
-                let key;
-                let sb2;
+                let kc, kcs2, key, keypair, mb, mblockm, mbmaster, mbm2, mbm3, mm, sb, sb2, viewerkeypair;
                 const keypairexport =  "NACL SEED:w71YvVCR7Kk_lrgU2J1aGL4JMMAHnoUtyeHbqkIi2Bk="; // So same result each time
                 if (verbose) {
                     console.log("Keychain.test 0 - create");
@@ -224,28 +215,31 @@ class KeyChain extends CommonList {
                     .then(() => acl.p_add(viewerkeypair._hash, verbose))   //Add us as viewer
                     .then(() => {
                         console.assert("acl._list.length === 1", "Should have added exactly 1 viewerkeypair",acl)
-                        let sb = new Dweb.StructuredBlock(null, {"name": "test_sb", "data": qbf, "_acl": acl}, verbose); //hash,data,verbose
-                        sb.p_store(verbose);
-                        return sb;
+                        sb = new Dweb.StructuredBlock(null, {"name": "test_sb", "data": qbf, "_acl": acl}, verbose); //hash,data,verbose
                     })
-                    .then((sb) => {
+                    .then(() => sb.p_store(verbose))
+                    .then(() => {
                         let mvk = KeyChain.myviewerkeys();
                         console.assert(mvk[0].name === vkpname, "Should find viewerkeypair stored above");
                         if (verbose) console.log("KEYCHAIN 6: Check can fetch and decrypt - should use viewerkeypair stored above");
                         sb2 = new Dweb.StructuredBlock(sb._hash, null, verbose);
-                        sb2.p_fetch(verbose);   //Fetch & decrypt
                     })
+                    .then (() => sb2.p_fetch(verbose))   //Fetch & decrypt
                     .then(() => {
                         console.assert(sb2.data === qbf, "Data should survive round trip");
                         if (verbose) console.log("KEYCHAIN 7: Check can store content via an MB");
+                        //MB.new(acl, contentacl, name, _allowunsafestore, content, signandstore, verbose)
                     })
-
-/*  TODO-TEST - got to here with testing
-                mblockm = MutableBlock.new(contentacl=acl, name="mblockm", _allowunsafestore=True, content=self.quickbrownfox, signandstore=True, verbose=self.verbose)  # Simulate other end
-                mb = MutableBlock(name="test_acl mb", hash=mblockm._publichash, verbose=self.verbose)
-                assert mb.content(verbose=self.verbose) == self.quickbrownfox, "should round trip through acl"
-*/
-
+                    .then(() => Dweb.MutableBlock.p_new(null, acl, "mblockm", true, qbf, true, verbose))
+                    .then((newmblockm) => {
+                        mblockm = newmblockm;
+                        //hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose, options
+                        mb = new Dweb.MutableBlock(mblockm._publichash, null, false, null, null, null, null, null, verbose);
+                    })
+                    .then(() => mb.p_fetch_then_list_then_current(verbose))
+                    .then(() => {
+                        console.assert(mb.content() === qbf, "Data should round trip through ACL");
+                    })
 
                     .then(() => {
                         if (verbose) console.log("KeyChain.test promises complete");

@@ -79,7 +79,7 @@ The class hierarchy as currently implemented is:
   * TransportPathNotFound - (Python only)
   * TransportUnrecognizedCommand - (Python only)
   * HTTPdispatcherException - (Python only)
-  * HTTPargrequredException - (Python only)
+  * HTTPargrequiredException - (Python only)
   * DwebMalformedURLException - (Python only)
   * PrivateKeyException - (Python only)
   * DecryptionFail - (Python only)

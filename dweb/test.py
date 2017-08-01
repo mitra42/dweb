@@ -425,6 +425,7 @@ class Testing(unittest.TestCase):
         sb2 = StructuredBlock(hash=sb._hash, verbose=self.verbose).fetch(verbose=self.verbose) # Fetch & decrypt
         assert sb2.data == self.quickbrownfox, "Data should survive round trip"
         if self.verbose: print "KEYCHAIN 7: Check can store content via an MB"
+        print "XXX@428 - next line looks wrong, mbm doesn't ahve a content field"
         mblockm = MutableBlock.new(contentacl=acl, name="mblockm", _allowunsafestore=True, content=self.quickbrownfox, signandstore=True, verbose=self.verbose)  # Simulate other end
         mb = MutableBlock(name="test_acl mb", hash=mblockm._publichash, verbose=self.verbose)
         assert mb.content(verbose=self.verbose) == self.quickbrownfox, "should round trip through acl"
