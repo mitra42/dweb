@@ -166,7 +166,7 @@ exports.p_dweblist = function(div, hash, verbose, success, successmethodeach) {
 //TODO BROWSER----
 //-data collapsable
 
-//TODO-IPFS This was uncommented for browser version that was working, done in test_ipfs.js for now
+//TODO-IPFS This was uncommented for browser version that was working, done in test.js for now
 //exports.transport = exports.TransportHTTP.setup([exports.dwebserver, exports.dwebport], {});
 
 

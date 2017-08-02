@@ -79,7 +79,7 @@ class TransportIPFS extends Transport {
     // This chunk starts up IPFS (old version w/o IIIF)
     static ipfsstart(iiifoptions, verbose) {
         //let ipfs = new IPFS(ipfsoptions); // Without CRDT (for lists)
-        // Next line is for browser compatibility - there is a bug in browserify so IIIF has to be loaded separately in browser, by test_ipfs.js for node
+        // Next line is for browser compatibility - there is a bug in browserify so IIIF has to be loaded separately in browser, by test.js for node
         let IIIF = typeof IpfsIiifDb === "undefined" ? TransportIPFS.IpfsIiifDb : IpfsIiifDb;
         const res = IIIF(iiifoptions); //Note this doesn't start either IPFS or annotationlist
         const ipfs = res.ipfs;
