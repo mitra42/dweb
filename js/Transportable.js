@@ -18,7 +18,6 @@ class Transportable {
     }
 
     p_store(verbose) {    // Python has a "data" parameter to override this._data but probably not needed
-        //TODO-IPFS callers can't use hash till after stored
         let data = this._getdata();
         if (verbose) console.log("Transportable.p_store data=", data);
         this._hash = Dweb.CryptoLib.Curlhash(data); //store the hash since the HTTP is async
@@ -38,8 +37,6 @@ class Transportable {
         this._hash = null;
     }
 
-    fetch() { console.assert(false, "XXX Undefined function Transportable.fetch"); } // Replaced by load
-
     p_fetch(verbose) {
         // Promise equiv of PY:fetch and async_load
         // Resolves whether needs to load or not as will often load and then do something.
@@ -48,9 +45,7 @@ class Transportable {
         if (this._needsfetch) { // Only load if need to
             this._needsfetch = false;    // Set false before return so not multiply fetched
             return Dweb.transport.p_rawfetch(this._hash, verbose)
-                //.then((self) => { if (verbose) console.log("XXXp_fetch@51"); return self})
-                .then((data) => { if (data) self._setdata(data); return self})
-                //.then((self) => { if (verbose) console.log("XXX@------53------",self); return self})
+                .then((data) => { if (data) self._setdata(data); return self});
         } else {
             return new Promise((resolve, reject)=> resolve(self));  // I think this should be a noop - fetched already
         }

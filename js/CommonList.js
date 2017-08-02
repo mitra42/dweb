@@ -8,7 +8,7 @@ const Dweb = require("./Dweb");
 class CommonList extends SmartDict {
     constructor(hash, data, master, keypair, keygen, mnemonic, verbose, options) {
         // data = json string, or dict
-        //TODO implement mnemonic, keypair, keygen
+        //TODO note KeyPair.keygen doesnt implement mnemonic yet
         //console.log("CL(", data, master, options,")");
         super(hash, data, verbose, options);
         this._list = [];   // Array of signatures
@@ -52,19 +52,14 @@ class CommonList extends SmartDict {
         let publichash = dd._publichash; // Save before preflight
         dd = super.preflight(dd);  // Edits dd in place
         if (dd._master) { // Only store on Master, on !Master will be None and override storing hash as _publichash
-            dd._publichash = publichash;   // May be None, have to do this AFTER the super call as super filters out "_*"  #TODO-REFACTOR_PUBLICHASH
+            dd._publichash = publichash;   // May be None, have to do this AFTER the super call as super filters out "_*"
         }
         return dd;
     }
 
-    fetch() {
-        console.assert(false, "XXX Undefined function CommonList.fetch replace carefully with load");
-    }
-
-
     p_fetchlist(verbose) {
         // Load a list, note it does not load the individual items, just the Signatures. To do that, append a ".then" to loop over them afterwards.
-        // Call chain is mb.load > CL.fetchlist > THttp.rawlist > Thttp.load > CL|MB.fetchlist.success > callers.success
+        // Call chain is mb.load > CL.p_fetchlist > THttp.rawlist > Thttp.load > CL|MB.p_fetchlist.success > callers.success
         let self = this;
         if (!this._master && !this._publichash)  this._publichash = this._hash;  // We aren't master, so publichash is same as hash
         if (!this._publichash) this._p_storepublic(verbose); // Async, but sets _publichash immediately
@@ -73,15 +68,7 @@ class CommonList extends SmartDict {
                 //console.log("p_fetchlist:",lines[0]); // Should be a full line, not just "[" which suggests unparsed.
                 //lines = JSON.parse(lines))   Should already by a list
                 if (verbose) console.log("CommonList:p_fetchlist.success", self._hash, "len=", lines.length);
-                self._list = [];    //TODO rewrite loop to replace with lines.map(...)
-                //TODO-LIST can refactor as a map
-                for (let i in lines) {
-                    //TODO verify signature
-                    //if CryptoLib.verify(s):
-                    //noinspection JSUnfilteredForInLoop
-                    let s = new Signature(null, lines[i], verbose);        // Signature ::= {date, hash, privatekey etc }
-                    self._list.push(s);
-                }
+                self._list = lines.map((l) => new Signature(null, l, verbose));
             })
     }
 
@@ -123,7 +110,7 @@ class CommonList extends SmartDict {
     }
 
     _p_storepublic(verbose) { //verbose
-        console.assert(false, "Intentionally XXX Undefined function CommonList._p_storepublic - should implement in subclasses");
+        console.assert(false, "Intentionally undefined function CommonList._p_storepublic - should implement in subclasses");
     }
 
     p_store(verbose) {

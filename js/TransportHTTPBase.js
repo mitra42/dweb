@@ -11,9 +11,10 @@ class TransportHTTPBase extends Transport {
         this.baseurl = "http://" + ipandport[0] + ":" + ipandport[1] + "/";
         this.hashtype = "BLAKE2";   //
     }
+    //TODO-ASYNC make this use promises and change calller in TransportHTTP
     async_load(command, hash, verbose, success, error) {
         // Locate and return a block, based on its multihash
-        // Call chain for list is mb.load > CL.fetchlist > THttp.rawlist > Thttp.load > CL|MB.fetchlist.success > callers.succes
+        // Call chain for list is mb.p_fetch > CL.p_fetchlist > THttp.rawlist > Thttp.load > CL|MB.p_fetchlist.success > callers.succes
         if (verbose) {
             console.log("TransportHTTP async_load:",command, ":hash=", hash); }
         let url = this.url(command, hash);

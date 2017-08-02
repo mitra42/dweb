@@ -59,7 +59,7 @@ exports.signature = function(keypair, date, hash, verbose) {
     };
 exports.verify = function() { console.assert(false, "XXX Undefined function CryptoLib.verify"); };
 exports.b64dec = function(data) { return sodium.from_urlsafebase64(data); };    //Encode arbitrary data from b64
-exports.b64enc = function(data) { return sodium.to_urlsafebase64(data);; };     //Encode arbitrary data to b64
+exports.b64enc = function(data) { return sodium.to_urlsafebase64(data); };     //Encode arbitrary data to b64
 
 exports.dumps = function(obj) { return JSON.stringify(obj); };   // Uses toJSON methods on objects (equivalent of dumps methods on python)
 exports.loads = function(str) { return JSON.parse(str); };
@@ -93,7 +93,7 @@ exports.p_decryptdata = function(value, verbose) {
                 .catch((err) => { console.log("Unable to decrypt:",value); throw(err);});
         }
     }
-}
+};
 
 
 exports.randomkey = function() { return sodium.randombytes_buf(sodium.crypto_secretbox_KEYBYTES); };
@@ -119,7 +119,7 @@ exports.sym_decrypt = function(data, sym_key, outputformat) {
     let nonce = data.slice(0,sodium.crypto_box_NONCEBYTES);
     data = data.slice(sodium.crypto_box_NONCEBYTES);
     return sodium.crypto_secretbox_open_easy(data, nonce, sym_key, outputformat);
-}
+};
 
 exports.test = function(verbose) {
      // First test some of the lower level functionality - create key etc

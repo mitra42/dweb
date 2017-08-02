@@ -27,7 +27,7 @@ class MutableBlock extends CommonList {
     }
 
     p_fetchlist(verbose) {
-        // Call chain is mb.load > MB.fetchlist > THttp.rawlist > Thttp.list > MB.fetchlist.success > caller's success
+        // Call chain is mb.load > MB.p_fetchlist > THttp.rawlist > Thttp.list > MB.p_fetchlist.success > caller's success
         // Superclasses CL.p_fetchlist as need to set _current on a MB
         let self = this;
         return super.p_fetchlist(verbose)   // Return is a promise
@@ -46,8 +46,9 @@ class MutableBlock extends CommonList {
         while (ul.hasChildNodes()) {
             ul.removeChild(ul.lastChild);
         }
-        let blocks = this.blocks(verbose);
-        for (let ii in blocks) {     // Signed Blocks
+        let blocks = this.blocks(verbose);  //TODO if change this line, remove CL.blocks as its only usage, probably use fetchlist() instead
+
+        for (let ii in blocks) {     // Signed Blocks - needs to be loop as should happen sequentionlly
             //noinspection JSUnfilteredForInLoop
             let i = blocks[ii];
             let li = document.createElement("li");
@@ -82,10 +83,7 @@ class MutableBlock extends CommonList {
         if (verbose) console.log("MutableBlock.p_fetch hash=", this._hash);
         let self = this;
         return super.p_fetch_then_list(verbose)
-            //.then(() => console.log("XXX@mb.p_fetch_then_list_then_current.86",self._current))
             .then(() => self._current && self._current.p_fetch(verbose))
-            //.then((xxx) => console.log("XXX@MB.pftlnc.88",xxx))
-            //.then(() => console.log("XXX@mb.p_fetch_then_list_then_current.88",self._current.data))
             .then(() => self )
     }
 
@@ -95,7 +93,7 @@ class MutableBlock extends CommonList {
     }
 
     file() {
-        console.assert(false, "XXX Undefined function MutableBlock.store");
+        console.assert(false, "XXX Undefined function MutableBlock.file");
     }   // Retrieving data
 
     p_signandstore(verbose){    //TODO-AUTHENTICATION - add options to remove old signatures by same
@@ -168,9 +166,7 @@ class MutableBlock extends CommonList {
                     .then(() => console.assert(mb1._list.length === siglength+1))
                     //MutableBlock(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose, options) {
                     .then(() => mb = new MutableBlock(mb1._publichash, null, false, null, false, null, null, null, verbose, null))
-                    //.then(() => console.log("XXX-----@168"))
                     .then(() => mb.p_fetch_then_list_then_current(verbose))
-                    //.then(() => console.log("XXX-----@170"))
                     //.then(() => console.log("mb.test retrieved=",mb))
                     .then(() => console.assert(mb._list.length === siglength+1, "Expect list",siglength+1,"got",mb._list.length))
                     .then(() => console.assert(mb._current.data === sb.data, "Should have retrieved"))

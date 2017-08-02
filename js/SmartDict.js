@@ -15,7 +15,7 @@ class SmartDict extends Transportable {
 
     __setattr__(name, value) { // Call chain is ... success or constructor > _setdata > _setproperties > __setattr__
         // Subclass this to catch any field (other than _data) which has its own setter
-        //TODO Need a javascript equivalent way of transforming date
+        //TODO-DATE Need a javascript equivalent way of transforming date
         // if (name[0] != "_") {
         //    if "date" in name and isinstance(value,basestring):
         //        value = dateutil.parser.parse(value)
@@ -64,7 +64,7 @@ class SmartDict extends Transportable {
         return res
     }    // Should be being called on outgoing _data includes dumps and encoding etc
 
-    _setdata(value) { //TODO-TEST Obsoleting this with p_decryptdata and parsing JSON in p_fetch
+    _setdata(value) {
         // Note SmartDict expects value to be a dictionary, which should be the case since the HTTP requester interprets as JSON
         // Call chain is ...  or constructor > _setdata > _setproperties > __setattr__
         // COPIED FROM PYTHON 2017-5-27
@@ -88,17 +88,6 @@ class SmartDict extends Transportable {
         } else {
             return new Promise((resolve, reject)=> resolve(self));  // I think this should be a noop - fetched already
         }
-    }
-
-    addtokeysonload(obj, success) {
-        //method sent to new block from UnknownBlock.p_fetch - use to add to the KeyChain
-        //TODO-UNUSED check if this is used on JS (maybe just holdover from Python)
-        //console.log("addtoarronload success:",obj._keysloading);
-        obj._keysloading -= 1;
-        let arr = obj._keys;
-        arr.push(this);
-        console.assert(!this.encrypted,"oops it isnt decrypted");
-        if (!obj._keysloading && success)  success(undefined);
     }
 
     objbrowser(hash, path, ul, verbose) {

@@ -33,7 +33,6 @@
             .then(() => Dweb.CryptoLib.test(verbose))
             .then(() => Dweb.AccessControlList.p_test(verbose))
             .then((acl) => Dweb.KeyChain.p_test(acl, verbose))
-            //TODO-TEST expand this to include all tests in test_ipfs.js
             .then(() => console.log("test_ipfs.test complete"))
         }
 

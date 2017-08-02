@@ -1,6 +1,5 @@
 const CommonList = require("./CommonList");
 const Dweb = require("./Dweb");
-const sodium = require("libsodium-wrappers");
 // ######### Parallel development to AccessControlList.py ########
 
 
@@ -73,7 +72,7 @@ class AccessControlList extends CommonList {
         if (verbose) console.log("AccessControlList.tokens decrypt=",decrypt);
         console.assert(!this._needsfetch, "Dont attampt without doing a p_fetch first");
         let viewerhash = viewerkeypair._hash;
-        if (! this._list.length) { return []};  //TODO-TEST can remove this line when below working
+        if (! this._list.length) { return []}
         let toks = this._list
             .filter((sig) => sig.data.viewer === viewerhash)    // Find any sigs that match this viewerhash - doesnt guarrantee decrypting
             .map((sig) => sig.data.token);
@@ -105,12 +104,11 @@ class AccessControlList extends CommonList {
         if (!Array.isArray(vks)) { vks = [ vks ]; }
         for (let i in vks) {
             let vk = vks[i];
-            let toks = this.tokens(vk, true, verbose); //viewerkeypair, decrypt, verbose //TODO-TEST will need to be any or something like that
+            let toks = this.tokens(vk, true, verbose); //viewerkeypair, decrypt, verbose
             for (let j in toks) {
                 let symkey = toks[j];
                 try {
-                    let r = Dweb.CryptoLib.sym_decrypt(data, symkey, "text"); //data. symkey #Exception DecryptionFail
-                    return r;
+                    return Dweb.CryptoLib.sym_decrypt(data, symkey, "text"); //data. symkey #Exception DecryptionFail
                 } catch(err) {
                     //Should really only catch DecryptionFail
                     //do nothing,
@@ -138,7 +136,7 @@ class AccessControlList extends CommonList {
                 if (verbose) console.log("Creating AccessControlList");
                 // Create a acl for testing, - full breakout is in test_keychain
                 let accesskey = Dweb.CryptoLib.randomkey();
-                let aclseed = "01234567890123456789012345678902"    // Note 01 at end used in mnemonic faking
+                let aclseed = "01234567890123456789012345678902";    // Note 01 at end used in mnemonic faking
                 let keypair = Dweb.KeyPair.keygen(Dweb.KeyPair.KEYTYPESIGNANDENCRYPT, null, aclseed, verbose);
                 //ACL(hash, data, master, keypair, keygen, mnemonic, verbose, options)
                 let acl = new Dweb.AccessControlList(null, {

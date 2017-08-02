@@ -21,7 +21,7 @@ class KeyChain extends CommonList {
         let kc = new KeyChain(null, { "name": name }, true, null, keygen, mnemonic, verbose);
         return kc.p_store(verbose) // Dont need to wait on store to load and fetchlist but will do so to avoid clashes
             .then(() => KeyChain.addkeychains(kc))
-            .then(() => kc.p_fetch_then_list(verbose))  //TODO can use p_fetch_then_list_then_elements instead of scucess
+            .then(() => kc.p_fetch_then_list(verbose))  //fetchlist gets the elements
             .then(() => kc) //Fetches blocks in p_loadandfetchlist.success
             // Note kc returned from promise NOT from p_new so have to catch in a ".then"
         //if verbose: print "Created keychain for:", kc.keypair.private.mnemonic
@@ -31,7 +31,7 @@ class KeyChain extends CommonList {
     keytype() { return Dweb.KeyPair.KEYTYPESIGNANDENCRYPT; }  // Inform keygen
 
     p_fetchlist(verbose) {
-        // Call chain is kc.p_new > kc.loadandfetchlist > KC.p_fetchlist > THttp.p_rawlist > Thttp.list > KC.fetchlist.success > caller's success
+        // Call chain is kc.p_new > kc.loadandfetchlist > KC.p_fetchlist > THttp.p_rawlist > Thttp.list > KC.p_fetchlist.success > caller's success
         let self = this;
         return super.p_fetchlist(verbose)
             // Called after CL.p_fetchlist has unpacked data into Signatures in _list
@@ -40,7 +40,7 @@ class KeyChain extends CommonList {
                 .map((sig) => new Dweb.UnknownBlock(sig.hash, verbose))
                 .map((ub) => ub.p_fetch(verbose)))) // Return is result of p_fetch which is new obj
             .then((keys) => self._keys = keys)
-            .then(() => { if (verbose) console.log("KC.fetchlist Got keys", ...Dweb.utils.consolearr(self._keys))})
+            .then(() => { if (verbose) console.log("KC.p_fetchlist Got keys", ...Dweb.utils.consolearr(self._keys))})
     }
 
     keys() {    // Is property in Python
@@ -128,8 +128,6 @@ class KeyChain extends CommonList {
         return super.p_store(verbose)  // Stores public version and sets _publichash - never returns
     }
 
-    fetch() { console.log("Intentionally XXX Undefined function MutableBlock.fetch use load/success"); }   // Split into load/onload
-
     static _findbyclass(clstarget) {
         // Super obscure double loop, but works and fast
         let res = [];
@@ -166,7 +164,7 @@ class KeyChain extends CommonList {
                 // Test sequence extracted from test.py
                 const qbf="The quick brown fox ran over the lazy duck";
                 const vkpname="test_keychain viewerkeypair";
-                let kc, kcs2, key, keypair, mb, mblockm, mbmaster, mbm2, mbm3, mm, sb, sb2, viewerkeypair;
+                let kc, kcs2, mb, mblockm, mbmaster, mbm2, mbm3, mm, sb, sb2, viewerkeypair;
                 const keypairexport =  "NACL SEED:w71YvVCR7Kk_lrgU2J1aGL4JMMAHnoUtyeHbqkIi2Bk="; // So same result each time
                 if (verbose) {
                     console.log("Keychain.test 0 - create");
@@ -214,7 +212,7 @@ class KeyChain extends CommonList {
                     .then(() => verbose = true)
                     .then(() => acl.p_add(viewerkeypair._hash, verbose))   //Add us as viewer
                     .then(() => {
-                        console.assert("acl._list.length === 1", "Should have added exactly 1 viewerkeypair",acl)
+                        console.assert("acl._list.length === 1", "Should have added exactly 1 viewerkeypair",acl);
                         sb = new Dweb.StructuredBlock(null, {"name": "test_sb", "data": qbf, "_acl": acl}, verbose); //hash,data,verbose
                     })
                     .then(() => sb.p_store(verbose))

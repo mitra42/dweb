@@ -36,7 +36,7 @@ class StructuredBlock extends SmartDict {
         // Call chain is ...  or constructor > _setdata > _setproperties > __setattr__
         // catch equivalent of getters and setters here
         let verbose = false;
-        if (name === "links") {  // Assume its a SB TODO make dependent on which table
+        if (name === "links") {  // Assume its a SB TODO-UNKNOWN make dependent on which table use UnknownBlock
             let links = value;
             for (let len = links.length, i=0; i<len; i++) {
                 links[i] = new StructuredBlock(null, links[i], verbose);
@@ -55,7 +55,7 @@ class StructuredBlock extends SmartDict {
         if (patharr && patharr.length && this.links && this.links.length ) { // Have a path and can do next bit of it on this sb
             let next = patharr.shift(); // Takes first element of patharr, leaves patharr as rest
             if (verbose) { console.log("StructuredBlock:path next=",next); }
-            let obj = this.link(next);   //TODO handle error if not found
+            let obj = this.link(next);   //TODO-ERRS handle error if not found
             return obj.p_fetch(verbose).then(() => obj.p_path(patharr, verbose))
         } else if (patharr && patharr.length) {
             throw new Error("Cant follow path"+patharr);

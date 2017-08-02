@@ -31,9 +31,9 @@ class KeyPair extends SmartDict {
         if (name === "key") {
             this.key_setter(value);
         } else if (name === "private") {
-            console.assert(false, "XXX Undefined function KeyPair.private.setter");
+            console.assert(false, "XXX Undefined functionality KeyPair.private.setter");
         } else if (name === "public") {
-            console.assert(false, "XXX Undefined function KeyPair.public.setter");
+            console.assert(false, "XXX Undefined functionality KeyPair.public.setter");
         } else {
             super.__setattr__(name, value);
         }
@@ -91,11 +91,11 @@ class KeyPair extends SmartDict {
             //See https://github.com/jedisct1/libsodium.js/issues/91 for issues
             if (!this._key) { this._key = {}}   // Only handles NACL style keys
             if (tag === "NACL PUBLIC")           { this._key["encrypt"] = {"publicKey": hasharr};
-            } else if (tag === "NACL PRIVATE")   { console.assert(false, "XXX _importkey: Cant (yet) import Private key "+value+" normally use SEED");
-            } else if (tag === "NACL SIGNING")   { console.assert(false, "XXX _importkey: Cant (yet) import Signing key "+value+" normally use SEED");
+            } else if (tag === "NACL PRIVATE")   { console.assert(false, "_importkey: Cant (yet) import Private key "+value+" normally use SEED");
+            } else if (tag === "NACL SIGNING")   { console.assert(false, "_importkey: Cant (yet) import Signing key "+value+" normally use SEED");
             } else if (tag === "NACL SEED")      { this._key = KeyPair._keyfromseed(hasharr, Dweb.KeyPair.KEYTYPESIGNANDENCRYPT);
             } else if (tag === "NACL VERIFY")    { this._key["sign"] = {"publicKey": hasharr};
-            } else                              { console.assert(false, "XXX _importkey: Cant (yet) import "+value); }
+            } else                              { console.assert(false, "_importkey: Cant (yet) import "+value); }
         }
     }
 
@@ -106,11 +106,9 @@ class KeyPair extends SmartDict {
         return res;
     }
 
-    key() { console.assert(false, "XXX Undefined function KeyPair.key"); }
-    private() { console.assert(false, "XXX Undefined function KeyPair.private"); }    //TODO private is a reserved word in JS
-    public() { console.assert(false, "XXX Undefined function KeyPair.public"); }  //TODO public is a reserved word in JS
+    //private() { console.assert(false, "XXX Undefined function KeyPair.private"); }    //TODO private is a reserved word in JS
+    //public() { console.assert(false, "XXX Undefined function KeyPair.public"); }  //TODO public is a reserved word in JS
     mnemonic() { console.assert(false, "XXX Undefined function KeyPair.mnemonic"); }
-    _exportkey() { console.assert(false, "XXX Undefined function KeyPair._exportkey"); }
 
     privateexport() {
         // Matches functionality in Python BUT uses NACL SEED when know seed
@@ -130,7 +128,6 @@ class KeyPair extends SmartDict {
 
     naclprivate() { return this._key.encrypt.privateKey; }
     naclpublic() { return this._key.encrypt.publicKey; }
-    naclpublicexport() { console.assert(false, "XXX Undefined function KeyPair.naclpublicexport"); } // Use publicexport
 
     has_private() {
         return KeyPair._key_has_private(this._key)

@@ -26,14 +26,14 @@ function previouslyworking() {   console.trace(); console.assert(false, "OBSOLET
     let el = document.getElementById("myList.0");
     //console.log("el=",el);
     sb.async_load(true,
-        function(msg) { sb.async_path(["langs","readme.md"], verbose,  [ "async_elem", el, verbose, null, null ], null); },
+        function() { sb.async_path(["langs","readme.md"], verbose,  [ "async_elem", el, verbose, null, null ], null); },
         null);
     //To debug, uncomment the el.textContent line in Transportable.async_elem
     console.log("MutableBlock=======");
     <!-- also works with /file/mb/.....=/langs/readme.md -->
     let mb = new MutableBlock(mbhash, null, false, null, false, null, null, null, verbose, null);
     mb.async_loadandfetchlist(verbose,
-        function(msg) { mb.async_path(["langs","readme.md"], verbose, ["async_elem", "myList.1", verbose, null, null], null); },
+        function() { mb.async_path(["langs","readme.md"], verbose, ["async_elem", "myList.1", verbose, null, null], null); },
         null);
     console.log("Now test path using dwebfile and sb =======");
     verbose=false;
@@ -98,7 +98,6 @@ function cryptotest() { //TODO-CRYPTO Still working on this
             if (!mm.length) {
                 console.assert(mm.length, "Should find mblockm");
             }
-            console.log("XXX@99",mm);
             let mbm3 = mm[mm.length - 1];
             console.assert(mbm3 instanceof MutableBlock, "Should be a mutable block", mbm3);
             console.assert(mbm3.name === mblockm.name, "Names should survive round trip");
