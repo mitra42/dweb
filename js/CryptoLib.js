@@ -54,7 +54,7 @@ exports.signature = function(keypair, date, hash, verbose) {
             //Can implement and uncomment next line if seeing problems verifying things that should verify ok - tests immediate verification
             //keypair._key.verify_key.verify(signable, nacl.encoding.URLSafeBase64Encoder.decode(sig))
         } else {
-            Dweb.utils.ToBeImplementedException("signature for key =",keypair._key);
+            throw new Dweb.errors.ToBeImplementedError("signature for key ="+keypair._key);
         }
     };
 exports.verify = function() { console.assert(false, "XXX Undefined function CryptoLib.verify"); };

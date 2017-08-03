@@ -84,7 +84,7 @@ class KeyChain extends CommonList {
         if (key.encrypt) { // NACL key
             return this.keypair.decrypt(data, this, "text"); //data, b64, signer
         } else {
-            Dweb.utils.ToBeImplementedException("Keypair.decrypt for ", key);
+            throw new Dweb.errors.ToBeImplementedError("Keypair.decrypt for "+ key);
         }
     }
 

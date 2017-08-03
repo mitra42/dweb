@@ -34,12 +34,15 @@ exports.utils.SecurityWarning = function(msg, self) {
     alert("Security Warning"+ msg);
 };
 
-exports.utils.ToBeImplementedException = function(...args) {
-    console.assert(false, ...args);
-    //alert(msg);
-};
 exports.utils.consolearr  = (arr) => ((arr && arr.length >0) ? [arr.length+" items inc:", arr[arr.length-1]] : arr );
 
+class ToBeImplementedError extends Error {
+    constructor(message) {
+        super("To be implemented: " + message);
+        this.name = "ToBeImplementedError"
+    }
+}
+exports.errors.ToBeImplementedError = ToBeImplementedError;
 
 class TransportError extends Error {
     constructor(message) {

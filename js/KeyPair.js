@@ -48,7 +48,7 @@ class KeyPair extends SmartDict {
     }
     preflight(dd) {
         if (KeyPair._key_has_private(dd._key) && !dd._acl && !this._allowunsafestore) {
-            Dweb.SecurityWarning("Probably shouldnt be storing private key",dd);
+            Dweb.utils.SecurityWarning("Probably shouldnt be storing private key",dd);
         }
         if (dd._key) { //Based on whether the CommonList is master, rather than if the key is (key could be master, and CL not)
             dd.key = KeyPair._key_has_private(dd._key) ? this.privateexport() : this.publicexport();
@@ -170,7 +170,7 @@ class KeyPair extends SmartDict {
              data = data.slice(sodium.crypto_box_NONCEBYTES);
              return sodium.crypto_box_open_easy(data, nonce, signer.keypair.naclpublic(), this.naclprivate(), outputformat);
          } else {
-            Dweb.utils.ToBeImplementedException("KeyPair.decrypt for ", this._key);
+            throw new Dweb.errors.ToBeImplementedError("KeyPair.decrypt for " + this._key);
          }
     }
 
