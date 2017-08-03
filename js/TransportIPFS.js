@@ -36,8 +36,8 @@ const makepromises = require('./utils/makepromises');
 function delay(ms, val) { return new Promise(resolve => {setTimeout(() => { resolve(val); },ms)})}
 
 // Other Dweb modules
-const Transport = require('./Transport.js');
-const Dweb = require('./Dweb.js');
+const Transport = require('./Transport');
+const Dweb = require('./Dweb');
 
 //Debugging only
 

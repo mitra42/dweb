@@ -37,7 +37,7 @@ class Signature extends SmartDict {
     }
 
     p_block(verbose) {
-        this.data = new Dweb.StructuredBlock(this.hash, null, verbose);
+        this.data = new Dweb.StructuredBlock(this.hash, null, verbose); //TODO-UNUSEDBLOCK - should probably be unused block for signature (thing signed)
         return this.data.p_fetch(verbose);
     }
 

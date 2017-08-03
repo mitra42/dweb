@@ -15,7 +15,7 @@ const Dweb = require("./Dweb");
 //CryptoLib.Curlhash = function(data) { return "BLAKE2."+ sodium.crypto_generichash(32, data, null, 'urlsafebase64'); }
 //Specific to IPFS
 exports.Curlhash = function(data) {
-    if (Dweb.transport.hashtype === "BLAKE2") {
+    if (Dweb.transport.hashtype === "BLAKE2") { //TransportHTTP, TransportLocal
         return "BLAKE2."+ sodium.crypto_generichash(32, data, null, 'urlsafebase64');
     } else {    //TransportIPFS
         let b2 = (data instanceof Buffer) ? data : new Buffer(data);

@@ -45,7 +45,6 @@ class TransportError extends Error {
     constructor(message) {
         super(message || "Transport failure");
         this.name = "TransportError"
-        // See MDN definition of error, may need to set stack
     }
 }
 exports.errors.TransportError = TransportError;
@@ -54,7 +53,6 @@ class ForbiddenError extends Error {
     constructor(message) {
         super(message || "Forbidden failure");
         this.name = "ForbiddenError"
-        // See MDN definition of error, may need to set stack
     }
 }
 exports.errors.ForbiddenError = ForbiddenError;
@@ -63,7 +61,6 @@ class AuthenticationError extends Error {
     constructor(message) {
         super(message || "Authentication failure");
         this.name = "AuthenticationError"
-        // See MDN definition of error, may need to set stack
     }
 }
 exports.errors.AuthenticationError = AuthenticationError;
