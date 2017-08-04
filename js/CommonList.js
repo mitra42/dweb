@@ -158,7 +158,7 @@ class CommonList extends SmartDict {
     }
     p_add(hash, sig, verbose) {
         console.assert(sig,"Meaningless without a sig");
-        return Dweb.transport.p_add(hash, sig.date, sig.signature, sig.signedby, null, verbose);
+        return Dweb.transport.p_rawadd(hash, sig.date, sig.signature, sig.signedby, verbose);
     }
 
 }

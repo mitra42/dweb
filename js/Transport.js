@@ -121,11 +121,6 @@ class Transport {
          */
         console.assert(false, "XXX Undefined function Transport.p_rawreverse");
     }
-    p_add(hash, date, signature, signedby, obj, verbose) {
-        if (obj && !hash) hash = obj._hash;
-        console.assert(signedby && signature && hash, "p_add: Meaningless request");
-        return this.p_rawadd(hash, date, signature, signedby, verbose);
-    }
 
     static _add_value(hash, date, signature, signedby, verbose) {
         let store = {"hash": hash, "date": date, "signature": signature, "signedby": signedby};

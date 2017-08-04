@@ -26,7 +26,7 @@ class StructuredBlock extends SmartDict {
         for (let i in this._signatures) {
             let s = this._signatures[i];
             //PY makes copy of s, but this is because the json procedure damages the object which doesnt happen in JSON.stringify as used in Transport.dumps in JS
-            Dweb.transport.p_add(this._hash, s.date, s.signature, s.signedby, null, verbose);
+            Dweb.transport.p_rawadd(this._hash, s.date, s.signature, s.signedby, verbose);
         }
         return this; // For chaining
 
@@ -108,7 +108,7 @@ class StructuredBlock extends SmartDict {
 
     sign(commonlist, verbose) {
         /*
-         Add a signature to a StructuredBlock
+         Add a signature to a StructuredBlock and add it to a list
          Note if the SB has a _acl field it will be encrypted first, then the hash of the encrypted block used for signing.
          :param CommonList commonlist:   List its going on - has a ACL with a private key
          :return: sig so that CommonList can add to _list
