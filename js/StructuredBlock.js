@@ -25,7 +25,7 @@ class StructuredBlock extends SmartDict {
         }
         for (let i in this._signatures) {
             let s = this._signatures[i];
-            //PY makes copy of s, but this is because the json procedure damages the object which doesnt happen in Crypto.dumps in JS
+            //PY makes copy of s, but this is because the json procedure damages the object which doesnt happen in JSON.stringify as used in Transport.dumps in JS
             Dweb.transport.p_add(this._hash, s.date, s.signature, s.signedby, null, verbose);
         }
         return this; // For chaining

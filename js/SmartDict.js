@@ -55,11 +55,11 @@ class SmartDict extends Transportable {
             //noinspection JSUnfilteredForInLoop
             dd[i] = this[i];    // This just copies the attributes not functions
         }
-        let res = Dweb.CryptoLib.dumps(this.preflight(dd));
+        let res = Dweb.transport.dumps(this.preflight(dd));
         if (this._acl) { //Need to encrypt
             let encdata = this._acl.encrypt(res, true);  // data, b64
             let dic = { "encrypted": encdata, "acl": this._acl._publichash, "table": this.table};
-            res = Dweb.CryptoLib.dumps(dic);
+            res = Dweb.transport.dumps(dic);
         }
         return res
     }    // Should be being called on outgoing _data includes dumps and encoding etc
@@ -68,7 +68,7 @@ class SmartDict extends Transportable {
         // Note SmartDict expects value to be a dictionary, which should be the case since the HTTP requester interprets as JSON
         // Call chain is ...  or constructor > _setdata > _setproperties > __setattr__
         // COPIED FROM PYTHON 2017-5-27
-        value = typeof(value) === "string" ? JSON.parse(value) : value; // If its a string, interpret as JSON
+        value = typeof(value) === "string" ? Dweb.transport.loads(value) : value; // If its a string, interpret as JSON
         console.assert(!( value && value.encrypted), "Should have been decrypted in p_fetch");
         this._setproperties(value); // Note value should not contain a "_data" field, so wont recurse even if catch "_data" at __setattr__()
     }
@@ -82,7 +82,7 @@ class SmartDict extends Transportable {
             if (verbose) { console.log("CommonList.load:",this._hash)}
             this._needsfetch = false;
             return Dweb.transport.p_rawfetch(this._hash, verbose)   //TODO-IPFS change to use dag storage
-                .then((data) => Dweb.CryptoLib.p_decryptdata(JSON.parse(data), verbose))
+                .then((data) => Dweb.CryptoLib.p_decryptdata(Dweb.transport.loads(data), verbose))
                 .then((data) => { self._setdata(data); return self;})
                 .catch((err) => { console.log("Unable to fetch",this._hash,err); throw(err); })
         } else {

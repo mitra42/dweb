@@ -37,6 +37,19 @@ class Transport {
          */
         console.assert(false, "Intentionally undefined function Transport.link should have been subclassed");
     }
+    dumps(obj) {
+        /*
+         Encode an obj into a JSON string - this is in Transport as some systems have a canonical form of JSON they prefer to store
+         */
+        return JSON.stringify(obj);
+    }
+    loads(str) {
+        /*
+         Inverse of dumps - so if string encoded in transport specific way, should undo that.
+         */
+       return JSON.parse(str);
+    };
+
     p_rawstore(data, verbose) {
         /*
         Store a blob of data onto the decentralised transport.
@@ -116,7 +129,7 @@ class Transport {
 
     static _add_value(hash, date, signature, signedby, verbose) {
         let store = {"hash": hash, "date": date, "signature": signature, "signedby": signedby};
-        return CryptoLib.dumps(store);
+        return Dweb.transport.dumps(store);
     }
 }
 exports = module.exports = Transport;

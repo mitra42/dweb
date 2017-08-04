@@ -36,7 +36,7 @@ class UnknownBlock extends SmartDict {
         let cls;
         return Dweb.transport.p_rawfetch(this._hash, verbose)
             .then((data) => {
-                data = JSON.parse(data);    // Parse JSON
+                data = Dweb.transport.loads(data);    // Parse JSON
                 let table = data["table"];
                 cls = LetterToClass[table];
                 console.assert(cls, "UnknownBlock.p_fetch:",table,"isnt implemented in LetterToClass");

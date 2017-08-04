@@ -31,6 +31,16 @@ class Transport {
          :return string              valid id to retrieve data via p_rawfetch
          */
     }
+    dumps(obj) {
+        /*
+         Encode an obj into a JSON string - this is in Transport as some systems have a canonical form of JSON they prefer to store
+         */
+    }
+    loads(obj) {
+        /*
+         Inverse of dumps - so if string encoded in transport specific way, should undo that.
+         */
+    }
     p_rawstore(data, verbose) {
         /*
          Store a blob of data onto the decentralised transport.

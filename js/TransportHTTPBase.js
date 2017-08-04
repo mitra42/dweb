@@ -48,7 +48,7 @@ class TransportHTTPBase extends Transport {
             } else {
                 if (response["statusCode"] === 200) {
                     if (response["headers"]['content-type'] === "application/json") {
-                        data = JSON.parse(data);
+                        data = self.loads(data);
                     }
                     if (success) success(data);
                 } else {
@@ -76,6 +76,7 @@ class TransportHTTPBase extends Transport {
         //verbose=true;
         if (verbose) console.log("TransportHTTP post:", command,":hash=", hash);
         let url = this.url(command, hash);
+        let self = this;
         if (verbose) { console.log("TransportHTTP:post: url=",url); }
         if (verbose) { console.log("TransportHTTP:post: data=",typeof data, data); }
         /*
@@ -109,7 +110,7 @@ class TransportHTTPBase extends Transport {
                 }
             } else {
                 if (response["headers"]['content-type'] === "application/json") {
-                    respdata = JSON.parse(respdata);
+                    respdata = this.loads(respdata);
                 }
                 if (success) success(respdata);
             }

@@ -50,9 +50,6 @@ exports.verify = function() { console.assert(false, "XXX Undefined function Cryp
 exports.b64dec = function(data) { return sodium.from_urlsafebase64(data); };    //Encode arbitrary data from b64
 exports.b64enc = function(data) { return sodium.to_urlsafebase64(data); };     //Encode arbitrary data to b64
 
-exports.dumps = function(obj) { return JSON.stringify(obj); };   // Uses toJSON methods on objects (equivalent of dumps methods on python)
-exports.loads = function(str) { return JSON.parse(str); };
-
 exports.p_decryptdata = function(value, verbose) {
     /*
      Takes a
