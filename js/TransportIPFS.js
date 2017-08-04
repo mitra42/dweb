@@ -91,14 +91,7 @@ class TransportIPFS extends Transport {
                 //.then((version) => console.log("initialized"))
                 //.then((unused) => ipfs.start())
                 .then((unused) => console.log("IPFS node",ipfs.isOnline() ? "and online" : "but offline"))    //TODO throw error if not online
-                .then(() => {
-                    Dweb.annotationList = res.annotationList(annotationlistexample);    //TODO-IPFS-MULTILIST move this to the list command - means splitting stuff under it that calls bootstrap
-                    Dweb.annotationList.on('started', (event) => {
-                        console.log("IPFS node after annotation list start",ipfs.isOnline() ? "now online" : "but still offline");   //TODO throw error if not online
-                        if (verbose) { console.log("annotationList started, list at start = ", ...Dweb.utils.consolearr(Dweb.annotationList.getResources())); }
-                        resolve(ipfs)   // Cant resolve till annotation list online
-                    });
-                })
+                .then(() => resolve(res))
                 //.then(() => resolve(ipfs))  // Whatever happens above, want to return ipfs to caller
                 .catch((err) => {
                     console.log("UNCAUGHT ERROR in ipfsstart", err);
@@ -115,11 +108,17 @@ class TransportIPFS extends Transport {
         let t = new TransportIPFS(combinedipfsoptions, verbose, options);
         return new Promise((resolve, reject) => {
             TransportIPFS.ipfsstart(combinediiifoptions, verbose)
-            .then((ipfs) => {
-                t.ipfs = ipfs;
+            .then((res) => {
+                t.iiif = res;
+                t.ipfs = res.ipfs;
                 t.promisified = {ipfs:{}};
                 makepromises(t.ipfs, t.promisified.ipfs, [ { block: ["put", "get"] }]); // Has to be after t.ipfs defined
-                resolve(t);
+                t.annotationList = res.annotationList(annotationlistexample);    //TODO-IPFS-MULTILIST move this to the list command - means splitting stuff under it that calls bootstrap
+                t.annotationList.on('started', (event) => {
+                    console.log("IPFS node after annotation list start",t.ipfs.isOnline() ? "now online" : "but still offline");   //TODO throw error if not online
+                    if (verbose) { console.log("annotationList started, list at start = ", ...Dweb.utils.consolearr(t.annotationList.getResources()));}
+                    resolve(t);  // Cant resolve till annotation list online
+                })
             })
             .catch((err) => {
                 console.log("Uncaught error in TransportIPFS.setup", err);
@@ -161,7 +160,7 @@ class TransportIPFS extends Transport {
         // notify is NOT part of the Python interface, needs implementing there.
         console.assert(hash, "TransportHTTP.p_rawlist: requires hash");
         return new Promise((resolve, reject) => {
-            let res = Dweb.annotationList.getResources()
+            let res = this.annotationList.getResources()
                 .filter((obj) => (obj.signedby === hash));
             if (verbose) console.log("p_rawlist found",...Dweb.utils.consolearr(res));
             resolve(res);
@@ -170,7 +169,7 @@ class TransportIPFS extends Transport {
     listmonitor(hash, callback, verbose) {
         // Typically called immediately after a p_rawlist to get notification of future items
         //TODO-IPFS-MULTILIST will want to make more efficient.
-        Dweb.annotationList.on('resource inserted', (event) => {
+        this.annotationList.on('resource inserted', (event) => {
             let obj = event.value;
             if (verbose) console.log('resource inserted', obj);
             //obj["signature"] = obj["@id"];
@@ -193,7 +192,7 @@ class TransportIPFS extends Transport {
         console.assert(hash && signature && signedby, "p_rawadd args",hash,signature,signedby);
         if (verbose) console.log("p_rawadd", hash, date, signature, signedby);
         let value = {"@id": signature, "hash": hash, "date": date, "signature": signature, "signedby": signedby};
-        Dweb.annotationList.pushResource(value);
+        this.annotationList.pushResource(value);
     }
     p_rawadd(hash, date, signature, signedby, verbose) {
         return new Promise((resolve, reject)=> { try {
