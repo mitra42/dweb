@@ -116,7 +116,7 @@ class SmartDict extends Transportable {
         li.source = this;
         li.className = "propobj";
         ul.appendChild(li);
-        //li.innerHTML = "<B>StructuredBlock:</B>" + hashpath;
+        //li.innerHTML = "<B>SmartDict:</B>" + hashpath;
         let t1 = document.createTextNode(this.constructor.name+": "+hashpath);
         let sp1 = document.createElement('span');
         sp1.className = "classname"; // Confusing!, sets the className of the span to "classname" as it holds a className

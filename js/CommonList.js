@@ -91,25 +91,6 @@ class CommonList extends SmartDict {
                 .map((ub) => ub.p_fetch(verbose)))) // Return is array result of p_fetch which is array of new objs (suitable for storing in keys etc)
         }
 
-    blocks(verbose) {   //TODO this only seems to be used in MB and usage could probable be replaced by p_fetchlist
-        console.assert(false, "XXX@CL.blocks - checking if this ever gets used as should be handled by p_fetchlist.then");
-        let results = {};   // Dictionary of { SHA... : StructuredBlock(hash=SHA... _signatures:[Signature*] ] ) }
-        for (let i in this._list) {
-            let s = this._list[i];
-            if (! results[s.hash]) {
-                results[s.hash] = new StructuredBlock(s.hash, null, verbose);  //TODO Handle cases where its not a SB
-            }
-            results[s.hash]._signatures.push(s);
-        }
-        let sbs = [];      // [ StructuredBlock* ]
-        for (let k in results) {
-            sbs.push(results[k]);      // Array of StructuredBlock
-        }
-        //TODO sort list
-        sbs.sort(StructuredBlock.compare); // Could inline: sbs.sort(function(a, b) { ... }
-        return sbs;
-    }
-
     _p_storepublic(verbose) { //verbose
         console.assert(false, "Intentionally undefined function CommonList._p_storepublic - should implement in subclasses");
     }
@@ -131,9 +112,9 @@ class CommonList extends SmartDict {
 
     p_signandstore(obj, verbose ) {
         /*
-         Sign and store a StructuredBlock on a list - via the SB's signatures - see add for doing independent of SB
+         Sign and store a object on a list
 
-         :param StructuredBlock obj:
+         :param obj: Should be subclass of SmartDict, don't think Block would work.
          :param verbose:
          :return: this - for chaining
          */
@@ -144,7 +125,6 @@ class CommonList extends SmartDict {
             .then(() => obj.p_store())
             .then(() => {
                 console.assert(self._master && self.keypair, "ForbiddenException: Signing a new entry when not a master list");
-                // The obj.store stores signatures as well (e.g. see StructuredBlock.store)
                 sig = obj.sign(self, verbose); // SmartDict implements signing, subclasses store in signatures etc
                 obj.p_store(verbose);
                 self._list.push(sig);
@@ -161,7 +141,7 @@ class CommonList extends SmartDict {
         return sig
     }
     p_add(hash, sig, verbose) {
-        console.assert(sig,"Meaningless without a sig");
+        console.assert(sig,"CommonList.p_add is meaningless without a sig");
         return Dweb.transport.p_rawadd(hash, sig.date, sig.signature, sig.signedby, verbose);
     }
 

@@ -6,7 +6,7 @@ const KeyPair = require("./KeyPair");
 const AccessControlList = require("./AccessControlList");
 const Dweb = require("./Dweb");
 
-
+//TODO-SEPERATE - move these to Dweb
 const LetterToClass = { // Each of these needs a constructor that takes hash, data and is ok with no other parameters, (otherwise define a set of these methods as factories)
     "sb": StructuredBlock,
     "kc": KeyChain,

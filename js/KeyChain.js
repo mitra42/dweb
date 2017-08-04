@@ -37,7 +37,7 @@ class KeyChain extends CommonList {
             // Called after CL.p_fetchlist has unpacked data into Signatures in _list
             //.then(() => self._keys = Dweb.Signature.filterduplicates(self._list).map((sig) => new Dweb.UnknownBlock(sig.hash, verbose)))
             .then(() => Promise.all(Dweb.Signature.filterduplicates(self._list)
-                .map((sig) => new Dweb.UnknownBlock(sig.hash, verbose))
+                .map((sig) => new Dweb.UnknownBlock(sig.hash, verbose)) // Will be a MB or a ViewerKey (KP)
                 .map((ub) => ub.p_fetch(verbose)))) // Return is result of p_fetch which is new obj
             .then((keys) => self._keys = keys)
             .then(() => { if (verbose) console.log("KC.p_fetchlist Got keys", ...Dweb.utils.consolearr(self._keys))})

@@ -40,13 +40,17 @@ class MutableBlock extends CommonList {
         })
     }
 
+    /* OBSOLETE - but copy concept into anything publishing a list
     p_updatelist(ul, verbose, successmethodeach) {
         // You can't pass "success" to updatelist as it spawns multiple threads
         //successmethodeach is method to apply to each element, see the path() function for definition
         while (ul.hasChildNodes()) {
             ul.removeChild(ul.lastChild);
         }
-        let blocks = this.blocks(verbose);  //TODO if change this line, remove CL.blocks as its only usage, probably use fetchlist() instead
+        self.p_fetch_then_list_then_elem
+
+
+        let blocks = this.blocks(verbose);  // Need to replace this, its like p_find_then_list_then_elements followed by loop on them
 
         for (let ii in blocks) {     // Signed Blocks - needs to be loop as should happen sequentionlly
             //noinspection JSUnfilteredForInLoop
@@ -57,6 +61,7 @@ class MutableBlock extends CommonList {
                 .then((self) => i.p_elem(li, verbose, successmethodeach));
         }
     }
+    */
 
     p_update(){ console.assert(false, "Need to define p_ function")}
 
