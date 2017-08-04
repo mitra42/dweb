@@ -9,7 +9,6 @@ class TransportHTTPBase extends Transport {
         super(verbose, options);
         this.ipandport = ipandport;
         this.baseurl = "http://" + ipandport[0] + ":" + ipandport[1] + "/";
-        this.hashtype = "BLAKE2";   //
     }
     //TODO-ASYNC make this use promises and change calller in TransportHTTP
     async_load(command, hash, verbose, success, error) {

@@ -26,8 +26,7 @@ const IPFS = require('ipfs');
 const CID = require('cids');
 //const IpfsIiifDb = require('ipfs-iiif-db');  //https://github.com/pgte/ipfs-iiif-db
 
-const multihashing = require('multihashing-async'); //TODO-IPFS Only for testing - can remove
-const multihashes = require('multihashes');  //TODO-IPFS Only for testing - can remove - and use CryptoHash.Curlhash
+const multihashes = require('multihashes'); // TODO-IPFS only required because IPFS makes it hard to get this
 
 const crypto = require('crypto'); //TODO-IPFS only for testing - can remove
 
@@ -127,6 +126,19 @@ class TransportIPFS extends Transport {
         })
     }
 
+    link(data) {
+        /*
+         Return an identifier for the data without storing
+
+         :param string|Buffer data   arbitrary data
+         :return string              valid id to retrieve data via p_rawfetch
+         */
+        let b2 = (data instanceof Buffer) ? data : new Buffer(data);
+        let b3 = crypto.createHash('sha256').update(b2).digest();   // Note this is the only dependence on crypto and exists only because IPFS makes it ridiculously hard to get the hash synchronously without storing
+        let hash = multihashes.toB58String(multihashes.encode(b3, 'sha2-256'));  //TODO-IPFS-Q unclear how to make generic
+        return "/ipfs/" + hash
+    }
+
     // Everything else - unless documented here - should be opaque to the actual structure of a CID
     // or a Link. This code may change as its not clear (from IPFS docs) if this is the right mapping.
     static cid2link(cid) {
@@ -221,6 +233,7 @@ class TransportIPFS extends Transport {
                     .then((hash) => {
                         if (verbose) console.log("rawstore returned", hash);
                         let newcid = TransportIPFS.link2cid(hash);  // Its a CID which has a buffer in it
+                        console.assert(hash === transport.link(qbf),"link should match hash from rawstore");
                         cidmultihash = hash.split('/')[2];
                         let newhash = TransportIPFS.cid2link(newcid);
                         console.assert(hash === newhash, "Should round trip");
@@ -251,16 +264,6 @@ class TransportIPFS extends Transport {
                     .then(() => transport.p_rawlist(testhash, verbose))
                     .then((res) => console.assert(res.length === listlen + 1, "Should have added one item"))
                     //.then(() => console.log("TransportIPFS test complete"))
-                    .then(() => { // Can get multihash but not synchrnously. Unclear why that is so hard
-                            multihashing(new Buffer(qbf), 'sha2-256', (err, multihash) => {
-                                if (err) console.log("Multihashing error",err);
-                                console.assert(multihashes.toB58String(multihash) === cidmultihash, "Should match multihash format from block.put")
-                            })
-                    })
-                    .then(() => {
-                        let b2 = crypto.createHash('sha256').update(new Buffer(qbf)).digest();
-                        console.assert(multihashes.toB58String(multihashes.encode(b2, 'sha2-256')) === cidmultihash, "Should match multihash format from block.put");
-                    })
                     .then(() => resolve())
                     .catch((err) => {
                         console.log("test ERR=", err);

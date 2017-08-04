@@ -20,7 +20,7 @@ class Transportable {
     p_store(verbose) {    // Python has a "data" parameter to override this._data but probably not needed
         let data = this._getdata();
         if (verbose) console.log("Transportable.p_store data=", data);
-        this._hash = Dweb.CryptoLib.Curlhash(data); //store the hash since the HTTP is async
+        this._hash = Dweb.transport.link(data); //store the hash since the HTTP is async (has form "/ipfs/xyz123" or "BLAKE2.xyz123"
         if (verbose) console.log("Transportable.p_store hash=", this._hash);
         let self = this;
         return Dweb.transport.p_rawstore(data, verbose)

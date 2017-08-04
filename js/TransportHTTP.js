@@ -1,4 +1,5 @@
 const TransportHTTPBase = require('./TransportHTTPBase.js');
+const sodium = require("libsodium-wrappers");   // Note for now this has to be Mitra's version as live version doesn't support urlsafebase64
 
 defaulthttpoptions = {
     ipandport: [ 'localhost',4243]
@@ -29,6 +30,17 @@ class TransportHTTP extends TransportHTTPBase {
         let verbose = false;    //TODO check if should be in args
         return new TransportHTTP(ipandport, verbose, options);
     }
+
+    link(data) {
+        /*
+         Return an identifier for the data without storing
+
+         :param string|Buffer data   arbitrary data
+         :return string              valid id to retrieve data via p_rawfetch
+         */
+        return "BLAKE2."+ sodium.crypto_generichash(32, data, null, 'urlsafebase64');
+    }
+
     p_rawfetch(hash, verbose) {
         // Locate and return a block, based on its multihash
         return this.p_load("rawfetch", hash, verbose);

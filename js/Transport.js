@@ -26,7 +26,16 @@ class Transport {
         :param options: Data structure stored on the .options field of the instance returned.
         :resolve Transport: Instance of subclass of Transport
          */
-        console.assert(false, "XXX Undefined function Transport.p_setup");
+        console.assert(false, "Intentionally undefined function Transport.p_setup should have been subclassed");
+    }
+    link(data) {
+        /*
+         Return an identifier for the data without storing
+
+         :param string|Buffer data   arbitrary data
+         :return string              valid id to retrieve data via p_rawfetch
+         */
+        console.assert(false, "Intentionally undefined function Transport.link should have been subclassed");
     }
     p_rawstore(data, verbose) {
         /*
@@ -39,7 +48,7 @@ class Transport {
          */
         console.assert(false, "Intentionally undefined function Transport.p_rawstore should have been subclassed");
     }
-    p_store() { console.assert(false, "XXX Undefined function Transport.p_store - may define higher level semantics here (see Python)"); }
+    p_store() { console.assert(false, "Undefined function Transport.p_store - may define higher level semantics here (see Python)"); }
     //noinspection JSUnusedLocalSymbols
 
     p_rawfetch(hash, verbose) {
@@ -108,15 +117,6 @@ class Transport {
     static _add_value(hash, date, signature, signedby, verbose) {
         let store = {"hash": hash, "date": date, "signature": signature, "signedby": signedby};
         return CryptoLib.dumps(store);
-    }
-    hash(data) {
-        /*
-        Can be used to get the hash that the data would be stored under before its actually stored,
-        to allow its incorporation into other objects which can themselves be stored asynchronously.
-
-        :param string|Buffer data:
-        :return string: Return the hash of the data, MUST match what will be returned by p_add
-         */
     }
 }
 exports = module.exports = Transport;

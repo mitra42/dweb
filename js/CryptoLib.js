@@ -1,8 +1,7 @@
 //const AccessControlList = require("./AccessControlList"); // Including this for some reason makes the result unavailable, maybe a loop ?
 //const KeyChain = require("./KeyChain"); // Including this for some reason makes the result unavailable, maybe a loop ?
 
-//IPFS packages needed
-const multihashes = require('multihashes');
+//IPFS packages needed (none currently)
 
 //Other packages needed
 const sodium = require("libsodium-wrappers");
@@ -12,18 +11,8 @@ const Dweb = require("./Dweb");
 //CryptoLib = {}
 // ==== Crypto.py - Encapsulate all the Cryptography =========
 // This was the libsodium version using Blake2
-//CryptoLib.Curlhash = function(data) { return "BLAKE2."+ sodium.crypto_generichash(32, data, null, 'urlsafebase64'); }
 //Specific to IPFS
-exports.Curlhash = function(data) {
-    if (Dweb.transport.hashtype === "BLAKE2") { //TransportHTTP, TransportLocal
-        return "BLAKE2."+ sodium.crypto_generichash(32, data, null, 'urlsafebase64');
-    } else {    //TransportIPFS
-        let b2 = (data instanceof Buffer) ? data : new Buffer(data);
-        let b3 = crypto.createHash('sha256').update(b2).digest();
-        let hash = multihashes.toB58String(multihashes.encode(b3, 'sha2-256'));  //TODO-IPFS-Q unclear how to make generic
-        return "/ipfs/" + hash
-    }
-};
+
 exports._signable = function(date, data) {
         /*
          Returns a string suitable for signing and dating, current implementation includes date and storage hash of data.

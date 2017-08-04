@@ -23,6 +23,14 @@ class Transport {
          :resolve Transport: Instance of subclass of Transport
          */
     }
+    link(data) {
+        /*
+         Return an identifier for the data without storing
+
+         :param string|Buffer data   arbitrary data
+         :return string              valid id to retrieve data via p_rawfetch
+         */
+    }
     p_rawstore(data, verbose) {
         /*
          Store a blob of data onto the decentralised transport.
@@ -81,15 +89,6 @@ class Transport {
          :param string hash: String with the hash that identifies the object put on a list.
          :param boolean verbose: True for debugging output
          :resolve array: An array of objects as stored on the list.
-         */
-    }
-    hash(data) {
-        /*
-         Can be used to get the hash that the data would be stored under before its actually stored,
-         to allow its incorporation into other objects which can themselves be stored asynchronously.
-
-         :param string|Buffer data:
-         :return string: Return the hash of the data, MUST match what will be returned by p_add
          */
     }
 
