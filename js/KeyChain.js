@@ -210,7 +210,7 @@ class KeyChain extends CommonList {
                         acl._allowunsafestore = true;
                     })
                     .then(() => verbose = true)
-                    .then(() => acl.p_add(viewerkeypair._hash, verbose))   //Add us as viewer
+                    .then(() => acl.p_add_acle(viewerkeypair._hash, verbose))   //Add us as viewer
                     .then(() => {
                         console.assert("acl._list.length === 1", "Should have added exactly 1 viewerkeypair",acl);
                         sb = new Dweb.StructuredBlock(null, {"name": "test_sb", "data": qbf, "_acl": acl}, verbose); //hash,data,verbose

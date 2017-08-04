@@ -36,10 +36,5 @@ class Signature extends SmartDict {
         return arr.filter((x) => (!res[x.hash] && (res[x.hash] = true)))
     }
 
-    p_block(verbose) {
-        this.data = new Dweb.StructuredBlock(this.hash, null, verbose); //TODO-UNUSEDBLOCK - should probably be unused block for signature (thing signed)
-        return this.data.p_fetch(verbose);
-    }
-
 }
 exports = module.exports = Signature;

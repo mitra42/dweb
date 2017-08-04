@@ -12,7 +12,8 @@ const LetterToClass = { // Each of these needs a constructor that takes hash, da
     "kc": KeyChain,
     "kp": KeyPair,
     "mb": MutableBlock,
-    "acl": AccessControlList
+    "acl": AccessControlList,
+    //"accesscontrollistentry", AccessControlListEntry - not listed as AccessControlListEntry is not exposed
 };
 
 class UnknownBlock extends SmartDict {

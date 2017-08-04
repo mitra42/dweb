@@ -23,11 +23,15 @@ class StructuredBlock extends SmartDict {
         if (!this._hash) {
             return super.p_store(verbose);    //Sets self._hash and stores in background if has changed
         }
+        //TODO-SEPERATE TODO-ASYNC this should be a Promise.All
+        /* DUPLICATES p_add on commonlist
         for (let i in this._signatures) {
             let s = this._signatures[i];
             //PY makes copy of s, but this is because the json procedure damages the object which doesnt happen in JSON.stringify as used in Transport.dumps in JS
+            // Note this adds to the list of s.signedby and TODO probably should happen during the signing process and does for ACLE
             Dweb.transport.p_rawadd(this._hash, s.date, s.signature, s.signedby, verbose);
         }
+        */
         return this; // For chaining
 
     }
@@ -113,9 +117,10 @@ class StructuredBlock extends SmartDict {
          :param CommonList commonlist:   List its going on - has a ACL with a private key
          :return: sig so that CommonList can add to _list
          */
-        if (!this._hash) this.p_store(verbose);  // Sets _hash immediately which is needed for signatures
-        if (!commonlist._publichash) commonlist.p_store(verbose);    // Set _publichash immediately (required for Signature.sign)
-        let sig = Signature.sign(commonlist, this._hash, verbose);
+        //TODO should probaly disable storage here, and do assertion OR make it p_sign , either way avoids a race.
+        //if (!this._hash) this.p_store(verbose);  // Sets _hash immediately which is needed for signatures
+        //if (!commonlist._publichash) commonlist.p_store(verbose);    // Set _publichash immediately (required for Signature.sign)
+        let sig = super.sign(commonlist, verbose);  // Checks this, and commonlist are stored
         this._signatures.push(sig);
         return sig;  // so that CommonList can add to _list
     }

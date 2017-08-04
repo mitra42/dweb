@@ -91,7 +91,7 @@ class CommonList extends SmartDict {
                 .map((ub) => ub.p_fetch(verbose)))) // Return is array result of p_fetch which is array of new objs (suitable for storing in keys etc)
         }
 
-    blocks(verbose) {
+    blocks(verbose) {   //TODO this only seems to be used in MB and usage could probable be replaced by p_fetchlist
         console.assert(false, "XXX@CL.blocks - checking if this ever gets used as should be handled by p_fetchlist.then");
         let results = {};   // Dictionary of { SHA... : StructuredBlock(hash=SHA... _signatures:[Signature*] ] ) }
         for (let i in this._list) {
@@ -138,15 +138,19 @@ class CommonList extends SmartDict {
          :return: this - for chaining
          */
         let self = this;
+        let sig;
         return this.p_fetch(verbose)
+            .then(() => this.p_store()) // Make sure stored - fetch might be a Noop if created locally
+            .then(() => obj.p_store())
             .then(() => {
                 console.assert(self._master && self.keypair, "ForbiddenException: Signing a new entry when not a master list");
                 // The obj.store stores signatures as well (e.g. see StructuredBlock.store)
-                let sig = obj.sign(self, verbose);
+                sig = obj.sign(self, verbose); // SmartDict implements signing, subclasses store in signatures etc
                 obj.p_store(verbose);
                 self._list.push(sig);
-                return obj;
             })
+            .then(() => self.p_add(obj._hash, sig, verbose))    // Add to list in dweb
+            .then(() => obj);
     }
 
     _makesig(hash, verbose) {

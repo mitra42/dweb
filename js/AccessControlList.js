@@ -1,7 +1,15 @@
 const CommonList = require("./CommonList");
+const SmartDict = require("./SmartDict");
 const Dweb = require("./Dweb");
 // ######### Parallel development to AccessControlList.py ########
 
+class _AccessControlListEntry extends SmartDict {    // Local class
+
+    constructor(hash, data, verbose, options) {
+        super(hash, data, verbose, options);
+        this.table = "AccessControlListEntry";
+    }
+}
 
 class AccessControlList extends CommonList {
     /*
@@ -29,7 +37,7 @@ class AccessControlList extends CommonList {
         return super.preflight(dd);
     }
 
-    p_add(viewerpublichash, verbose) {
+    p_add_acle(viewerpublichash, verbose) {
         /*
         Add a new ACL entry
         Needs publickey of viewer
@@ -44,16 +52,13 @@ class AccessControlList extends CommonList {
         }
         let viewerpublickeypair = new Dweb.KeyPair(viewerpublichash, null, verbose);
         return viewerpublickeypair.p_fetch(verbose)
-            .then(() => {
-                let aclinfo = {
+            .then(() => new _AccessControlListEntry(null, {
                     //Need to go B64->binary->encrypt->B64
                     "token": viewerpublickeypair.encrypt(Dweb.CryptoLib.b64dec(self.accesskey), true, self),
                     "viewer": viewerpublichash
-                };
-                let sb = new Dweb.StructuredBlock(null, aclinfo, verbose); //hash,data,verbose
-                return (sb);
-            })
-            .then((sb) => self.p_signandstore(sb, verbose))
+                }, verbose) //hash,data,verbose
+            )
+            .then((acle) => self.p_signandstore(acle, verbose))
             .then(() => self);
     }
 
@@ -61,7 +66,7 @@ class AccessControlList extends CommonList {
         /*
         Find the entries for a specific viewer
         There might be more than one if either the accesskey changed or the person was added multiple times.
-        Entries are StructuredBlocks with token being the decryptable token we want
+        Entries are AccessControlListEntry with token being the decryptable token we want
 
         :param viewerkeypair:  KeyPair of viewer
         :param verbose:
@@ -70,7 +75,7 @@ class AccessControlList extends CommonList {
         */
 
         if (verbose) console.log("AccessControlList.tokens decrypt=",decrypt);
-        console.assert(!this._needsfetch, "Dont attampt without doing a p_fetch first");
+        console.assert(!this._needsfetch, "Need to p_fetch before calling tokens");
         let viewerhash = viewerkeypair._hash;
         if (! this._list.length) { return []}
         let toks = this._list
@@ -82,10 +87,11 @@ class AccessControlList extends CommonList {
         return toks;
     }
 
-    p_fetch_then_list_then_elements(verbose) {  // Like superclass, but fetch the blocks the sigs point to.
-        return super.p_fetch_then_list_then_elements(verbose)
-            .then(() => Promise.all(
-                this._list.map((sig) => {return sig.p_block(verbose)})))
+    p_fetch_then_list_then_elements(verbose) {  // Like superclass, but fetch the blocks the sigs point to which are ACLE
+        let self=this;
+        return this.p_fetch_then_list(verbose)  //Dont use p_fetch_then_list_then_elements because CL has to assume its a UnknownBlock
+            .then(() => this._list.map((sig) => { sig.data = new _AccessControlListEntry(sig.hash, null, verbose)}))
+            .then(() => Promise.all(self._list.map((sig) => sig.data.p_fetch(verbose))))
     }
 
     encrypt(data, b64) { return Dweb.CryptoLib.sym_encrypt(data, this.accesskey, b64); };
