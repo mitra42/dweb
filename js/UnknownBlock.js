@@ -1,18 +1,13 @@
 const SmartDict = require("./SmartDict");
-const StructuredBlock = require("./StructuredBlock");
-const MutableBlock = require("./MutableBlock");
-const KeyChain = require("./KeyChain");
-const KeyPair = require("./KeyPair");
-const AccessControlList = require("./AccessControlList");
 const Dweb = require("./Dweb");
 
 //TODO-SEPERATE - move these to Dweb
-const LetterToClass = { // Each of these needs a constructor that takes hash, data and is ok with no other parameters, (otherwise define a set of these methods as factories)
-    "sb": StructuredBlock,
-    "kc": KeyChain,
-    "kp": KeyPair,
-    "mb": MutableBlock,
-    "acl": AccessControlList,
+const table2class = { // Each of these needs a constructor that takes hash, data and is ok with no other parameters, (otherwise define a set of these methods as factories)
+    "sb": "StructuredBlock",
+    "kc": "KeyChain",
+    "kp": "KeyPair",
+    "mb": "MutableBlock",
+    "acl": "AccessControlList",
     //"accesscontrollistentry", AccessControlListEntry - not listed as AccessControlListEntry is not exposed
 };
 
@@ -39,8 +34,10 @@ class UnknownBlock extends SmartDict {
             .then((data) => {
                 data = Dweb.transport.loads(data);    // Parse JSON
                 let table = data["table"];
-                cls = LetterToClass[table];
-                console.assert(cls, "UnknownBlock.p_fetch:",table,"isnt implemented in LetterToClass");
+                cls = Dweb[table2class[table]]; // Gets class name, then looks up in Dweb - avoids dependency
+                //console.log("XXX@UB.p_fetch.38 cls=",cls)
+                console.assert(cls.prototype instanceof SmartDict, "Avoid data driven hacks to other classes")
+                console.assert(cls, "UnknownBlock.p_fetch:",table,"isnt implemented in table2class");
                 return data;
             })
             .then((data) => Dweb.CryptoLib.p_decryptdata(data, verbose))    // decrypt - may return string or obj
