@@ -112,7 +112,9 @@ class MutableBlock extends CommonList {
             this._current._acl = this.contentacl;    //Make sure SB encrypted when stored
             this._current.dirty();   // Make sure stored again if stored unencrypted. - _hash will be used by signandstore
         }
-        return super.p_signandstore(this._current, verbose) // ERR SignedBlockEmptyException, ForbiddenException
+        return super.p_signandstore(this._current, verbose)
+            .then((sig) => { this._current._signatures.push(sig); return sig} )// Promise resolving to sig, ERR SignedBlockEmptyException, ForbiddenException
+
     }
 
     p_path(patharr, verbose, successmethod) {

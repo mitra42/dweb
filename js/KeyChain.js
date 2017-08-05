@@ -55,7 +55,7 @@ class KeyChain extends CommonList {
          Item should usually itself be encrypted (by setting its _acl field)
          COPIED FROM PYTHON 2017-05-24
 
-         :param obj: JSON structure to add to KeyChain 0 should be a Signature
+         :param obj: Hash or a object to add (MutableBlock or ViewerKey)
          */
         let hash = (typeof obj === "string") ? obj : obj._hash;
         let sig = this._makesig(hash, verbose);

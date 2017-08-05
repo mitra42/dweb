@@ -101,13 +101,14 @@ class StructuredBlock extends SmartDict {
     file() { console.assert(false, "XXX Undefined function StructuredBlock.file"); }
     size() { console.assert(false, "XXX Undefined function StructuredBlock.size"); }
 
+    /* OBS - moved into MB.p_signandstore
     sign(commonlist, verbose) {
-        /*
+        /-*
          Add a signature to a StructuredBlock and add it to a list
          Note if the SB has a _acl field it will be encrypted first, then the hash of the encrypted block used for signing.
          :param CommonList commonlist:   List its going on - has a ACL with a private key
          :return: sig so that CommonList can add to _list
-         */
+         *-/
         //TODO should probaly disable storage here, and do assertion OR make it p_sign , either way avoids a race.
         //if (!this._hash) this.p_store(verbose);  // Sets _hash immediately which is needed for signatures
         //if (!commonlist._publichash) commonlist.p_store(verbose);    // Set _publichash immediately (required for Signature.sign)
@@ -115,6 +116,7 @@ class StructuredBlock extends SmartDict {
         this._signatures.push(sig);
         return sig;  // so that CommonList can add to _list
     }
+    */
     verify() { console.assert(false, "XXX Undefined function StructuredBlock.verify"); }
 
 

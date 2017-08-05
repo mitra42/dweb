@@ -116,7 +116,7 @@ class CommonList extends SmartDict {
 
          :param obj: Should be subclass of SmartDict, don't think Block would work.
          :param verbose:
-         :return: this - for chaining
+         :return: obj - for chaining
          */
         let self = this;
         let sig;
@@ -125,12 +125,13 @@ class CommonList extends SmartDict {
             .then(() => obj.p_store())
             .then(() => {
                 console.assert(self._master && self.keypair, "ForbiddenException: Signing a new entry when not a master list");
-                sig = obj.sign(self, verbose); // SmartDict implements signing, subclasses store in signatures etc
+                sig = this._makesig(obj._hash, verbose)
+                //sig = obj.sign(self, verbose); // SmartDict implements signing, subclasses store in signatures etc
                 obj.p_store(verbose);
                 self._list.push(sig);
             })
             .then(() => self.p_add(obj._hash, sig, verbose))    // Add to list in dweb
-            .then(() => obj);
+            .then(() => sig);
     }
 
     _makesig(hash, verbose) {
