@@ -40,7 +40,7 @@ class UnknownBlock extends SmartDict {
                 console.assert(cls, "UnknownBlock.p_fetch:",table,"isnt implemented in table2class");
                 return data;
             })
-            .then((data) => Dweb.CryptoLib.p_decryptdata(data, verbose))    // decrypt - may return string or obj
+            .then((data) => self.p_decrypt(data, verbose))    // decrypt - may return string or obj
             .then((data) => {
                 let newobj = new cls(self._hash, data);
                 if (successmethod) {

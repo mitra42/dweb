@@ -93,10 +93,10 @@ class SmartDict extends Transportable {
         // :errors: Authentication Error
         let self = this;
         if (this._needsfetch) { // Only load if need to
-            if (verbose) { console.log("CommonList.load:",this._hash)}
+            if (verbose) { console.log("SmartDict.p_fetch:",this._hash)}
             this._needsfetch = false;
             return Dweb.transport.p_rawfetch(this._hash, verbose)   //TODO-IPFS change to use dag storage
-                .then((data) => Dweb.CryptoLib.p_decryptdata(Dweb.transport.loads(data), verbose))
+                .then((data) => self.p_decrypt(Dweb.transport.loads(data), verbose))
                 .then((data) => { self._setdata(data); return self;})
                 .catch((err) => { console.log("Unable to fetch",this._hash,err); throw(err); })
         } else {
@@ -104,7 +104,13 @@ class SmartDict extends Transportable {
         }
     }
 
+    p_decrypt(data, verbose) {
+        // This is a hook to an upper layer for decrypting data, if the layer isn't there then the data wont be decrypted.
+        return (Dweb.CryptoLib && Dweb.CryptoLib.p_decryptdata) ?  Dweb.CryptoLib.p_decryptdata(data, verbose) : data
+    }
+
     objbrowser(hash, path, ul, verbose) {
+        // NOTE THIS IS CURRENTLY NOT WORKING
         console.assert(false, "Rewrite to use p_*"); //TODO-IPFS obsolete with p_*
         let hashpath = path ? [hash, path].join("/") : hash;
         //OBSdwebobj(ul, hashpath) {    //TODO - note this is under dev works on SB and MB, needs to work on KeyChain, AccessControlList etc
