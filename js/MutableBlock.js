@@ -27,7 +27,6 @@ class MutableBlock extends CommonList {
     }
 
     p_fetchlist(verbose) {
-        // Call chain is mb.load > MB.p_fetchlist > THttp.rawlist > Thttp.list > MB.p_fetchlist.success > caller's success
         // Superclasses CL.p_fetchlist as need to set _current on a MB
         let self = this;
         return super.p_fetchlist(verbose)   // Return is a promise

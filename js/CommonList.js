@@ -60,11 +60,10 @@ class CommonList extends SmartDict {
 
     p_fetchlist(verbose) {
         // Load a list, note it does not load the individual items, just the Signatures. To do that, append a ".then" to loop over them afterwards.
-        // Call chain is mb.load > CL.p_fetchlist > THttp.rawlist > Thttp.load > CL|MB.p_fetchlist.success > callers.success
         let self = this;
         if (!this._master && !this._publichash)  this._publichash = this._hash;  // We aren't master, so publichash is same as hash
         if (!this._publichash) this._p_storepublic(verbose); // Async, but sets _publichash immediately
-        return Dweb.transport.p_rawlist(this._publichash, verbose)
+        return Dweb.transport.p_rawlist(this._publichash, verbose)  //TODO modify to allow listmonitor
             .then((lines) => {
                 //console.log("p_fetchlist:",lines[0]); // Should be a full line, not just "[" which suggests unparsed.
                 //lines = JSON.parse(lines))   Should already by a list

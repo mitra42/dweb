@@ -166,7 +166,6 @@ class TransportIPFS extends Transport {
     p_rawlist(hash, verbose) { //TODO-IPFS-MULTILIST move initialization of annotation list here
         // obj being loaded
         // Locate and return a list, based on its multihash
-        // Call chain is mb.load > CL.p_fetchlist > THttp.rawlist > Thttp.load > CL|MB.p_fetchlist.success > callers.success
         // This is coded as a p_rawlist (i.e. returning a Promise, even though it returns immediately, that is so that
         // it can be recoded for an architecture where we need to wait for the list.
         // notify is NOT part of the Python interface, needs implementing there.

@@ -31,7 +31,6 @@ class KeyChain extends CommonList {
     keytype() { return Dweb.KeyPair.KEYTYPESIGNANDENCRYPT; }  // Inform keygen
 
     p_fetchlist(verbose) {
-        // Call chain is kc.p_new > kc.loadandfetchlist > KC.p_fetchlist > THttp.p_rawlist > Thttp.list > KC.p_fetchlist.success > caller's success
         let self = this;
         return super.p_fetchlist(verbose)
             // Called after CL.p_fetchlist has unpacked data into Signatures in _list

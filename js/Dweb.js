@@ -116,7 +116,6 @@ exports.p_dwebfile = function(table, hash, path, successmethod) {
     if (table === "mb") {
         //(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose)
         const mb = new exports.MutableBlock(hash, null, false, null, false, null, null, null, verbose, null);
-        // Call chain is mb.p_fetch > CL.p_fetchlist > THttp.rawlist > Thttp.load > MB.p_fetchlist.success > caller.success
         // for dwebfile:mb, we want to apply the success function to the file - which is in the content after fetchlist
         return mb.p_fetch_then_list_then_current(verbose)
             .then(() => mb.p_path(path, verbose, successmethod))
@@ -156,7 +155,6 @@ exports.p_dweblist = function(div, hash, verbose, success, successmethodeach) {
     verbose = false;
     //(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose)
     const mb = new exports.MutableBlock(hash, null, false, null, false, null, null, null, verbose, null);
-    // Call chain is mb.load > CL.p_fetchlist > THttp.rawlist > Thttp.load > MB.p_fetchlist.success
     return mb.p_fetch_then_list_then_elements(verbose)
         .then(()=> mb.p_elem(div, verbose, successmethodeach)) // p_elem loads the block
 };

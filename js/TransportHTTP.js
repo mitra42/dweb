@@ -48,7 +48,6 @@ class TransportHTTP extends TransportHTTPBase {
     p_rawlist(hash, verbose) {
         // obj being loaded
         // Locate and return a block, based on its multihash
-        // Call chain is mb.load > CL.p_fetchlist > THttp.rawlist > Thttp.load > CL|MB.p_fetchlist.success > callers.success
         console.assert(hash, "TransportHTTP.p_rawlist: requires hash");
         return this.p_load("rawlist", hash, verbose);
     }
