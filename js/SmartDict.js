@@ -1,7 +1,17 @@
 const Transportable = require("./Transportable");   //Superclass
 const Dweb = require("./Dweb");
 
-//TODO-IPFS review from here down - especially regarding going direct to Dag
+//TODO-IPFS change to go direct to Dag rather than Block - maybe by making Transport.p_store decide ?
+
+//TODO-SEPERATE - move these to Dweb
+const table2class = { // Each of these needs a constructor that takes hash, data and is ok with no other parameters, (otherwise define a set of these methods as factories)
+    "sb": "StructuredBlock",
+    "kc": "KeyChain",
+    "kp": "KeyPair",
+    "mb": "MutableBlock",
+    "acl": "AccessControlList",
+    //"accesscontrollistentry", AccessControlListEntry - not listed as AccessControlListEntry is not exposed
+};
 
 
 // See CommonBlock.py for Python version
@@ -96,7 +106,7 @@ class SmartDict extends Transportable {
             if (verbose) { console.log("SmartDict.p_fetch:",this._hash)}
             this._needsfetch = false;
             return Dweb.transport.p_rawfetch(this._hash, verbose)   //TODO-IPFS change to use dag storage
-                .then((data) => self.p_decrypt(Dweb.transport.loads(data), verbose))
+                .then((data) => self.constructor.p_decrypt(Dweb.transport.loads(data), verbose))
                 .then((data) => { self._setdata(data); return self;})
                 .catch((err) => { console.log("Unable to fetch",this._hash,err); throw(err); })
         } else {
@@ -104,7 +114,29 @@ class SmartDict extends Transportable {
         }
     }
 
-    p_decrypt(data, verbose) {
+    static p_unknown_fetch(hash, verbose) {
+        /*
+            Fetch a block which initially we don't know which type
+            :resolves: New object - e.g. StructuredBlock or MutableBlock
+            Errors: Doesn't find class should be handled seperately from can't encrypt
+         */
+        if (verbose) console.log("SmartDict.p_unknown_fetch", hash);
+        let cls;
+        return Dweb.transport.p_rawfetch(hash, verbose) // Fetch the data
+            .then((data) => {
+                data = Dweb.transport.loads(data);      // Parse JSON
+                let table = data["table"];              // Find the class it belongs to
+                cls = Dweb[table2class[table]];         // Gets class name, then looks up in Dweb - avoids dependency
+                console.assert(cls, "SmartDict.p_unknown_fetch:",table,"isnt implemented in table2class"); //TODO Should probably raise a specific subclass of Error
+                console.assert(cls.prototype instanceof SmartDict, "Avoid data driven hacks to other classes")
+                return data;
+            })
+            .then((data) => cls.p_decrypt(data, verbose))    // decrypt - may return string or obj , note it can be suclassed for different encryption
+            .then((data) => { return new cls(hash, data)})                // Returns new block that should be a subclass of SmartDict
+            .catch((err) => {console.log("cant fetch and decrypt unknown"); throw(err)});
+    }
+
+    static p_decrypt(data, verbose) {
         // This is a hook to an upper layer for decrypting data, if the layer isn't there then the data wont be decrypted.
         return (Dweb.CryptoLib && Dweb.CryptoLib.p_decryptdata) ?  Dweb.CryptoLib.p_decryptdata(data, verbose) : data
     }

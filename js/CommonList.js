@@ -86,8 +86,7 @@ class CommonList extends SmartDict {
         let self=this;
         return this.p_fetch_then_list(verbose)
             .then(() => Promise.all(Dweb.Signature.filterduplicates(self._list) // Dont load multiple copies of items on list (might need to be an option?)
-                .map((sig) => new Dweb.UnknownBlock(sig.hash, verbose))
-                .map((ub) => ub.p_fetch(verbose)))) // Return is array result of p_fetch which is array of new objs (suitable for storing in keys etc)
+                .map((sig) => Dweb.SmartDict.p_unknown_fetch(sig.hash, verbose)))) // Return is array result of p_fetch which is array of new objs (suitable for storing in keys etc)
         }
 
     _p_storepublic(verbose) { //verbose

@@ -31,10 +31,11 @@ class StructuredBlock extends SmartDict {
         // Call chain is ...  or constructor > _setdata > _setproperties > __setattr__
         // catch equivalent of getters and setters here
         let verbose = false;
-        if (name === "links") {  // Assume its a SB TODO-UNKNOWN make dependent on which table use UnknownBlock
+        if (name === "links") {
             let links = value;
             for (let len = links.length, i=0; i<len; i++) {
-                links[i] = new StructuredBlock(null, links[i], verbose);
+                console.assert(false, "Next line needs fixing, caller shoudl do this expansion as its async and __setattr__ cant be") //TODO
+                links[i] = Dweb.SmartDict.p_unknown_fetch(links[i],verbose);
             }
             this[name] = links;
         } else {

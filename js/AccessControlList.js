@@ -89,7 +89,7 @@ class AccessControlList extends CommonList {
 
     p_fetch_then_list_then_elements(verbose) {  // Like superclass, but fetch the blocks the sigs point to which are ACLE
         let self=this;
-        return this.p_fetch_then_list(verbose)  //Dont use p_fetch_then_list_then_elements because CL has to assume its a UnknownBlock
+        return this.p_fetch_then_list(verbose)  //Dont use p_fetch_then_list_then_elements because CL has to assume its a unknown type of block
             .then(() => this._list.map((sig) => { sig.data = new _AccessControlListEntry(sig.hash, null, verbose)}))
             .then(() => Promise.all(self._list.map((sig) => sig.data.p_fetch(verbose))))
     }
