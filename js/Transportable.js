@@ -2,7 +2,17 @@
 const Dweb = require("./Dweb");
 
 class Transportable {
-    // Based on Transportable class in python - generic base for anything transportable.
+    /*
+    Based on Transportable class in python - generic base for anything transportable.
+
+    Fields
+    _hash   Hash of data stored
+    _data   Data (if its opaque)
+    _needsfetch True if need to fetch from Dweb
+     */
+
+
+
 
     constructor(hash, data) {
         this._hash = hash;  // Hash of the _data
@@ -96,16 +106,6 @@ class Transportable {
         if (verbose) console.log("EL set to", el.textContent);
     }
 
-    //noinspection JSUnusedGlobalSymbols
-    tell(data, hash, verbose, options) {  //TODO change fingerprint, wont take some of these args
-        // Can be included in a successfunction to callback
-        // This might get refactored as understand how to use it - currently unused (comment here if that changes)
-        let context = {"notifier": this, "data": data, "hash": hash};
-        let notified = options[0];
-        let method = options[1];
-        let newoptions = options[2];
-        notified[method](context, verbose, newoptions);
-    }
     // Note for tests, best to use Block.test()
 }
 exports = module.exports = Transportable;

@@ -9,7 +9,7 @@ const Dweb = require("./Dweb");
 class SmartDict extends Transportable {
     constructor(hash, data, verbose, options) {
         // data = json string or dict
-        super(hash, data); // _hash is _hash of SB, not of data - will call _setdata (which usually set fields), -note does not fetch the has, but sets _needsfetch
+        super(hash, data); // _hash is _hash of SmartDict, not of data - will call _setdata (which usually set fields), -note does not fetch the has, but sets _needsfetch
         this._setproperties(options);   // Note this will override any properties set with data
     }
 
@@ -38,7 +38,7 @@ class SmartDict extends Transportable {
         for (let i in dd) {
             if (i.indexOf('_') !== 0) { // Ignore any attributes starting _
                 if (dd[i] instanceof Transportable) {
-                    dd[i].p_store(false);  // Stores async, but sets hash first
+                    dd[i].p_store(false);  // Stores async, but sets hash first if you need it stored first then do so before calling p_store
                     res[i] = dd[i]._hash
                 } else {
                     res[i] = dd[i];
