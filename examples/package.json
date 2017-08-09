@@ -11,5 +11,13 @@
   "devDependencies": {
     "browserify": "^14.0.0"
   },
-  "dependencies": {}
+  "dependencies": {
+    "ipfs": ">=0.25.1"
+    "libsodium-wrappers": "git+https://git@github.com/mitra42/libsodium.js"
+  }
+  "author": {
+    "name": "Mitra Ardron",
+    "email": "mitra@archive.org",
+    "url": "http://www.mitra.biz"
+  }
 }
