@@ -1,6 +1,8 @@
 const TransportHTTPBase = require('./TransportHTTPBase.js');
 const sodium = require("libsodium-wrappers");   // Note for now this has to be Mitra's version as live version doesn't support urlsafebase64
 
+//TODO-HTTP at the moment this isn't setup to work in browser, should be simple to do.
+
 defaulthttpoptions = {
     ipandport: [ 'localhost',4243]
 };

@@ -78,33 +78,11 @@ exports.utils.mergeTypedArraysUnsafe = function(a, b) { // Take care of inabilit
     c.set(b, a.length);
     return c;
 };
-//TODO document from here down
 
-// ==== UI related functions, not dWeb specific =========
-//noinspection JSUnusedGlobalSymbols
-exports.utils.togglevisnext = function(elem) {   // Hide the next sibling object and show the one after, or vica-versa,
-    let el1 = elem.nextSibling;
-    let el2 = el1.nextSibling;
-    if (el1.style.display === "none") {
-        el1.style.display = "";
-        el2.style.display = "none";
-    } else {
-        el1.style.display = "none";
-        el2.style.display = "";
-    }
-};
-
-exports.utils.p_objbrowserfetch = function(el) {
-    let verbose = false;
-    let source = el.source;
-    let parent = el.parentNode;
-    parent.removeChild(el); //Remove elem from parent
-    return source.p_fetch(verbose)
-        .then((msg) => source.objbrowser(source._hash, null, parent, false ));
-};
 
 // ==== NON OBJECT ORIENTED FUNCTIONS ==============
 
+/*TODO: NOT PORTED OR TESTED WITH PROMISES
 exports.p_dwebfile = function(table, hash, path, successmethod) {
     // Simple utility function to load into a hash without dealing with individual objects
     // successmethod - see "path()" for definition.
@@ -128,8 +106,10 @@ exports.p_dwebfile = function(table, hash, path, successmethod) {
         alert("dwebfile called with invalid table="+table);
     }
 };
+*/
 
 
+/*TODO: NOT PORTED OR TESTED WITH PROMISES
 exports.p_dwebupdate = function(hash, type, data, successmethod) {
     let verbose = false;
     //(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose)
@@ -144,7 +124,10 @@ exports.p_dwebupdate = function(hash, type, data, successmethod) {
         },
         error);
 };
+*/
 
+
+/*TODO: NOT PORTED OR TESTED WITH PROMISES
 exports.p_dweblist = function(div, hash, verbose, success, successmethodeach) {
     //TODO-UNUSED doesnt appear to be used, though should have been in example.html
     //Retrieve a list, and create <li> elements of div to hold it.
@@ -158,13 +141,6 @@ exports.p_dweblist = function(div, hash, verbose, success, successmethodeach) {
     return mb.p_fetch_then_list_then_elements(verbose)
         .then(()=> mb.p_elem(div, verbose, successmethodeach)) // p_elem loads the block
 };
-
-// ======== EXPERIMENTAL ZONA ==================
-
-//TODO BROWSER----
-//-data collapsable
-
-//TODO-IPFS This was uncommented for browser version that was working, done in test.js for now
-//exports.transport = exports.TransportHTTP.setup([exports.dwebserver, exports.dwebport], {});
+*/
 
 

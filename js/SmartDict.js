@@ -142,15 +142,12 @@ class SmartDict extends Transportable {
     }
 
     objbrowser(hash, path, ul, verbose) {
-        // NOTE THIS IS CURRENTLY NOT WORKING
-        console.assert(false, "Rewrite to use p_*"); //TODO-IPFS obsolete with p_*
+        if (verbose) { console.log("objbrowser hash=",hash,"path=",path,"ul=",ul,"verbose=",verbose) }
         let hashpath = path ? [hash, path].join("/") : hash;
-        //OBSdwebobj(ul, hashpath) {    //TODO - note this is under dev works on SB and MB, needs to work on KeyChain, AccessControlList etc
         // ul is either the id of the element, or the element itself.
-        //TODO-follow link arrow
-        //console.log("dwebobj",ul)
         if (typeof ul === 'string') {
             ul = document.getElementById(ul);
+            console.assert(ul,"Couldnt find ul:",ul)
         }
         let li = document.createElement("li");
         li.source = this;
@@ -195,7 +192,7 @@ class SmartDict extends Transportable {
                         let ul3 = document.createElement("ul");
                         ul3.className = "proplinks";
                         ul3.style.display = 'none';
-                        spanname.setAttribute('onclick',"Dweb.utils.togglevisnext(this);");
+                        spanname.setAttribute('onclick',"Dweb.SmartDict.objbrowsertogglevisnext(this);");
                         //spanname.setAttribute('onclick',"console.log(this.nextSibling)");
 
                         li2.appendChild(ul3);
@@ -229,7 +226,7 @@ class SmartDict extends Transportable {
                             //noinspection ES6ConvertVarToLetConst
                             spanval = document.createElement('span');
                             if (prop === "_needsfetch") {
-                                li2.setAttribute('onclick','Dweb.utils.p_objbrowserfetch(this.parentNode.parentNode);');
+                                li2.setAttribute('onclick','Dweb.SmartDict.p_objbrowserfetch(this.parentNode.parentNode);');
                             }
                         }
                         //noinspection JSUnfilteredForInLoop
@@ -243,5 +240,27 @@ class SmartDict extends Transportable {
         }
 
     }
+    static objbrowsertogglevisnext(elem) {   // Hide the next sibling object and show the one after, or vica-versa,
+        let el1 = elem.nextSibling;
+        let el2 = el1.nextSibling;
+        if (el1.style.display === "none") {
+            el1.style.display = "";
+            el2.style.display = "none";
+        } else {
+            el1.style.display = "none";
+            el2.style.display = "";
+        }
+    }
+    static p_objbrowserfetch(el) {
+        // This attached as an onclick method of something so that when clicked it will replace itself with a expanded objbrowser version
+        let verbose = false;
+        let source = el.source;
+        let parent = el.parentNode;
+        parent.removeChild(el); //Remove elem from parent
+        return source.p_fetch(verbose)
+            .then((msg) => source.objbrowser(source._hash, null, parent, false ));
+    }
+
 }
+
 exports = module.exports = SmartDict;

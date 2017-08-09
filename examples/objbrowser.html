@@ -4,7 +4,9 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>DWEB Object Browser</title>
-    <script type="text/javascript" src="/file/mb/BLAKE2.iYiNlcLOfxRU-coIq2foYgTN9V1J4DzPV2yTXqHUN2I="></script><!-- Dweb bundled via Dweb-->
+    <!--<script type="text/javascript" src="/file/mb/BLAKE2.iYiNlcLOfxRU-coIq2foYgTN9V1J4DzPV2yTXqHUN2I="></script><!-- Dweb bundled via Dweb-->
+    <script src="cached/browser.min.js"></script><!-- cached version of ipfs/iiif so can test offline-->
+    <script type="text/javascript" src="dweb_bundled.js"></script><!-- Dwebbundle via local filesystem when testing without Dweb-->
     <!--suppress JSUnresolvedLibraryURL -->
     <!--<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js" type="text/javascript"></script><!-- Jquery via Google -->
     <!--<script src="/file/sb/BLAKE2.RXiIhCFXXknh1K54zIpF53Fi2wieHY6SluWML39taS4=" type="text/javascript"></script><!-- jquery-3.1.1.js-->
@@ -13,18 +15,19 @@
     <script  type="text/javascript">
         // This is an experimental object browser
         // Some examples to try - id's might move
-        mbhash = "BLAKE2.dfMoOqTdXvqKhoZo7HPvD5raBXfgH7chXsN2PElizs8=";  // Hash reported out at tinymce.html
-        mb2hash = "BLAKE2.nBWNoMyOJdhm-wrx0URYo7Utw3jG8J3boEBUcXvATVU="; // Hash reported for docs/_build/html
-        sbhash="BLAKE2.spTuo7yuSJEQyYy3rUFV2G0SCDxhkZEHhQQttozxWtQ="; // This is teh hash field from any line of list/..mbhash..
-
+        //mbhash = "BLAKE2.dfMoOqTdXvqKhoZo7HPvD5raBXfgH7chXsN2PElizs8=";  // Hash reported out at tinymce.html
+        //mb2hash = "BLAKE2.nBWNoMyOJdhm-wrx0URYo7Utw3jG8J3boEBUcXvATVU="; // Hash reported for docs/_build/html
+        //sbhash="BLAKE2.spTuo7yuSJEQyYy3rUFV2G0SCDxhkZEHhQQttozxWtQ="; // This is teh hash field from any line of list/..mbhash..
+        ipfssbhash="/ipfs/QmVgDcfpgc34e2NEnRT6ZpDbq1JRRv27EdHW3CEz8KC7qb"
         function browser(hash) {
-            //let obj = new Dweb.StructuredBlock(hash);
-            let verbose=true;
-            let obj = new Dweb.MutableBlock(mb2hash);
-            let path = []; // [ 'langs', 'readme.md' ]  // Direct to a file
-            obj.p_fetch(verbose)
-            .then((msg) => obj.p_fetchlist(verbose))
-            .then((msg) => obj.objbrowser(obj._hash, path, "ObjBrowser", verbose))
+            let verbose = true;
+            Dweb.SmartDict.p_unknown_fetch(hash, verbose)
+                .then((sb) => {console.log("XXX@html.25",sb); return sb;})
+                .then((sb) => sb.objbrowser(hash, null, "ObjBrowser", verbose));
+            //let sb = new Dweb.StructuredBlock(sbhash);
+            //sb.load(verbose, {"path": ["langs"], "objbrowser": "ObjBrowser"} ); //,"readme.md"
+            //let mb = new Dweb.MutableBlock(mb2hash, null, false, null, false, null, null, null, verbose, null);
+            //mb.load(verbose, function(msg) { mb.p_path(['_static'], verbose, [ "objbrowser", "ObjBrowser"], null); });  //,"readme.md"
         }
     </script>
     <style type="text/css">
@@ -43,7 +46,18 @@
 <p>This is intended for geek-consumption !</p>
 <ul id="ObjBrowser"></ul><!-- This is where objects inserted-->
 <script type="text/javascript">
-    browser(sbhash);
+    let transportclass = TransportIPFS;
+    let verbose = true;
+    //let transportclass = TransportHTTP
+
+    transportclass.p_setup({iiif: {store: "indexeddb"}}, verbose, {})
+        .then((t) => {
+            if (verbose) console.log("setup returned and transport set - including annotationList");
+            Dweb.transport = t;
+        })
+        .then(() => console.log("STARTING TEST"))
+        //.then(() => transportclass.test(Dweb.transport, verbose)) // Uncomment this to make sure seeded with ipfssbhash = "...quick brown fox..."
+        .then(() => browser(ipfssbhash));
 </script>
 </body>
 </html>

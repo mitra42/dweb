@@ -5,68 +5,61 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>DWEB Test page</title>
     <!--<script type="text/javascript" src="/file/mb/BLAKE2.iYiNlcLOfxRU-coIq2foYgTN9V1J4DzPV2yTXqHUN2I="></script><!-- Dweb bundled via Dweb-->
-    <script type="text/javascript" src="dweb_bundled.js"></script><!-- Dweb bundle via local filesystem when testing without Dweb-->
+    <!--<script src="https://unpkg.com/ipfs-iiif-db/dist/browser.js"></script><!--or browser.min.js-->
+    <!--<script src="https://unpkg.com/ipfs-iiif-db@2.4.0/dist/browser.min.js"></script><!--or browser.min.js-->
+    <script src="cached/browser.min.js"></script><!-- cached version of ipfs/iiif so can test offline-->
+    <script type="text/javascript" src="dweb_bundled.js"></script><!-- Dwebbundle via local filesystem when testing without Dweb-->
     <script type="text/javascript">
         // This is a script that previously worked
-        mbhash = "BLAKE2.dfMoOqTdXvqKhoZo7HPvD5raBXfgH7chXsN2PElizs8=";  // Hash reported out at tinymce.html
-        mb2hash = "BLAKE2.nBWNoMyOJdhm-wrx0URYo7Utw3jG8J3boEBUcXvATVU="; // Hash reported for docs/_build/html
-        sbhash="BLAKE2.spTuo7yuSJEQyYy3rUFV2G0SCDxhkZEHhQQttozxWtQ="; // This is teh hash field from any line of list/..mbhash..
+        //mbhash = "BLAKE2.dfMoOqTdXvqKhoZo7HPvD5raBXfgH7chXsN2PElizs8=";  // Hash reported out at tinymce.html
+        //mb2hash = "BLAKE2.nBWNoMyOJdhm-wrx0URYo7Utw3jG8J3boEBUcXvATVU="; // Hash reported for docs/_build/html
+        //sbhash="BLAKE2.spTuo7yuSJEQyYy3rUFV2G0SCDxhkZEHhQQttozxWtQ="; // This is teh hash field from any line of list/..mbhash..
+        hashqbf = "/ipfs/QmUaQcMZfqK4apZpndKFnWoaTMGra1d4Urkqxfs1VSPeE4" // As reported by TransportIPFS.test
+        sbhash="/ipfs/QmVgDcfpgc34e2NEnRT6ZpDbq1JRRv27EdHW3CEz8KC7qb"; // Hash as reported by test_ipfs.js
+
+        function testing() { // Mirrors test in node version in test_ipfs.js
+            let verbose = false;
+            Dweb.Block.test(verbose)
+            .then(() => Dweb.StructuredBlock.test(document, verbose))
+            .then((testobjs) => sb = testobjs.sb)
+            .then(() => verbose ? console.log("sbhash should be set to:",sb._hash) : undefined)
+            .then(() => Dweb.MutableBlock.test(sb, verbose))
+            .then(() => Dweb.CryptoLib.test(verbose))
+            .then(() => Dweb.AccessControlList.p_test(verbose))
+            .then((acl) => Dweb.KeyChain.p_test(acl, verbose))
+            .then(() => console.log("test_ipfs.test complete"))
+        }
+
         function working() {
-            let verbose=false;
+            // This is a demo in the browser of some features,
+            let verbose=true;
+            let mb1;    // Holds MutableBlock created from the SB
+            let mb;     // Holds MutableBlock created by fetching mb1
             console.log("StructuredBlock=======");
             let sb = new Dweb.StructuredBlock(sbhash);
-            sb.p_load(verbose)
-            .then((msg) => sb.p_path(["langs","readme.md"], verbose,  [ "p_elem", "myList.0", verbose, null ]));
-            console.log("MutableBlock=======");
-            <!-- also works with /file/mb/.....=/langs/readme.md -->
-            let mb = new Dweb.MutableBlock(mbhash, null, false, null, false, null, null, null, verbose, null);
-            mb.p_fetch_then_list_then_content(verbose)
+            if (verbose) console.log("sb=",sb)
+            sb.p_fetch(verbose)
+            .then((msg) => sb.p_elem("myList.0", verbose, null))
+            //.then((msg) => sb.p_path(["langs","readme.md"], verbose,  [ "p_elem", "myList.0", verbose, null ]));
+            .then(() => console.log("MutableBlock======="))
+            // also works with /file/mb/.....=/langs/readme.md -->
+            // MB.p_new(acl, contentacl, name, _allowunsafestore, content, signandstore, verbose)
+            .then(()=> Dweb.MutableBlock.p_new(null, null, "test_ipfs.MB", true, "The quick brown mutable fox", true, verbose))
+            .then((newmb) => mb1 = newmb)
+            // MB(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose, options)
+            .then(() => { mb = new Dweb.MutableBlock(mb1._publichash, null, false, null, false, null, null, null, verbose, null)})
+            .then(() => mb.p_fetch_then_list_then_current(verbose))
+            .then(() => mb.p_elem("myList.1", verbose, null))
+            .then(() => console.log("test_ipfs.working and tested to this point"))
+            /* TODO-TEST gradually uncomment below
+            //TODO-PATH need a test of path
             .then((msg) => mb.p_path(["langs","readme.md"], verbose, ["p_elem", "myList.1", verbose, null]));
             <!-- Now test path using dwebfile -->
             Dweb.p_dwebfile("sb", sbhash, "langs/readme.md", ["p_elem", "myList.2", verbose, null]);
             <!-- Now test path using dwebfile -->
             Dweb.p_dwebfile("mb", mbhash, "langs/readme.md", ["p_elem", "myList.3", verbose, null]);
-            console.log("XXX@31 end testing");
-        }
-        function browser() {
-            let verbose = false;
-            let sb = new StructuredBlock(sbhash);
-            //sb.load(verbose, {"path": ["langs"], "objbrowser": "ObjBrowser"} ); //,"readme.md"
-            let mb = new MutableBlock(mb2hash, null, false, null, false, null, null, null, verbose, null);
-            mb.load(verbose, function(msg) { mb.p_path(['_static'], verbose, [ "objbrowser", "ObjBrowser"], null); });  //,"readme.md"
-        }
-        function cryptotest() { //TODO-CRYPTO Still working on this
-            // First test some of the lower level functionality - create key etc
-            let verbose = false; // Set to true below while testing
-            let qbf="The quick brown fox ran over the lazy duck";
-            let key = sodium.randombytes_buf(sodium.crypto_shorthash_KEYBYTES);
-            let shash_u64 = sodium.crypto_shorthash('test', key, 'urlsafebase64'); // urlsafebase64 is support added by mitra
-            key = null;
-            let hash_hex = sodium.crypto_generichash(32, qbf, key, 'hex'); // Try this with null as the key
-            let hash_64 = sodium.crypto_generichash(32, qbf, key, 'base64'); // Try this with null as the key
-            let hash_u64 = sodium.crypto_generichash(32, qbf, key, 'urlsafebase64'); // Try this with null as the key
-            if (verbose) { console.log("hash_hex = ",shash_u64, hash_hex, hash_64, hash_u64); }
-            if (hash_u64 !== "YOanaCqfg3UsKoqlNmVG7SFwLgDyB3aToEmLCH-vOzs=") { console.log("ERR Bad blake2 hash"); }
-            let signingkey = sodium.crypto_sign_keypair();
-            if (verbose) { console.log(signingkey); }as
-            let seedstr = "01234567890123456789012345678901";
-            let seed = sodium.from_string(seedstr);
-            let boxkey = sodium.crypto_box_seed_keypair(seed);
-            //FAILS - No round trip yet: if (verbose) { console.log("XXX@57 to_string=",sodium.to_string(boxkey.privateKey)); }
-
-            // Set mnemonic to value that generates seed "01234567890123456789012345678901"
-            let mnemonic = "coral maze mimic half fat breeze thought champion couple muscle snack heavy gloom orchard tooth alert cram often ask hockey inform broken school cotton"; // 32 byte
-            // Test sequence extracted from test.py
-            let kc;
-            let mblockm;
-            Dweb.KeyChain.p_new(mnemonic, false, "test_keychain kc", verbose)
-            .then((obj) => kc = obj)
-            .then(() => console.log("STARTING UNTESTED"))
-            //verbose = true;
-            //acl, contentacl, name, _allowunsafestore, content, signandstore, verbose, options
-            .then(() => Dweb.MutableBlock.p_new(kc, null, "test_keychain mblockm", true, qbf, true, verbose))
-            .then((mbm) => kc.p_add(mbm, verbose))   // Sign and store on KC's list
-            .then(() => console.log("END TESTING"))
+            */
+            .then(() => console.log("test_ipfs.html.working END"));
         }
     </script>
 </head>
@@ -78,14 +71,26 @@
     <li id="myList.2">Failed to load sb via dwebfile</li>
     <li id="myList.3">Failed to load mb via dwebfile</li>
 </ul>
-<h4>Encryption testing</h4>
+<ul id="ObjBrowser"></ul>
 
 <script type="text/javascript">
-    console.log("STARTING TEST");
-    //console.log(sodium);
-    //working(); // Can comment this line out when debugging
+    let verbose = false;
+    let transportclass = TransportIPFS;
+    //let transportclass = TransportHTTP    // Uncomment this to choose HTTP, but note p_setup below needs fixing
+
+    transportclass.p_setup({iiif: {store: "indexeddb"}}, verbose, {})
+        .then((t) => {
+            if (verbose) console.log("setup returned and transport set - including annotationList");
+            Dweb.transport = t;
+        })
+        .then(() => console.log("STARTING TEST"))
+        .then(() => transportclass.test(Dweb.transport, verbose))
+        .then(() => testing()) //Can comment this line out when testing other module
+        .then(() => working())
+        .then(() => console.log("Main end in test.html"))
+
     //browser();
-    cryptotest();
+    //cryptotest();
 </script>
 </body>
 </html>
