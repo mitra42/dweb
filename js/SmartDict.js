@@ -10,6 +10,7 @@ const table2class = { // Each of these needs a constructor that takes hash, data
     "kp": "KeyPair",
     "mb": "MutableBlock",
     "acl": "AccessControlList",
+    "sd": "SmartDict",
     //"accesscontrollistentry", AccessControlListEntry - not listed as AccessControlListEntry is not exposed
 };
 
@@ -21,6 +22,7 @@ class SmartDict extends Transportable {
         // data = json string or dict
         super(hash, data); // _hash is _hash of SmartDict, not of data - will call _setdata (which usually set fields), -note does not fetch the has, but sets _needsfetch
         this._setproperties(options);   // Note this will override any properties set with data
+        if (!this.table) { this.table = "sd"; } // Set it if the data doesnt set it, should be overridden by subclasses
     }
 
     __setattr__(name, value) { // Call chain is ... success or constructor > _setdata > _setproperties > __setattr__
@@ -128,7 +130,8 @@ class SmartDict extends Transportable {
                 let table = data["table"];              // Find the class it belongs to
                 cls = Dweb[table2class[table]];         // Gets class name, then looks up in Dweb - avoids dependency
                 console.assert(cls, "SmartDict.p_unknown_fetch:",table,"isnt implemented in table2class"); //TODO Should probably raise a specific subclass of Error
-                console.assert(cls.prototype instanceof SmartDict, "Avoid data driven hacks to other classes")
+                console.log(cls);
+                console.assert((table2class[table] === "SmartDict") || (cls.prototype instanceof SmartDict), "Avoid data driven hacks to other classes")
                 return data;
             })
             .then((data) => cls.p_decrypt(data, verbose))    // decrypt - may return string or obj , note it can be suclassed for different encryption

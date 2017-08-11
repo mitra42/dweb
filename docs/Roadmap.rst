@@ -4,14 +4,7 @@
 Roamap
 ******
 
-#TODO-REFACTOR need to scan and update this file
-
-
 This is a (rapidly) changing outline of the intended roadmap
-
-* [✔] Skeleton implementation of classes based on Local Transport.
-* [ ] After the Skeleton works, then parallel development can happen on the integration layer and transport layers
-* [ ] Once Integration is working, Sample Applications can be built on top.
 
 Transport Layer roadmap
 =======================
@@ -31,7 +24,7 @@ Integration Layer Roadmap
 * [✔] Test.py a series of tests
 * [✔] HTTP gateway - respond to URLs at higher levels than just Transport
 * [✔] JavascriptHTTP library - simple JS library to use HTTP transport (quickly enables app dev against gateway)
-* [~] Javascript library - providing full functionality against any active transport layers
+* [✔] Javascript library - providing full functionality against any active transport layers
 * [ ] Browser plugin -
 
 Application Layer Roadmap
@@ -45,10 +38,6 @@ TODO LIST
 =========
 This list is at a much finer lever of granularity than Roadmap above.
 
-* CRYPTO: Implement on JS
-    * KeyChain.new
-    * Test KeyChain.new on test page
-    * Embed on index and test pages
 * CRYPTO Implement Mnemonic (Current status fake's it - may req updating some html to use new mnemonic)
 * PEER: Peer knowledge system
     * Test on html etc

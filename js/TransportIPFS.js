@@ -170,11 +170,16 @@ class TransportIPFS extends Transport {
         // it can be recoded for an architecture where we need to wait for the list.
         // notify is NOT part of the Python interface, needs implementing there.
         console.assert(hash, "TransportHTTP.p_rawlist: requires hash");
-        return new Promise((resolve, reject) => {
-            let res = this.annotationList.getResources()
-                .filter((obj) => (obj.signedby === hash));
-            if (verbose) console.log("p_rawlist found",...Dweb.utils.consolearr(res));
-            resolve(res);
+        return new Promise((resolve, reject) => {  //XXXREJECT
+            try {
+                let res = this.annotationList.getResources()
+                    .filter((obj) => (obj.signedby === hash));
+                if (verbose) console.log("p_rawlist found", ...Dweb.utils.consolearr(res));
+                resolve(res);
+            } catch(err) {
+                console.log("Uncaught error in TransportIPFS.p_rawlist",err);
+                reject(err);
+            }
         })
     }
     listmonitor(hash, callback, verbose) {
