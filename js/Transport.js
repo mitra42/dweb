@@ -1,15 +1,3 @@
-const CryptoLib = require("./CryptoLib");
-
-/* This is extracted to TransportAPI.txt
- * Transports should create a subclass e.g. TransportXyz extends Transport and implement each of the functions below
- * Note this spec may evolve over time,
- * In general, for efficiency, functions should accept either String or Buffer, and return whatever they use internally without converting.
- * The verbose parameter is always a boolean that can be used to generate debugging lines on the console.
- * hashes can be the internal format of the underlying transport BUT must be identifyable e.g. /ipfs/12345abc or BLAKE2:12345abc
- * ideally we can move to a common URL-like format as the space evolves
- * TODO: notify spec (for items added to the list after p_rawlist) needs turning into promise or event
- * TODO: stream spec (for larger items returned as they are retrieved as a stream)  - see https://nodejs.org/api/http.html for example
- */
 
 
 class Transport {
