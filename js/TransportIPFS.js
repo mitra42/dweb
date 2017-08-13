@@ -31,7 +31,8 @@ const multihashes = require('multihashes'); // TODO-IPFS only required because I
 const crypto = require('crypto'); //TODO-IPFS only for testing - can remove
 
 // Utility packages (ours) Aand one-loners
-const makepromises = require('./utils/makepromises');
+const promisify = require('promisify-es6');
+//const makepromises = require('./utils/makepromises'); // Replaced by direct call to promisify
 function delay(ms, val) { return new Promise(resolve => {setTimeout(() => { resolve(val); },ms)})}
 
 // Other Dweb modules
@@ -110,8 +111,13 @@ class TransportIPFS extends Transport {
             .then((res) => {
                 t.iiif = res;
                 t.ipfs = res.ipfs;
-                t.promisified = {ipfs:{}};
-                makepromises(t.ipfs, t.promisified.ipfs, [ { block: ["put", "get"] }]); // Has to be after t.ipfs defined
+                //Replaced promisified utility since only two to promisify
+                //t.promisified = {ipfs:{}};
+                //makepromises(t.ipfs, t.promisified.ipfs, [ { block: ["put", "get"] }]); // Has to be after t.ipfs defined
+                t.promisified = { ipfs: { block: {
+                    put: promisify(t.ipfs.block.put),
+                    get: promisify(t.ipfs.block.get)
+                }}}
                 t.annotationList = res.annotationList(annotationlistexample);    //TODO-IPFS-MULTILIST move this to the list command - means splitting stuff under it that calls bootstrap
                 t.annotationList.on('started', (event) => {
                     console.log("IPFS node after annotation list start",t.ipfs.isOnline() ? "now online" : "but still offline");   //TODO throw error if not online
