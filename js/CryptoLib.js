@@ -12,41 +12,6 @@ const Dweb = require("./Dweb");
 // ==== Crypto.py - Encapsulate all the Cryptography =========
 // This was the libsodium version using Blake2
 //Specific to IPFS
-
-exports._signable = function(date, data) {
-        /*
-         Returns a string suitable for signing and dating, current implementation includes date and storage hash of data.
-         Called by signature, so that same thing signed as compared
-
-         :param date: Date on which it was signed
-         :param data: Storage hash of data signed (as returned by Transport layer) - will convert to str if its unicode
-         :return: Signable or comparable string
-         COPIED TO JS 2017-05-23
-         */
-        return date.toISOString() + data;
-    };
-
-exports.signature = function(keypair, date, hash, verbose) {
-        /*
-        Pair of verify(), signs date and data using public key function.
-
-        :param keypair: Key that be used for signature
-        :param date: Date that signing (usually now)
-        :return: signature that can be verified with verify
-        COPIED FROM PYTHON 2017-05-23 excluding RSA and WordHashKey support
-        */
-        console.assert(keypair && date && hash);
-        let signable = Dweb.CryptoLib._signable(date, hash); // A string we can sign
-        if (keypair._key.sign.privateKey) {
-            //if (keypair._key instanceof nacl.signing.SigningKey):
-            return sodium.crypto_sign(signable, keypair._key.sign.privateKey, "urlsafebase64");
-            //Can implement and uncomment next line if seeing problems verifying things that should verify ok - tests immediate verification
-            //keypair._key.verify_key.verify(signable, nacl.encoding.URLSafeBase64Encoder.decode(sig))
-        } else {
-            throw new Dweb.errors.ToBeImplementedError("signature for key ="+keypair._key);
-        }
-    };
-exports.verify = function() { console.assert(false, "XXX Undefined function CryptoLib.verify"); };
 exports.b64dec = function(data) { return sodium.from_urlsafebase64(data); };    //Encode arbitrary data from b64
 exports.b64enc = function(data) { return sodium.to_urlsafebase64(data); };     //Encode arbitrary data to b64
 

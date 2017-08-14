@@ -18,7 +18,7 @@ class Signature extends SmartDict {
         :param hash: of item being signed
          */
         let date = new Date(Date.now());  //TODO-DATE
-        let signature = Dweb.CryptoLib.signature(commonlist.keypair, date, hash);
+        let signature = commonlist.keypair.sign(date, hash);
         if (!commonlist._publichash) commonlist.p_store(verbose); // Sets _publichash sync, while storing async
         console.assert(commonlist._publichash, "Signature.sign should be a publichash by here");
         return new Signature(null, {"date": date, "signature": signature, "signedby": commonlist._publichash})

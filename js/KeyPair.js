@@ -173,7 +173,32 @@ class KeyPair extends SmartDict {
             throw new Dweb.errors.ToBeImplementedError("KeyPair.decrypt for " + this._key);
          }
     }
+    sign(date, hash, verbose) {
+        /*
+        Sign a date and hash using public key function.
+        Pair will be "verify()"
 
+        :param date: Date that signing (usually now)
+        :param hash: Hash being signed, it could really be any data,
+        :return: signature that can be verified with verify
+        */
+        console.assert(date && hash);
+        let signable = date.toISOString() + hash;   // Signable string
+        if (this._key.sign.privateKey) {
+            let sig = sodium.crypto_sign_detached(signable, this._key.sign.privateKey, "urlsafebase64");    //TODO may need to be crypto_sign_detached to match verify (better anyway)
+            //Can implement and uncomment next line if seeing problems verifying things that should verify ok - tests immediate verification
+            this.verify(signable, sig);
+            return sig;
+        } else {
+            throw new Dweb.errors.ToBeImplementedError("signature for key ="+this._key);
+        }
+    }
+
+    verify(signable, urlb64sig) {   //TODO - this is not yet incorporated - should be in CommonList
+        let sig = sodium.from_urlsafebase64(urlb64sig);
+        let tested = sodium.crypto_sign_verify_detached(sig, signable, this._key.sign.publicKey);
+        console.assert(tested, "Signature not verified");   //TODO decide what to do at this point - might throw exception
+    }
 }
 
 KeyPair.KEYTYPESIGN = 1;
