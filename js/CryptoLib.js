@@ -5,7 +5,6 @@
 
 //Other packages needed
 const sodium = require("libsodium-wrappers");
-const crypto = require ('crypto');
 const Dweb = require("./Dweb");
 
 //CryptoLib = {}
@@ -17,8 +16,8 @@ exports.b64enc = function(data) { return sodium.to_urlsafebase64(data); };     /
 
 exports.p_decryptdata = function(value, verbose) {
     /*
-     Takes a
-     checks if encrypted and returns immediately if not
+     Takes a dict,
+     checks if encrypted (by presence of "encrypted" field, and returns immediately if not
      Otherwise if can find the ACL's hash in our KeyChain then decrypt with it.
      Else returns a promise that resolves to the data
      No assumption is made about what is in the decrypted data

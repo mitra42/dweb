@@ -28,7 +28,7 @@ const CID = require('cids');
 
 const multihashes = require('multihashes'); // TODO-IPFS only required because IPFS makes it hard to get this
 
-const crypto = require('crypto'); //TODO-IPFS only for testing - can remove
+const crypto = require('crypto');   // Note crypto is deprecated but unsure how to access window.crypto or Node's built in crypto without this
 
 // Utility packages (ours) Aand one-loners
 const promisify = require('promisify-es6');

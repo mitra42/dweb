@@ -15,11 +15,13 @@
     "browserify": "^14.0.0"
   },
   "dependencies": {
-    "ipfs": "^0.25.1",
-    "libsodium-wrappers": "git+https://git@github.com/mitra42/libsodium.js",
-    "crypto": "^0.0.3",
-    "request": "^2.81.0",
     "cids": "^0.5.1",
-    "promisify-es6": "^1.0.3"
+    "crypto": "^1.0.1",
+    "dom": "0.0.3",
+    "ipfs": "^0.25.1",
+    "jsdom": "^11.1.0",
+    "libsodium-wrappers": "git+https://git@github.com/mitra42/libsodium.js",
+    "promisify-es6": "^1.0.3",
+    "request": "^2.81.0"
   }
 }

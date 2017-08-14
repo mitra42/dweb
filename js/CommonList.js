@@ -182,7 +182,7 @@ class CommonList extends SmartDict {
             .then(() => obj.p_store())
             .then(() => {
                 console.assert(self._master && self.keypair, "ForbiddenException: Signing a new entry when not a master list");
-                sig = this._makesig(obj._hash, verbose)
+                sig = this._makesig(obj._hash, verbose);
                 self._list.push(sig);   // Keep copy locally on _list
             })
             .then(() => self.p_add(obj._hash, sig, verbose))    // Add to list in dweb
