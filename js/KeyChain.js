@@ -11,14 +11,13 @@ const Dweb = require("./Dweb");
 class KeyChain extends CommonList {
     // This class is pulled form MutableBlock.py
 
-
-    constructor(hash, data, master, keypair, keygen, mnemonic, verbose) { //Note not all these parameters are supported (yet) by CommonList.constructor
-        super(hash, data, master, keypair, keygen, mnemonic, verbose);
+    constructor(hash, data, master, key, verbose) { //Note not all these parameters are supported (yet) by CommonList.constructor
+        super(hash, data, master, key, verbose);
         if (!this._keys) this._keys = []; // Could be overridden by data in super
         this.table = "kc";
     }
-    static p_new(mnemonic, keygen, name, verbose) {
-        let kc = new KeyChain(null, { "name": name }, true, null, keygen, mnemonic, verbose);
+    static p_new(key, name, verbose) {
+        let kc = new KeyChain(null, { name: name }, true, key, verbose);
         return kc.p_store(verbose) // Dont need to wait on store to load and fetchlist but will do so to avoid clashes
             .then(() => KeyChain.addkeychains(kc))
             .then(() => kc.p_fetch_then_list(verbose))  //fetchlist gets the elements
@@ -114,7 +113,7 @@ class KeyChain extends CommonList {
     _p_storepublic(verbose) {
         // Note - doesnt return a promise, the store is happening in the background
         if (verbose) console.log("KeyChain._p_storepublic");
-        let kc = new KeyChain(null, {"name": this.name}, false, this.keypair, false, null, verbose);
+        let kc = new KeyChain(null, {name: this.name}, false, this.keypair, verbose);
         kc.p_store(verbose); // Async, but will set _hash immediately
         this._publichash = kc._hash;  //returns immediately with precalculated hash
     }
@@ -166,7 +165,7 @@ class KeyChain extends CommonList {
                 if (verbose) {
                     console.log("Keychain.test 0 - create");
                 }
-                KeyChain.p_new(mnemonic, false, "test_keychain kc", verbose)
+                KeyChain.p_new({mnemonic: mnemonic}, "test_keychain kc", verbose)
                     .then((kc1) => {
                         kc = kc1;
                         if (verbose) console.log("KEYCHAIN 1 - add MB to KC");
@@ -175,15 +174,15 @@ class KeyChain extends CommonList {
                     .then((mbm) => {mbmaster=mbm;  kc.p_addobj(mbmaster, verbose)})   //Sign and store on KC's list (returns immediately with Sig)
                     .then(() => {
                         if (verbose) console.log("KEYCHAIN 2 - add viewerkeypair to it");
-                        viewerkeypair = new Dweb.KeyPair(null, {"name": vkpname, "key": keypairexport}, verbose);
+                        viewerkeypair = new Dweb.KeyPair(null, {name: vkpname, key: keypairexport}, verbose);
                         viewerkeypair._acl = kc;
                         viewerkeypair.p_store(verbose); // Defaults to store private=True (which we want)   // Sets hash, dont need to wait for it to store
                     })
                     .then(() =>  kc.p_addobj(viewerkeypair, verbose))
                     .then(() => {
                         if (verbose) console.log("KEYCHAIN 3: Fetching mbm hash=", mbmaster._hash);
-                        //MB(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose, options)
-                        mbm2 = new Dweb.MutableBlock(mbmaster._hash, null, true, null, false, null, null, null, verbose, null);
+                        //MB(hash, data, master, key, contenthash, contentacl, verbose, options)
+                        mbm2 = new Dweb.MutableBlock(mbmaster._hash, null, true, null, null, null, verbose, null);
                     })
                     .then(() =>  mbm2.p_fetch(verbose))
                     .then(() => console.assert(mbm2.name === mbmaster.name, "Names should survive round trip",mbm2.name,"!==",mbmaster.name))
@@ -192,7 +191,7 @@ class KeyChain extends CommonList {
                         Dweb.keychains = []; // Clear Key Chains
                     })
                     //p_new(mnemonic, keygen, name, verbose)
-                    .then(() => kcs2 = KeyChain.p_new(mnemonic, null, "test_keychain kc", verbose))
+                    .then(() => kcs2 = KeyChain.p_new({ mnemonic: mnemonic}, "test_keychain kc", verbose))
                     // Note success is run AFTER all keys have been loaded
                     .then(() => {
                         mm = KeyChain.mymutableBlocks();
@@ -228,8 +227,8 @@ class KeyChain extends CommonList {
                     .then(() => Dweb.MutableBlock.p_new(null, acl, "mblockm", true, qbf, true, verbose))
                     .then((newmblockm) => {
                         mblockm = newmblockm;
-                        //hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose, options
-                        mb = new Dweb.MutableBlock(mblockm._publichash, null, false, null, null, null, null, null, verbose);
+                        //hash, data, master, key, contenthash, contentacl, verbose, options
+                        mb = new Dweb.MutableBlock(mblockm._publichash, null, false, null, null, null, verbose);
                     })
                     .then(() => mb.p_fetch_then_list_then_current(verbose))
                     .then(() => {

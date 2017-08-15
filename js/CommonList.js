@@ -15,24 +15,23 @@ class CommonList extends SmartDict {
     dontstoremaster True if should not store master key
     */
 
-    constructor(hash, data, master, keypair, keygen, mnemonic, verbose, options) {
+    constructor(hash, data, master, key, verbose, options) {
         /*
             Create a new instance of CommonList
 
             :param hash: hash of list to fetch from Dweb
             :param data: json string or dict to load fields from
             :param master: boolean, true if should create a master list with private key etc
-            :param keypair: a KeyPair object to use as the key
-            :param keygen: boolean, true if should generate a key
-            :param mnemonic: BIP39 string to use as a mnemonic to generate the key - TODO not implemented (in JS) yet
+            :param key: A KeyPair, or a dict of options for creating a key: valid = mnemonic, seed, keygen:true
+                keygen: boolean, true means it should generate a key
+                mnemonic: BIP39 string to use as a mnemonic to generate the key - TODO not implemented (in JS) yet
+                seed: Seed to key generation algorithm
             :param options: dict that overrides any fields of data
          */
         super(hash, data, verbose, options);
         this._list = [];   // Array of members of the list
-        if (keygen || mnemonic) {   // either build the key
-            this.keypair = Dweb.KeyPair.keygen(this.keytype(), mnemonic, null, verbose);
-        } else {    // or use the one provided
-            this._setkeypair(keypair, verbose);
+        if (key) {
+            this._setkeypair(key, verbose);
         }
         this._master = master;  // Note this must be AFTER _setkeypair since that sets based on keypair found and _p_storepublic for example wants to force !master
         if (!this._master) { this._publichash = hash; } // For non master lists, publichash is same as hash
@@ -75,7 +74,7 @@ class CommonList extends SmartDict {
         :param value: KeyPair, or Dict like _key field of KeyPair
          */
         if (value && ! (value instanceof Dweb.KeyPair)) {
-            value = new Dweb.KeyPair(null, {"key":value}, verbose);  // Synchronous value will be decoded, not fetched
+            value = new Dweb.KeyPair(null, { key: value }, verbose) // Note ignoring keytype for now
         }
         this.keypair = value;
         this._master = value && value.has_private();

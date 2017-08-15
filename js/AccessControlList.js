@@ -23,9 +23,8 @@ class AccessControlList extends CommonList {
     */
 
     // Obviously ! This class hasnt' been implemented, currently just placeholder for notes etc
-
-    constructor(hash, data, master, keypair, keygen, mnemonic, verbose, options) {
-        super(hash, data, master, keypair, keygen, mnemonic, verbose, options);
+    constructor(hash, data, master, key, verbose, options) {
+        super(hash, data, master, key, verbose, options);
         this.table = "acl";
     }
 
@@ -129,8 +128,8 @@ class AccessControlList extends CommonList {
     _p_storepublic(verbose) {
         // Note - doesnt return a promise, the store is happening in the background
         if (verbose) console.log("AccessControlList._p_storepublic");
-        //AC(hash, data, master, keypair, keygen, mnemonic, verbose, options) {
-        let acl = new AccessControlList(null, {"name": this.name}, false, this.keypair, false, null, verbose, {});
+        //AC(hash, data, master, key, verbose, options) {
+        let acl = new AccessControlList(null, {"name": this.name}, false, this.keypair, verbose, {});
         acl.p_store(verbose); // Async, but will set _hash immediately
         this._publichash = acl._hash;  //returns immediately with precalculated hash
     }
@@ -143,12 +142,12 @@ class AccessControlList extends CommonList {
                 // Create a acl for testing, - full breakout is in test_keychain
                 let accesskey = Dweb.CryptoLib.randomkey();
                 let aclseed = "01234567890123456789012345678902";    // Note 01 at end used in mnemonic faking
-                let keypair = Dweb.KeyPair.keygen(Dweb.KeyPair.KEYTYPESIGNANDENCRYPT, null, aclseed, verbose);
+                let keypair = new Dweb.KeyPair(null, {key: {seed: aclseed}}, verbose);
                 //ACL(hash, data, master, keypair, keygen, mnemonic, verbose, options)
                 let acl = new Dweb.AccessControlList(null, {
                     name: "test_acl.acl",
                     accesskey: Dweb.CryptoLib.b64enc(accesskey)
-                }, true, keypair, false, null, verbose, {});
+                }, true, keypair, verbose, {});
                 acl._allowunsafestore = true;    // Not setting _acl on this
                 acl.p_store(verbose)
                 .then(() => {

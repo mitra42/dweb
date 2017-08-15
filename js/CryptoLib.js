@@ -36,8 +36,8 @@ exports.p_decryptdata = function(value, verbose) {
         if (kc) {
             return kc.decrypt(value.encrypted, verbose) // Exception: DecryptionFail - unlikely since publichash matches
         } else {
-            //ACL(hash, data, master, keypair, keygen, mnemonic, verbose, options)
-            let acl = new Dweb.AccessControlList(aclhash, null, null, null, false, null, verbose);  // TODO-AUTHENTICATION probably add person - to - person version
+            //ACL(hash, data, master, key, verbose, options)
+            let acl = new Dweb.AccessControlList(aclhash, null, false, null, verbose);  // TODO-AUTHENTICATION probably add person - to - person version
             return acl.p_fetch_then_list_then_elements(verbose) // Will load blocks in sig as well
                 .then(() => acl.decrypt(value.encrypted, null, verbose))  // Resolves to data
                 .catch((err) => { console.log("Unable to decrypt:",value); throw(err);});

@@ -6,11 +6,10 @@ const Dweb = require("./Dweb");
 
 class MutableBlock extends CommonList {
     // { _hash, _key, _current: StructuredBlock, _list: [ StructuredBlock*]
-
-    constructor(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose, options) {
-        //CL.constructor: hash, data, master, keypair, keygen, mnemonic, verbose
-        //if (verbose) console.log("new MutableBlock(", hash, data, master, keypair, keygen, mnemonic, verbose, options, ")");
-        super(hash, data, master, keypair, keygen, mnemonic, verbose, options);
+    constructor(hash, data, master, key, contenthash, contentacl, verbose, options) {
+        //CL.constructor: hash, data, master, key, verbose
+        //if (verbose) console.log("new MutableBlock(", hash, data, master, key, verbose, options, ")");
+        super(hash, data, master, key, verbose, options);
         this.contentacl = contentacl;
         this._current = new StructuredBlock(contenthash, null, verbose);
         this.table = "mb"
@@ -70,8 +69,8 @@ class MutableBlock extends CommonList {
 
     _p_storepublic(verbose) {
         // Note that this returns immediately after setting hash, so caller may not need to wait for success
-        //(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose, options)
-        let mb = new MutableBlock(null, null, false, this.keypair, false, null, null, null, verbose, {"name": this.name});
+        //(hash, data, master, key, contenthash, contentacl, verbose, options)
+        let mb = new MutableBlock(null, null, false, this.keypair, null, null, verbose, {"name": this.name});
         let prom = mb.p_store(verbose);    // Returns immediately but sets _hash first
         this._publichash = mb._hash;
     }
@@ -139,8 +138,8 @@ class MutableBlock extends CommonList {
          */
         // See test.py.test_mutableblock for canonical testing of python version of this
         if (verbose) console.log("MutableBlock.p_new: Creating MutableBlock", name);
-        // (hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose)
-        let mblockm = new MutableBlock(null, null, true, null, true, null, null, contentacl, verbose, {"name": name}); // (name=name  // Create a new block with a new key
+        // (hash, data, master, key, contenthash, contentacl, verbose)
+        let mblockm = new MutableBlock(null, null, true, {keygen: true}, null, contentacl, verbose, {"name": name}); // (name=name  // Create a new block with a new key
         mblockm._acl = acl;              //Secure it
         mblockm._current.data = content;  //Preload with data in _current.data
         mblockm._allowunsafestore = _allowunsafestore;
@@ -163,15 +162,15 @@ class MutableBlock extends CommonList {
         if (verbose) console.log("MutableBlock.test starting");
         return new Promise((resolve, reject) => {
             try {
-                //(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose, options
-                let mb1 = new Dweb.MutableBlock(null, null, true, null, true, null, sb._hash, null, verbose, null);
+                //(hash, data, master, key, contenthash, contentacl, verbose, options
+                let mb1 = new Dweb.MutableBlock(null, null, true, {keygen: true}, sb._hash, null, verbose, null);
                 mb1._allowunsafestore = true; // No ACL, so shouldnt normally store, but dont want this test to depend on ACL
                 let siglength = mb1._list.length; // Will check for size below
                 mb1.p_signandstore(verbose) // Async, should set hash immediately but wait to retrieve after stored.
                     //.then(() => console.log("mb1.test after signandstore=",mb1))
                     .then(() => console.assert(mb1._list.length === siglength+1))
-                    //MutableBlock(hash, data, master, keypair, keygen, mnemonic, contenthash, contentacl, verbose, options) {
-                    .then(() => mb = new MutableBlock(mb1._publichash, null, false, null, false, null, null, null, verbose, null))
+                    //MutableBlock(hash, data, master, key, contenthash, contentacl, verbose, options) {
+                    .then(() => mb = new MutableBlock(mb1._publichash, null, false, null, null, null, verbose, null))
                     .then(() => mb.p_fetch_then_list_then_current(verbose))
                     //.then(() => console.log("mb.test retrieved=",mb))
                     .then(() => console.assert(mb._list.length === siglength+1, "Expect list",siglength+1,"got",mb._list.length))
