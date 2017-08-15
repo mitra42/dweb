@@ -33,8 +33,13 @@ class CommonList extends SmartDict {
         if (key) {
             this._setkeypair(key, verbose);
         }
-        this._master = master;  // Note this must be AFTER _setkeypair since that sets based on keypair found and _p_storepublic for example wants to force !master
+        if (typeof master === "undefined") {
+            this._master = this.keypair.has_private();
+        } else {
+            this._master = master;  // Note this must be AFTER _setkeypair since that sets based on keypair found and _p_storepublic for example wants to force !master
+        }
         if (!this._master) { this._publichash = hash; } // For non master lists, publichash is same as hash
+        this.table = "cl";
     }
 
     keytype() {
@@ -98,9 +103,10 @@ class CommonList extends SmartDict {
             dd.keypair = dd._master ? dd.keypair.privateexport() : dd.keypair.publicexport();
         }
         let publichash = dd._publichash; // Save before preflight
+        let master = dd._master;
         dd = super.preflight(dd);  // Edits dd in place
         //TODO next line looks odd, _master should have been stripped by super.preflight ?
-        if (dd._master) { // Only store on Master, on !Master will be None and override storing hash as _publichash
+        if (master) { // Only store on Master, on !Master will be None and override storing hash as _publichash
             dd._publichash = publichash;   // May be None, have to do this AFTER the super call as super filters out "_*"
         }
         return dd;
@@ -144,9 +150,14 @@ class CommonList extends SmartDict {
 
     _p_storepublic(verbose) {
         /*
-         Unimplemented in CommonList, but must be implemented in all subclasses to store their "public" version.
+         Store a public version of the object, just stores name field and public key
+         Typically subclassed to save specific fields
+         Note that this returns immediately after setting hash, so caller may not need to wait for success
          */
-        console.assert(false, "Intentionally undefined function CommonList._p_storepublic - should implement in subclasses");
+        //CL(hash, data, master, key, verbose, options)
+        let cl = new CommonList(null, null, false, this.keypair, verbose, {"name": this.name});
+        let prom = cl.p_store(verbose);    // Returns immediately but sets _hash first
+        this._publichash = cl._hash;
     }
 
     p_store(verbose) {
@@ -156,6 +167,7 @@ class CommonList extends SmartDict {
          */
         if (this._master && ! this._publichash) {
             this._p_storepublic(verbose); //Stores asynchronously, but _publichash set immediately
+            console.log("XXX@p_store",this._hash,this._publichash);
         }
         if ( ! (this._master && this.dontstoremaster)) {
             return super.p_store(verbose);    // Transportable.store(verbose)
