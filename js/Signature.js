@@ -9,9 +9,9 @@ class Signature extends SmartDict {
 
     Fields:
     date:       Date stamp (according to browser) when item signed
-    signed:     Hash of signature signed    TODO-doc-api
+    hash:       Hash of object signed
     signature:  Signature of the date and hash
-    signedby:   Hash of list signing it     TODO-doc-api
+    signedby:   Public Hash of list signing this (list should have a public key)
      */
     constructor(hash, dic, verbose) {
         /*
@@ -40,7 +40,7 @@ class Signature extends SmartDict {
         let signature = commonlist.keypair.sign(date, hash);
         if (!commonlist._publichash) commonlist.p_store(verbose); // Sets _publichash sync, while storing async
         console.assert(commonlist._publichash, "Signature.sign should be a publichash by here");
-        return new Signature(null, {"date": date, "signed": hash, "signature": signature, "signedby": commonlist._publichash})
+        return new Signature(null, {"date": date, "hash": hash, "signature": signature, "signedby": commonlist._publichash})
     }
 
     verify() { console.assert(false, "XXX Undefined function Signature.verify, available in CommonList and KeyPair"); }
@@ -55,6 +55,16 @@ class Signature extends SmartDict {
         let res = {};
         // Remove duplicate signatures
         return arr.filter((x) => (!res[x.hash] && (res[x.hash] = true)))
+    }
+
+    p_unknown_fetch(verbose) {
+        let self = this;
+        if (!this.data) {
+            return Dweb.SmartDict.p_unknown_fetch(this.hash, verbose)
+                .then((obj) => self.data = obj); // Reslves to new obj
+        } else {
+            return new Promise((resolve, reject) => resolve(self.data));
+        }
     }
 
 }

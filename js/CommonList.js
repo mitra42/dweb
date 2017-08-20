@@ -105,7 +105,6 @@ class CommonList extends SmartDict {
         let publichash = dd._publichash; // Save before preflight
         let master = dd._master;
         dd = super.preflight(dd);  // Edits dd in place
-        //TODO next line looks odd, _master should have been stripped by super.preflight ?
         if (master) { // Only store on Master, on !Master will be None and override storing hash as _publichash
             dd._publichash = publichash;   // May be None, have to do this AFTER the super call as super filters out "_*"
         }
@@ -145,7 +144,7 @@ class CommonList extends SmartDict {
         let self=this;
         return this.p_fetch_then_list(verbose)
             .then(() => Promise.all(Dweb.Signature.filterduplicates(self._list) // Dont load multiple copies of items on list (might need to be an option?)
-                .map((sig) => Dweb.SmartDict.p_unknown_fetch(sig.hash, verbose)))) // Return is array result of p_fetch which is array of new objs (suitable for storing in keys etc)
+                .map((sig) => sig.p_unknown_fetch(verbose)))) // Return is array result of p_fetch which is array of new objs (suitable for storing in keys etc)
         }
 
     _p_storepublic(verbose) {
@@ -167,7 +166,6 @@ class CommonList extends SmartDict {
          */
         if (this._master && ! this._publichash) {
             this._p_storepublic(verbose); //Stores asynchronously, but _publichash set immediately
-            console.log("XXX@p_store",this._hash,this._publichash);
         }
         if ( ! (this._master && this.dontstoremaster)) {
             return super.p_store(verbose);    // Transportable.store(verbose)
@@ -185,6 +183,7 @@ class CommonList extends SmartDict {
 
          :param obj: Should be subclass of SmartDict, (Block is not supported)
          :resolves: sig created in process - for adding to lists etc.
+         :throws:   ForbiddenError if not master;
          */
         let self = this;
         let sig;
@@ -192,7 +191,7 @@ class CommonList extends SmartDict {
             .then(() => this.p_store()) // Make sure stored - fetch might be a Noop if created locally
             .then(() => obj.p_store())
             .then(() => {
-                console.assert(self._master && self.keypair, "ForbiddenException: Signing a new entry when not a master list");
+                if (!(self._master && self.keypair)) throw new Dweb.errors.ForbiddenError("Signing a new entry when not a master list");
                 sig = this._makesig(obj._hash, verbose);
                 self._list.push(sig);   // Keep copy locally on _list
             })
@@ -206,8 +205,8 @@ class CommonList extends SmartDict {
         :param hash:    Hash of object to sign
         :returns:       Signature
          */
-        console.assert(hash, "Empty string or undefined or null would be an error");
-        console.assert(this._master, "Must be master to sign something");
+        if (!hash) throw new Dweb.errors.CodingError("Empty hash is a coding error");
+        if (!this._master) throw new Dweb.errors.ForbiddenError("Must be master to sign something");
         let sig = Dweb.Signature.sign(this, hash, verbose); //returns a new Signature
         console.assert(sig.signature, "Must be a signature");
         return sig
@@ -222,5 +221,14 @@ class CommonList extends SmartDict {
         return Dweb.transport.p_rawadd(hash, sig.date, sig.signature, sig.signedby, verbose);
     }
 
+    listmonitor(callback, verbose) {
+        Dweb.transport.listmonitor(this._publichash, (obj) => {
+            if (verbose) console.log("CL.listmonitor",this._publichash,"Added",obj);
+            let sig = new Dweb.Signature(null, obj, verbose);
+            this._list.push(sig);
+            callback(sig);
+        })
+    }
+    //TODO add many of the methods of Array to CommonList see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array
 }
 exports = module.exports = CommonList;

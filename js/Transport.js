@@ -1,5 +1,3 @@
-
-
 class Transport {
     constructor(verbose, options) {}    // Doesnt do anything, its all done by SuperClasses
 
