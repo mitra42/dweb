@@ -208,7 +208,7 @@ class CommonList extends SmartDict {
          */
         console.assert(hash, "Empty string or undefined or null would be an error");
         console.assert(this._master, "Must be master to sign something");
-        let sig = Dweb.Signature.sign(this, hash, verbose);
+        let sig = Dweb.Signature.sign(this, hash, verbose); //returns a new Signature
         console.assert(sig.signature, "Must be a signature");
         return sig
     }
