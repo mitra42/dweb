@@ -104,8 +104,7 @@ class TransportIPFS extends Transport {
     static p_setup(ipfsiiifoptions, verbose, options) {
         let combinedipfsoptions = Object.assign(defaultipfsoptions, ipfsiiifoptions.ipfs);
         let combinediiifoptions = Object.assign(defaultiiifoptions, ipfsiiifoptions.iiif,{ipfs:defaultipfsoptions});   // Top level in this case
-        console.log("IPFS options",combinediiifoptions);
-        console.log("IPFS.ipfs = ",combinediiifoptions.ipfs);
+        console.log("IPFS options", JSON.stringify(combinediiifoptions));
         let t = new TransportIPFS(combinedipfsoptions, verbose, options);
         return new Promise((resolve, reject) => {
             TransportIPFS.ipfsstart(combinediiifoptions, verbose)
