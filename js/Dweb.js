@@ -4,12 +4,10 @@ exports.SmartDict = require("./SmartDict");
 exports.KeyPair = require("./KeyPair");
 exports.Signature = require("./Signature");
 exports.CommonList = require("./CommonList");
-exports.StructuredBlock = require('./StructuredBlock');
-exports.MutableBlock = require('./MutableBlock');
-exports.CryptoLib = require('./CryptoLib');
-exports.KeyChain = require('./KeyChain');
-exports.MutableBlock = require("./MutableBlock");
 exports.AccessControlList = require("./AccessControlList");
+exports.KeyChain = require('./KeyChain');
+exports.StructuredBlock = require('./StructuredBlock');
+exports.MutableBlock = require("./MutableBlock");
 
 // Javascript library for dweb
 // The crypto uses https://github.com/jedisct1/libsodium.js but https://github.com/paixaop/node-sodium may also be suitable if we move to node

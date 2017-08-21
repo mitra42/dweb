@@ -82,23 +82,10 @@ class SmartDict extends Transportable {
         // Call chain is ...  or constructor > _setdata > _setproperties > __setattr__
         // COPIED FROM PYTHON 2017-5-27
         value = typeof(value) === "string" ? Dweb.transport.loads(value) : value; // If its a string, interpret as JSON
-        console.assert(!( value && value.encrypted), "Should have been decrypted in p_fetch");
+        if (value && value.encrypted)
+            throw new Dweb.errors.EncryptionError("Should have been decrypted in p_fetch");
         this._setproperties(value); // Note value should not contain a "_data" field, so wont recurse even if catch "_data" at __setattr__()
     }
-
-    /*OBS moved into CL.p_signandstore
-    sign(commonlist, verbose) {
-        /-*
-         Sign, subclasses will probably add to a list.
-         Note if this object has a _acl field it will be encrypted first, then the hash of the encrypted block used for signing.
-         :param CommonList commonlist:   List its going on - has a ACL with a private key
-         :return: sig so that CommonList can add to _list
-         *-/
-        console.assert(this._hash, "Items should be stored before signing")
-        console.assert(commonlist._publichash, "List should be stored before signing", commonlist)
-        return Dweb.Signature.sign(commonlist, this._hash, verbose); // Typically, but not necessarily added to commonlist
-    }
-    */
 
     p_fetch(verbose) {
         // See also p_fetch_then_list, p_fetch_then_list_then_current, p_fetch_then_list_then_elements
@@ -143,8 +130,14 @@ class SmartDict extends Transportable {
     }
 
     static p_decrypt(data, verbose) {
-        // This is a hook to an upper layer for decrypting data, if the layer isn't there then the data wont be decrypted.
-        return (Dweb.CryptoLib && Dweb.CryptoLib.p_decryptdata) ?  Dweb.CryptoLib.p_decryptdata(data, verbose) : data
+        /*
+         This is a hook to an upper layer for decrypting data, if the layer isn't there then the data wont be decrypted.
+         Chain is SD.p_fetch > SD.p_decryptdata > ACL|KC.decrypt, then SD.setdata
+
+         :param data: possibly encrypted object produced from json stored on Dweb
+         :return: same object if not encrypted, or decrypted version
+         */
+        return (Dweb.AccessControlList && Dweb.AccessControlList.p_decryptdata) ?  Dweb.AccessControlList.p_decryptdata(data, verbose) : data
     }
 
 }

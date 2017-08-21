@@ -1,96 +1,88 @@
 const CommonList = require("./CommonList");  // Superclass
 const Dweb = require("./Dweb");
 
-// Utility packages (ours) Aand one-loners
-
-
-// ######### Parallel development to MutableBlock.py ########
-
-// Note naming convention - p_xyz means it returns a Promise
-
 class KeyChain extends CommonList {
-    // This class is pulled form MutableBlock.py
+    /*
+    KeyChain extends CommonList to store a users keys.
 
-    constructor(hash, data, master, key, verbose) { //Note not all these parameters are supported (yet) by CommonList.constructor
+    Fields:
+    _keys:  Array of keys (the signed objects on the list)
+     */
+
+    constructor(hash, data, master, key, verbose) {
+        /*
+        Create a new KeyChain, for parameters see CommonList
+         */
         super(hash, data, master, key, verbose);
         if (!this._keys) this._keys = []; // Could be overridden by data in super
         this.table = "kc";
     }
-    static p_new(key, name, verbose) {
+
+    static p_new(key, name, verbose) {  //TODO-REL3 refactor this - probably same args as constructor
         let kc = new KeyChain(null, { name: name }, true, key, verbose);
         return kc.p_store(verbose) // Dont need to wait on store to load and fetchlist but will do so to avoid clashes
             .then(() => KeyChain.addkeychains(kc))
-            .then(() => kc.p_fetch_then_list(verbose))  //fetchlist gets the elements
+            .then(() => kc.p_fetch_then_list_then_elements(verbose))
             .then(() => kc) //Fetches blocks in p_loadandfetchlist.success
             // Note kc returned from promise NOT from p_new so have to catch in a ".then"
-        //if verbose: print "Created keychain for:", kc.keypair.private.mnemonic
-        //if verbose and not mnemonic: print "Record these words if you want to access again"
     }
 
     keytype() { return Dweb.KeyPair.KEYTYPESIGNANDENCRYPT; }  // Inform keygen
 
-    p_fetchlist(verbose) {
+    p_fetch_then_list_then_elements(verbose) {
+        /*
+        Subclass CommonList to store elements in _keys
+         */
         let self = this;
-        return super.p_fetchlist(verbose)
-            // Called after CL.p_fetchlist has unpacked data into Signatures in _list
-            .then(() => Promise.all(Dweb.Signature.filterduplicates(self._list)
-                .map((sig) => Dweb.SmartDict.p_unknown_fetch(sig.hash, verbose)))) // Will be a MB or a ViewerKey (KP)
+        return super.p_fetch_then_list_then_elements(verbose)
             .then((keys) => self._keys = keys)
-            .then(() => { if (verbose) console.log("KC.p_fetchlist Got keys", ...Dweb.utils.consolearr(self._keys))})
+            .then(() => { if (verbose) console.log("KC.p_fetch_then_list_then_elements Got keys", ...Dweb.utils.consolearr(self._keys))})
     }
-
-    keys() {    // Is property in Python
-        // Keys are fetched during p_fetchlist
-        return this._keys;
-    }
-
-
-    p_addobj(obj, verbose) {
+    p_push(obj, verbose) {
         /*
          Add a obj (usually a MutableBlock or a ViewerKey) to the keychain. by signing with this key.
          Item should usually itself be encrypted (by setting its _acl field)
-         COPIED FROM PYTHON 2017-05-24
 
          :param obj: Hash or a object to add (MutableBlock or ViewerKey)
          */
         let hash = (typeof obj === "string") ? obj : obj._hash;
         let sig = this._makesig(hash, verbose);
-        this._list.push(sig);
-        return super.p_add(hash, sig, verbose)    // Resolves to sig
+        this._list.push(sig);                       // Add to local list
+        return this.p_add(sig, verbose)             // Post to dweb, Resolves to undefined
     }
 
-    encrypt(res, b64) {
+    encrypt(data, b64) {
         /*
          Encrypt an object (usually represented by the json string). Pair of .decrypt()
 
          :param res: The material to encrypt, usually JSON but could probably also be opaque bytes
-         :param b64:
-         :return:
+         :param b64: True if result wanted in urlsafebase64 (usually)
+         :return:    Encrypted data
          */
-        // Should be a signing key
-        return this.keypair.encrypt(res, b64, this);  // data, b64, signer
+        return this.keypair.encrypt(data, b64, this);  // data, b64, signer
     }
     decrypt(data, verbose) {
         /*
+         Decrypt data - pair of .encrypt()
+         Chain is SD.p_fetch > SD.p_decryptdata > ACL|KC.decrypt, then SD.setdata
+
          :param data: String from json, b64 encoded
-         :param verbose:
          :return: decrypted text as string
+         :throws: :throws: EnryptionError if no encrypt.privateKey, CodingError if !data
          */
-        let key = this.keypair._key;
-        if (key.encrypt) { // NACL key
-            return this.keypair.decrypt(data, this, "text"); //data, b64, signer
-        } else {
-            throw new Dweb.errors.ToBeImplementedError("Keypair.decrypt for "+ key);
-        }
+        if (! this.keypair._key.encrypt)
+            throw new Dweb.errors.EncryptionError("No decryption key in"+JSON.stringify(this.keypair._key))
+        return this.keypair.decrypt(data, this, "text"); //data, b64, signer - Throws EnryptionError if no encrypt.privateKey, CodingError if !data
     }
 
-
-
-    accesskey() { console.assert(false, "XXX Undefined property KeyChain.accesskey"); }
+    accesskey() { throw new Dweb.errors.CodingError("KeyChain doesnt have an accesskey"); }
 
     static addkeychains(keychains) {
-        //Add keys I can view under to ACL
-        //param keychains:   Array of keychains
+        /*
+        Add keys I can view under to Dweb.keychains where it will be used by the ACL
+
+        :param keychains:   keychain or Array of keychains
+        */
         if (keychains instanceof Array) {
             Dweb.keychains = Dweb.keychains.concat(keychains);
         } else {
@@ -99,7 +91,12 @@ class KeyChain extends CommonList {
     }
 
     static find(publichash, verbose) {
-        /* Locate a needed key by its hash */
+        /*
+        Locate a needed ACL or KeyChain by its hash (both are on Dweb.keychains)
+
+        :param publichash:  Hash of ACL or KC needed
+        :return: AccessControlList or KeyChain or null
+        */
         for (let i in Dweb.keychains) {
             let kc = Dweb.keychains[i];
             if (kc._publichash === publichash) {
@@ -111,7 +108,10 @@ class KeyChain extends CommonList {
     }
 
     _p_storepublic(verbose) {
-        // Note - doesnt return a promise, the store is happening in the background
+        /*
+        Store a publicly viewable version of KeyChain - note the keys should be encrypted
+        Note - doesnt return a promise, the store is happening in the background
+        */
         if (verbose) console.log("KeyChain._p_storepublic");
         let kc = new KeyChain(null, {name: this.name}, false, this.keypair, verbose);
         kc.p_store(verbose); // Async, but will set _hash immediately
@@ -119,16 +119,23 @@ class KeyChain extends CommonList {
     }
 
     p_store(verbose) {
-        // CommonList.store(verbose, success, error)
-        this.dontstoremaster = true;
-        return super.p_store(verbose)  // Stores public version and sets _publichash - never returns
+        /*
+        Unlike other p_store this ONLY stores the public version, and sets the _publichash,
+        Private/master version should never be stored since the KeyChain is itself the encryption root.
+        */
+        this.dontstoremaster = true;    // Make sure p_store only stores public version
+        return super.p_store(verbose);  // Stores public version and sets _publichash
     }
 
-    static _findbyclass(clstarget) {
-        // Super obscure double loop, but works and fast
+    static mykeys(clstarget) {
+        /*
+        Utility function to find any keys in any of Dweb.keychains for the target class.
+        The targetclass should be something with its own key, typically a KeyPair or a MutableBlock
+         */
+        // its a double loop - Dweb.keychains is an array of KeyChain which are themselves a list of keys
         let res = [];
         for (let i in Dweb.keychains) {
-            let keys = Dweb.keychains[i].keys();
+            let keys = Dweb.keychains[i]._keys;
             for (let j in keys) {
                 let k = keys[j];
                 if (k instanceof clstarget) res.push(k);
@@ -137,21 +144,8 @@ class KeyChain extends CommonList {
         return res;
     }
 
-    static myviewerkeys() {
-        /*
-         :return: Array of Viewer Keys on the KeyChains
-         */
-        return KeyChain._findbyclass(Dweb.KeyPair);
-    }
-
-    static mymutableBlocks() {
-        /*
-         :return: Array of Viewer Keys on the KeyChains
-         */
-        return KeyChain._findbyclass(Dweb.MutableBlock);
-    }
-
     static p_test(acl, verbose) {
+        /* Fairly broad test of AccessControlList and KeyChain */
         if (verbose) console.log("KeyChain.test");
         return new Promise((resolve, reject) => {
             try {
@@ -171,14 +165,14 @@ class KeyChain extends CommonList {
                         if (verbose) console.log("KEYCHAIN 1 - add MB to KC");
                     })
                     .then(() => Dweb.MutableBlock.p_new(kc, null, "test_keychain mblockm", true, qbf, true, verbose)) //acl, contentacl, name, _allowunsafestore, content, signandstore, verbose, options
-                    .then((mbm) => {mbmaster=mbm;  kc.p_addobj(mbmaster, verbose)})   //Sign and store on KC's list (returns immediately with Sig)
+                    .then((mbm) => {mbmaster=mbm;  kc.p_push(mbmaster, verbose)})   //Sign and store on KC's list (returns immediately with Sig)
                     .then(() => {
                         if (verbose) console.log("KEYCHAIN 2 - add viewerkeypair to it");
                         viewerkeypair = new Dweb.KeyPair(null, {name: vkpname, key: keypairexport}, verbose);
                         viewerkeypair._acl = kc;
                         viewerkeypair.p_store(verbose); // Defaults to store private=True (which we want)   // Sets hash, dont need to wait for it to store
                     })
-                    .then(() =>  kc.p_addobj(viewerkeypair, verbose))
+                    .then(() =>  kc.p_push(viewerkeypair, verbose))
                     .then(() => {
                         if (verbose) console.log("KEYCHAIN 3: Fetching mbm hash=", mbmaster._hash);
                         //MB(hash, data, master, key, contenthash, contentacl, verbose, options)
@@ -194,7 +188,7 @@ class KeyChain extends CommonList {
                     .then(() => kcs2 = KeyChain.p_new({ mnemonic: mnemonic}, "test_keychain kc", verbose))
                     // Note success is run AFTER all keys have been loaded
                     .then(() => {
-                        mm = KeyChain.mymutableBlocks();
+                        mm = KeyChain.mykeys(Dweb.MutableBlock);
                         console.assert(mm.length, "Should find mblockm");
                         mbm3 = mm[mm.length - 1];
                         console.assert(mbm3 instanceof Dweb.MutableBlock, "Should be a mutable block", mbm3);
@@ -213,7 +207,7 @@ class KeyChain extends CommonList {
                     })
                     .then(() => sb.p_store(verbose))
                     .then(() => {
-                        let mvk = KeyChain.myviewerkeys();
+                        let mvk = KeyChain.mykeys(Dweb.KeyPair)
                         console.assert(mvk[0].name === vkpname, "Should find viewerkeypair stored above");
                         if (verbose) console.log("KEYCHAIN 6: Check can fetch and decrypt - should use viewerkeypair stored above");
                         sb2 = new Dweb.StructuredBlock(sb._hash, null, verbose);

@@ -189,9 +189,6 @@ class KeyPair extends SmartDict {
         console.log("_key_hash_private doesnt recognize",key);
     }
 
-    _naclprivate() { return this._key.encrypt.privateKey; }
-    _naclpublic() { return this._key.encrypt.publicKey; }
-
     has_private() {
         /*
         :return: true if key has a private version (or sign or encrypt or seed)
@@ -209,10 +206,10 @@ class KeyPair extends SmartDict {
          */
         // Assumes nacl.public.PrivateKey or nacl.signing.SigningKey
         console.assert(signer, "Until PyNaCl bindings have secretbox we require a signer and have to add authentication");
-        //box = nacl.public.Box(signer.keypair._naclprivate, self._naclpublic)
+        //box = nacl.public.Box(signer.keypair._key.encrypt.privateKey, self._key.encrypt.publicKey)
         //return box.encrypt(data, encoder=(nacl.encoding.URLSafeBase64Encoder if b64 else nacl.encoding.RawEncoder))
         const nonce = sodium.randombytes_buf(sodium.crypto_box_NONCEBYTES);
-        const ciphertext = sodium.crypto_box_easy(data, nonce, this._naclpublic(), signer.keypair._naclprivate(), "uint8array"); //(message, nonce, publicKey, secretKey, outputFormat)
+        const ciphertext = sodium.crypto_box_easy(data, nonce, this._key.encrypt.publicKey, signer.keypair._key.encrypt.privateKey, "uint8array"); //(message, nonce, publicKey, secretKey, outputFormat)
 
         const combined = Dweb.utils.mergeTypedArraysUnsafe(nonce, ciphertext);
         return b64 ? sodium.to_urlsafebase64(combined) : sodium.to_string(combined);
@@ -222,23 +219,24 @@ class KeyPair extends SmartDict {
          Decrypt date encrypted with encrypt (above)
 
          :param data:  urlsafebase64 or Uint8array, starting with nonce
-         :signer AccessControlList: If result was signed (currently ignored for RSA, reqd for NACL)
-         :outputformat: Compatible with LibSodium, typicall "text" to return a string
+         :param signer AccessControlList: If result was signed (currently ignored for RSA, reqd for NACL)
+         :param outputformat: Compatible with LibSodium, typicall "text" to return a string
          :return: Data decrypted to outputformat
+         :throws: EnryptionError if no encrypt.privateKey, CodingError if !data||!signer
         */
-        console.assert(data, "KeyPair.decrypt: meaningless to decrypt undefined, null or empty strings");
-        if (this._key.encrypt.privateKey) {
-            console.assert(signer, "Until PyNaCl bindings have secretbox we require a signer and have to add authentication");
-             // Note may need to convert data from unicode to str
-             if (typeof(data) === "string") {   // If its a string turn into a Uint8Array
-                data = sodium.from_urlsafebase64(data);
-             }
-             let nonce = data.slice(0,sodium.crypto_box_NONCEBYTES);
-             data = data.slice(sodium.crypto_box_NONCEBYTES);
-             return sodium.crypto_box_open_easy(data, nonce, signer.keypair._naclpublic(), this._naclprivate(), outputformat);
-         } else {
-            throw new Dweb.errors.ToBeImplementedError("KeyPair.decrypt for " + this._key);
+        if (!data)
+            throw new Dweb.errors.CodingError("KeyPair.decrypt: meaningless to decrypt undefined, null or empty strings");
+        if (!signer)
+            throw new Dweb.errors.CodingError("Until libsodium-wrappers has secretbox we require a signer and have to add authentication");
+        if (! this._key.encrypt.privateKey)
+            throw new Dweb.errors.EncryptionError("No private encryption key in" + JSON.stringify(_key));
+         // Note may need to convert data from unicode to str
+         if (typeof(data) === "string") {   // If its a string turn into a Uint8Array
+            data = sodium.from_urlsafebase64(data);
          }
+         let nonce = data.slice(0,sodium.crypto_box_NONCEBYTES);
+         data = data.slice(sodium.crypto_box_NONCEBYTES);
+         return sodium.crypto_box_open_easy(data, nonce, signer.keypair._key.encrypt.publicKey, this._key.encrypt.privateKey, outputformat);
     }
     sign(date, hash, verbose) {
         /*
@@ -272,6 +270,94 @@ class KeyPair extends SmartDict {
         let tested = sodium.crypto_sign_verify_detached(sig, signable, this._key.sign.publicKey);
         console.assert(tested, "Signature not verified");   //TODO decide what to do at this point - might throw exception
     }
+
+    static b64dec(data) {
+        /*
+        Decode arbitrary data from b64
+
+        :param data:    urlsafebase64 encoded string
+        :returns:       Uint8Array suitable for passing to libsodium
+        */
+        return sodium.from_urlsafebase64(data);
+    };
+    static b64enc(data) {
+        /*
+        Encode arbitrary data into b64
+
+        :param data:    Uint8Array (typically produced by libsodium)
+        :returns:       string
+        */
+        return sodium.to_urlsafebase64(data); };
+
+    static randomkey() {
+        /*
+         Generate a random key suitable for the secretbox function (symetric encoding/decoding) of libsodium
+         :return:   Uint8Array[crypto_secretbox_KEYBYTES] containing random
+         */
+        return sodium.randombytes_buf(sodium.crypto_secretbox_KEYBYTES);
+    };
+
+    static sym_encrypt(data, sym_key, b64) {
+        /*
+        Decrypt data based on a symetric key
+
+        :param data:    arbitrary string
+        :param sym_key: symetric key encoded in urlsafebase64
+        :param b64:     true if want output encoded in urlsafebase64, otherwise string
+        :returns:       encrypted data
+         */
+        // May need to handle different forms of sym_key for now assume urlbase64 encoded string
+        sym_key = sodium.from_urlsafebase64(sym_key);
+        const nonce = sodium.randombytes_buf(sodium.crypto_secretbox_NONCEBYTES);
+        const ciphertext = sodium.crypto_secretbox_easy(data, nonce, sym_key, "uint8array");  // message, nonce, key, outputFormat
+        const combined = Dweb.utils.mergeTypedArraysUnsafe(nonce, ciphertext);
+        return b64 ? sodium.to_urlsafebase64(combined) : sodium.to_string(combined);
+    };
+
+    static sym_decrypt(data, sym_key, outputformat) {
+        /*
+        Decrypt data based on a symetric key
+
+        :param data:    urlsafebase64 string or Uint8Array
+        :param sym_key: symetric key encoded in urlsafebase64 or Uint8Array
+        :param outputformat:    Libsodium output format one of "uint8array", "text", "base64" or "urlsafebase64"
+        :returns:       decrypted data in selected outputformat
+         */
+        if (!data)
+            throw new Dweb.errors.EncryptionError("KeyPair.sym_decrypt: meaningless to decrypt undefined, null or empty strings");
+        // Note may need to convert data from unicode to str
+        if (typeof(data) === "string") {   // If its a string turn into a Uint8Array
+            data = sodium.from_urlsafebase64(data);
+        }
+        if (typeof(sym_key) === "string") {   // If its a string turn into a Uint8Array
+            data = sodium.from_urlsafebase64(sym_key);
+        }
+        let nonce = data.slice(0,sodium.crypto_box_NONCEBYTES);
+        data = data.slice(sodium.crypto_box_NONCEBYTES);
+        return sodium.crypto_secretbox_open_easy(data, nonce, sym_key, outputformat);
+    };
+
+    static test(verbose) {
+        // First test some of the lower level libsodium functionality - create key etc
+        if (verbose) console.log("KeyPair.test starting");
+        let qbf="The quick brown fox ran over the lazy duck";
+        let key = sodium.randombytes_buf(sodium.crypto_shorthash_KEYBYTES);
+        let shash_u64 = sodium.crypto_shorthash('test', key, 'urlsafebase64'); // urlsafebase64 is support added by mitra
+        key = null;
+        let hash_hex = sodium.crypto_generichash(32, qbf, key, 'hex'); // Try this with null as the key
+        let hash_64 = sodium.crypto_generichash(32, qbf, key, 'base64'); // Try this with null as the key
+        let hash_u64 = sodium.crypto_generichash(32, qbf, key, 'urlsafebase64'); // Try this with null as the key
+        if (verbose) { console.log("hash_hex = ",shash_u64, hash_hex, hash_64, hash_u64); }
+        if (hash_u64 !== "YOanaCqfg3UsKoqlNmVG7SFwLgDyB3aToEmLCH-vOzs=") { console.log("ERR Bad blake2 hash"); }
+        let signingkey = sodium.crypto_sign_keypair();
+        if (verbose) { console.log("test: SigningKey=", signingkey); }
+        let seedstr = "01234567890123456789012345678901";
+        let seed = sodium.from_string(seedstr);
+        let boxkey = sodium.crypto_box_seed_keypair(seed);
+        //FAILS - No round trip yet: if (verbose) { console.log("XXX@57 to_string=",sodium.to_string(boxkey.privateKey)); }
+    };
+
+
 }
 
 KeyPair.KEYTYPESIGN = 1;            // Want a signing key
