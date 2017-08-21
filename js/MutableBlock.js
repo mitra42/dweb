@@ -5,37 +5,34 @@ const StructuredBlock = require("./StructuredBlock");
 const Dweb = require("./Dweb");
 
 class MutableBlock extends CommonList {
-    // { _hash, _key, _current: StructuredBlock, _list: [ StructuredBlock*]
-    constructor(hash, data, master, key, contenthash, contentacl, verbose, options) {
+    // { _key, _current: StructuredBlock, _list: [ StructuredBlock*]
+    constructor(data, master, key, verbose, options) {
         //CL.constructor: hash, data, master, key, verbose
-        //if (verbose) console.log("new MutableBlock(", hash, data, master, key, verbose, options, ")");
-        super(hash, data, master, key, verbose, options);
-        this.contentacl = contentacl;
-        this._current = new StructuredBlock(contenthash, null, verbose);
+        //if (verbose) console.log("new MutableBlock(", data, master, key, verbose, options, ")");
+        super(data, master, key, verbose, options);
         this.table = "mb"
     }
 
     p_elem(el, verbose, successmethodeach) {
-        if (this._needsfetch) {
-            return this.p_fetch(verbose)
-                .then((self) => self.p_elem(el, verbose, successmethodeach))
-        } else {
-            // this._current should be setup, it might not be loaded, but p_elem can load it
-            return this._current.p_elem(el, verbose, successmethodeach);    // Typically _current will be a SB
-        }
+        // this._current should be setup, it might not be loaded, but p_elem can load it
+        return this._current.p_elem(el, verbose, successmethodeach);    // Typically _current will be a SB
     }
 
-    p_fetchlist(verbose) {
+    p_list_then_current(verbose) {
         // Superclasses CL.p_fetchlist as need to set _current on a MB
+        // Almost always you'll want p_list_then_current as this will leave _current undefined
         let self = this;
         return super.p_fetchlist(verbose)   // Return is a promise
         .then(() => { // Called after CL.p_fetchlist has unpacked data into Signatures in _list
-                if (self._list.length) {
-                    let sig = self._list[self._list.length - 1];  // Get most recent
-                    self._current = new StructuredBlock(sig.hash, null, verbose);   // Store in _current
-                }
-        // Note any follow on .then is applied to the MB, not to the content, and the content might not have been loaded.
+            if (self._list.length) {
+                let sig = self._list[self._list.length - 1];  // Get most recent
+                return sig.p_fetchdata(verbose); // will be StructuredBlock, Store in _current
+            } else {
+                return undefined;
+            }
         })
+        .then((objOrUndef) => self._current = objOrUndef)
+        // Note any follow on .then is applied to the MB, not to the content, and the content might not have been loaded.
     }
 
     /* OBSOLETE - but copy concept into anything publishing a list
@@ -45,7 +42,7 @@ class MutableBlock extends CommonList {
         while (ul.hasChildNodes()) {
             ul.removeChild(ul.lastChild);
         }
-        self.p_fetch_then_list_then_elem
+        self.p_list_then_elem
 
 
         let blocks = this.blocks(verbose);  // Need to replace this, its like p_find_then_list_then_elements followed by loop on them
@@ -69,25 +66,10 @@ class MutableBlock extends CommonList {
 
     _p_storepublic(verbose) {
         // Note that this returns immediately after setting hash, so caller may not need to wait for success
-        //(hash, data, master, key, contenthash, contentacl, verbose, options)
-        let mb = new MutableBlock(null, null, false, this.keypair, null, null, verbose, {"name": this.name});
+        //(data, master, key, verbose, options)
+        let mb = new MutableBlock({"name": this.name}, false, this.keypair, verbose);
         let prom = mb.p_store(verbose);    // Returns immediately but sets _hash first
         this._publichash = mb._hash;
-    }
-
-    contentacl() {console.assert(false, "XXX Undefined function MutableBlock.contentacl setter and getter"); }   // Encryption of content
-
-    p_fetch_then_list_then_current(verbose) {
-        /*
-         Fetch a MB, then fetch list, then content.
-
-         :return: Returns a promise that itself returns self for chaining
-         */
-        if (verbose) console.log("MutableBlock.p_fetch hash=", this._hash);
-        let self = this;
-        return super.p_fetch_then_list(verbose)
-            .then(() => self._current && self._current.p_fetch(verbose))
-            .then(() => self )
     }
 
     content() {
@@ -119,8 +101,7 @@ class MutableBlock extends CommonList {
         if (verbose) console.log("mb.p_path", patharr, successmethod);
         //sb.p_path(patharr, verbose, successmethod) {
         let curr = this._current;
-        return curr.p_fetch(verbose)
-            .then((obj) => obj.p_path(patharr, verbose, successmethod));
+        return curr.p_path(patharr, verbose, successmethod);
     }
 
     static p_new(acl, contentacl, name, _allowunsafestore, content, signandstore, verbose) {
@@ -138,10 +119,10 @@ class MutableBlock extends CommonList {
          */
         // See test.py.test_mutableblock for canonical testing of python version of this
         if (verbose) console.log("MutableBlock.p_new: Creating MutableBlock", name);
-        // (hash, data, master, key, contenthash, contentacl, verbose)
-        let mblockm = new MutableBlock(null, null, true, {keygen: true}, null, contentacl, verbose, {"name": name}); // (name=name  // Create a new block with a new key
+        // (data, master, key, verbose)
+        let mblockm = new MutableBlock({contentacl: contentacl}, true, {keygen: true}, verbose, {"name": name});  // (name=name  // Create a new block with a new key
         mblockm._acl = acl;              //Secure it
-        mblockm._current.data = content;  //Preload with data in _current.data
+        mblockm._current = new Dweb.StructuredBlock({data: content},verbose);  //Preload with data in _current.data
         mblockm._allowunsafestore = _allowunsafestore;
         if (_allowunsafestore) {
             mblockm.keypair._allowunsafestore = true;
@@ -162,26 +143,31 @@ class MutableBlock extends CommonList {
         if (verbose) console.log("MutableBlock.test starting");
         return new Promise((resolve, reject) => {
             try {
-                //(hash, data, master, key, contenthash, contentacl, verbose, options
-                let mb1 = new Dweb.MutableBlock(null, null, true, {keygen: true}, sb._hash, null, verbose, null);
-                mb1._allowunsafestore = true; // No ACL, so shouldnt normally store, but dont want this test to depend on ACL
-                let siglength = mb1._list.length; // Will check for size below
-                mb1.p_signandstore(verbose) // Async, should set hash immediately but wait to retrieve after stored.
-                    //.then(() => console.log("mb1.test after signandstore=",mb1))
-                    .then(() => console.assert(mb1._list.length === siglength+1))
-                    //MutableBlock(hash, data, master, key, contenthash, contentacl, verbose, options) {
-                    .then(() => mb = new MutableBlock(mb1._publichash, null, false, null, null, null, verbose, null))
-                    .then(() => mb.p_fetch_then_list_then_current(verbose))
-                    //.then(() => console.log("mb.test retrieved=",mb))
-                    .then(() => console.assert(mb._list.length === siglength+1, "Expect list",siglength+1,"got",mb._list.length))
-                    .then(() => console.assert(mb._current.data === sb.data, "Should have retrieved"))
-                    //.then(() => mb.p_path(["langs", "readme.md"], verbose, ["p_elem", "myList.1", verbose,])) //TODO-PATH need a path based test
-                    .then(() => { if (verbose) console.log("MutableBlock.test promises done"); })
-                    .then(() => resolve({mb: mb}))
-                    .catch((err) => {
-                        console.log("Error in MutableBlock.test", err);   // Log since maybe "unhandled" if just throw
-                        reject(err);
-                    })
+                //(data, master, key, verbose, options
+                let siglength;
+                let mb1 = new Dweb.MutableBlock(null, true, {keygen: true},  verbose, null);
+                Dweb.SmartDict.p_fetch(sb._hash, verbose)
+                .then((obj) => {
+                    mb1._current = obj
+                    mb1._allowunsafestore = true; // No ACL, so shouldnt normally store, but dont want this test to depend on ACL
+                    siglength = mb1._list.length; // Will check for size below
+                })
+                .then(() => mb1.p_signandstore(verbose)) // Async, should set hash immediately but wait to retrieve after stored.
+                //.then(() => console.log("mb1.test after signandstore=",mb1))
+                .then(() => console.assert(mb1._list.length === siglength+1))
+                //MutableBlock(data, master, key, verbose, options) {
+                .then(() => Dweb.SmartDict.p_fetch(mb1._publichash, verbose))
+                .then((newmb) => mb = newmb)
+                .then(() => mb.p_list_then_current(verbose))
+                .then(() => console.assert(mb._list.length === siglength+1, "Expect list",siglength+1,"got",mb._list.length))
+                .then(() => console.assert(mb._current.data === sb.data, "Should have retrieved"))
+                //.then(() => mb.p_path(["langs", "readme.md"], verbose, ["p_elem", "myList.1", verbose,])) //TODO-PATH need a path based test
+                .then(() => { if (verbose) console.log("MutableBlock.test promises done"); })
+                .then(() => resolve({mb: mb}))
+                .catch((err) => {
+                    console.log("Error in MutableBlock.test", err);   // Log since maybe "unhandled" if just throw
+                    reject(err);
+                })
             } catch (err) {
                 console.log("Caught exception in MutableBlock.test", err);
                 throw(err)

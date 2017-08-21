@@ -21,14 +21,14 @@ class KeyPair extends SmartDict {
     }
      */
 
-    constructor(hash, data, verbose) {
+    constructor(data, verbose) {
         /*
         Create a new KeyPair
 
         :param hash: hash to read key from
         :param data: or data to initialize with (see Fields above)
          */
-        super(hash, data, verbose);    // SmartDict takes data=json or dict
+        super(data, verbose);    // SmartDict takes data=json or dict
         this.table = "kp";
     }
 

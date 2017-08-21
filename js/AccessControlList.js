@@ -3,13 +3,6 @@ const SmartDict = require("./SmartDict");   // _AccessControlListEntry extends t
 const Dweb = require("./Dweb");
 
 //TODO-REL3-API - whole file
-class _AccessControlListEntry extends SmartDict {    // Local class
-
-    constructor(hash, data, verbose, options) {
-        super(hash, data, verbose, options);
-        this.table = "AccessControlListEntry";
-    }
-}
 
 class AccessControlList extends CommonList {
     /*
@@ -23,11 +16,11 @@ class AccessControlList extends CommonList {
     accesskey:  Secret key with which things are encrypted. We are controlling who gets this.
     */
 
-    constructor(hash, data, master, key, verbose, options) {
+    constructor(data, master, key, verbose, options) {
         /*
         Create a new AccessControlList - see CommonList for parameters
          */
-        super(hash, data, master, key, verbose, options);
+        super(data, master, key, verbose, options);
         this.table = "acl";
     }
 
@@ -56,10 +49,9 @@ class AccessControlList extends CommonList {
         if (!this._master) {
             throw new Dweb.errors.ForbiddenError("Cant add viewers to a public copy of an ACL");
         }
-        let viewerpublickeypair = new Dweb.KeyPair(viewerpublichash, null, verbose);
-        return viewerpublickeypair.p_fetch(verbose) // Fetch the public key
-        // Create a new ACLE with access key, encrypted by publickey
-            .then(() => new _AccessControlListEntry(null, {
+        return Dweb.SmartDict.p_fetch(viewerpublichash, verbose) // Fetch the public key will be KeyPair
+            // Create a new ACLE with access key, encrypted by publickey
+            .then((viewerpublickeypair) => new SmartDict({
                     //Need to go B64->binary->encrypt->B64
                     "token": viewerpublickeypair.encrypt(Dweb.KeyPair.b64dec(self.accesskey), true, self),
                     "viewer": viewerpublichash
@@ -73,8 +65,8 @@ class AccessControlList extends CommonList {
         /*
         Find the entries, if any, in the ACL for a specific viewer
         There might be more than one if either the accesskey changed or the person was added multiple times.
-        Entries are AccessControlListEntry with token being the decryptable accesskey we want
-        The ACL should have been p_fetch_then_list_then_elements() before so that this can run synchronously.
+        Entries are SmartDict with token being the decryptable accesskey we want
+        The ACL should have been p_list_then_elements() before so that this can run synchronously.
 
         :param viewerkeypair:  KeyPair of viewer
         :param decrypt: If should decrypt the
@@ -83,7 +75,6 @@ class AccessControlList extends CommonList {
         */
 
         if (verbose) console.log("AccessControlList.tokens decrypt=",decrypt);
-        if (this._needsfetch) throw new CodingError("Need to p_fetch_then_list_then_elements before calling ACL.tokens");
         let viewerhash = viewerkeypair._hash;
         if (! this._list.length) { return []}
         let toks = this._list
@@ -93,16 +84,6 @@ class AccessControlList extends CommonList {
             toks = toks.map((tok) => viewerkeypair.decrypt(tok, this, "uint8array"));
         }
         return toks;
-    }
-
-    p_fetch_then_list_then_elements(verbose) {
-        /*
-        Like CL.p_fetch_then_list_then_elements, but fetch the blocks the sigs point to which are ACLE
-         */
-        let self=this;
-        return this.p_fetch_then_list(verbose)  //Dont use p_fetch_then_list_then_elements because CL has to assume its a unknown type of block
-            .then(() => this._list.map((sig) => { sig.data = new _AccessControlListEntry(sig.hash, null, verbose)}))
-            .then(() => Promise.all(self._list.map((sig) => sig.data.p_fetch(verbose))))
     }
 
     encrypt(data, b64) {
@@ -124,7 +105,6 @@ class AccessControlList extends CommonList {
             :return:                Decrypted data
             :throw:                 AuthenticationError if there are no tokens for our ViewerKeyPair that can decrypt the data
         */
-        if (this._needsfetch) throw new CodingError("Need to p_fetch_then_list_then_elements before calling ACL.decrypt");
         let vks = viewerkeypair || Dweb.KeyChain.mykeys(Dweb.KeyPair);
         if (!Array.isArray(vks)) { vks = [ vks ]; } // Convert singular key into an array
         for (let i in vks) {
@@ -151,7 +131,7 @@ class AccessControlList extends CommonList {
         */
         if (verbose) console.log("AccessControlList._p_storepublic");
         //AC(hash, data, master, key, verbose, options) {
-        let acl = new AccessControlList(null, {"name": this.name}, false, this.keypair, verbose, {});
+        let acl = new AccessControlList({"name": this.name}, false, this.keypair, verbose, {});
         acl.p_store(verbose); // Async, but will set _hash immediately
         this._publichash = acl._hash;  //returns immediately with precalculated hash
     }
@@ -165,9 +145,9 @@ class AccessControlList extends CommonList {
                 // Create a acl for testing, - full breakout is in test_keychain
                 let accesskey = Dweb.KeyPair.randomkey();
                 let aclseed = "01234567890123456789012345678902";    // Note seed with 01 at end used in mnemonic faking
-                let keypair = new Dweb.KeyPair(null, {key: {seed: aclseed}}, verbose);
+                let keypair = new Dweb.KeyPair({key: {seed: aclseed}}, verbose);
                 //ACL(hash, data, master, keypair, keygen, mnemonic, verbose, options)
-                let acl = new Dweb.AccessControlList(null, {
+                let acl = new Dweb.AccessControlList({
                     name: "test_acl.acl",
                     accesskey: Dweb.KeyPair.b64enc(accesskey)
                 }, true, keypair, verbose, {});
@@ -197,7 +177,7 @@ class AccessControlList extends CommonList {
          Else returns a promise that resolves to the data
          No assumption is made about what is in the decrypted data
 
-         Chain is SD.p_fetch > SD.p_decryptdata > ACL.p_decrypt > ACL|KC.decrypt, then SD.setdata
+         Chain is SD.p_uknwon_fetch > SD.p_decryptdata > ACL.p_decrypt > ACL|KC.decrypt, then SD.setdata
 
          :param value: object from parsing incoming JSON that may contain {acl, encrypted}
          :return: data or promise that resolves to data
@@ -212,10 +192,13 @@ class AccessControlList extends CommonList {
                 return kc.decrypt(value.encrypted, verbose) // Exception: DecryptionFail - unlikely since publichash matches
             } else {
                 //ACL(hash, data, master, key, verbose, options)
-                let acl = new Dweb.AccessControlList(aclhash, null, false, null, verbose);  // TODO-AUTHENTICATION probably add person - to - person version
-                return acl.p_fetch_then_list_then_elements(verbose) // Will load blocks in sig as well
+                // TODO-AUTHENTICATION probably add person - to - person version
+                let acl;
+                return Dweb.SmartDict.p_fetch(aclhash, verbose) // Will be AccessControlList
+                    .then((newacl) => acl = newacl)
+                    .then(() => acl.p_list_then_elements(verbose)) // Will load blocks in sig as well
                     .then(() => acl.decrypt(value.encrypted, null, verbose))  // Resolves to data or throws AuthentictionError
-            .catch((err) => { console.log("Unable to decrypt:",value); throw(err);});
+                    .catch((err) => { console.log("Unable to decrypt:",value); throw(err);});
             }
         }
     };

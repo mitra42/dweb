@@ -35,7 +35,7 @@ let acl;
     .then(() => Dweb.KeyPair.test(verbose))
     .then(() => Dweb.AccessControlList.p_test(verbose))
     .then((newacl) => acl = newacl)
-    .then(() => Dweb.KeyChain.p_test(acl, verbose))
+    .then(() => Dweb.KeyChain.p_test(acl, verbose)) // depends on MutableBlock for test, though not for KeyChain itself
     .then(() => Dweb.StructuredBlock.test(document, verbose))
     .then((testobjs) => sb = testobjs.sb)
     .then(() => console.log("sb=",sb))

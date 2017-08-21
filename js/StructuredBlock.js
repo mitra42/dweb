@@ -8,8 +8,8 @@ const Dweb = require("./Dweb");
 class StructuredBlock extends SmartDict {
 
     //p_fetch uses SmartDict ..
-    constructor(hash, data, verbose) {
-        super(hash, data, verbose); // _hash is _hash of SB, not of data
+    constructor(data, verbose) {
+        super(data, verbose);
         this._signatures = [];
         this._date = null;  // Updated in _earliestdate when loaded
         this.table = "sb";  // Note this is cls.table on python but need to separate from dictionary
@@ -52,7 +52,7 @@ class StructuredBlock extends SmartDict {
             let next = patharr.shift(); // Takes first element of patharr, leaves patharr as rest
             if (verbose) { console.log("StructuredBlock:path next=",next); }
             let obj = this.link(next);   //TODO-ERRS handle error if not found
-            return obj.p_fetch(verbose).then(() => obj.p_path(patharr, verbose))
+            return obj.p_path(patharr, verbose)
         } else if (patharr && patharr.length) {
             throw new Error("Cant follow path"+patharr);
         } else {  // Reached end of path, can apply success
@@ -147,17 +147,17 @@ class StructuredBlock extends SmartDict {
         if (verbose) console.log("StructuredBlock.test");
         return new Promise((resolve, reject) => {
             let el = document.getElementById("myList.0");
-            console.log("XXX@make assert: el=", el);
+            console.log("el=", el);
             try {
                 let teststr = "The well structured block";
-                let sb = new StructuredBlock(null, {"data": teststr});
+                let sb = new StructuredBlock({"data": teststr});
                 let sb2;
                 if (verbose) {
                     console.log("StructuredBlock.test sb=", sb);
                 }
                 sb.p_store(verbose)
-                    .then(() => sb2 = new StructuredBlock(sb._hash, null))   // Creates, doesnt fetch
-                    .then(() => sb2.p_fetch())
+                    .then(() => Dweb.SmartDict.p_fetch(sb._hash)) // Will be StructuredBlock
+                    .then((newsb) => sb2 = newsb)
                     .then(() => {
                         if (verbose) console.assert(sb2.data === teststr, "SB should round trip", sb2.data, "!==", teststr)
                     })
