@@ -20,8 +20,8 @@ class StructuredBlock extends SmartDict {
          Store any signatures in the Transport layer
          Resolution of promise will happen on p_store, the addition of signatures will happen async - could change to Promise.all
          */
-        if (!this._hash) {
-            return super.p_store(verbose);    //Sets self._hash and stores in background if has changed
+        if (!this._url) {
+            return super.p_store(verbose);    //Sets self._url and stores in background if has changed
         }
         return this; // For chaining
 
@@ -96,8 +96,8 @@ class StructuredBlock extends SmartDict {
             return res;
         }
         console.log("ERR - object has no content, not even empty data");
-        //Not supporting hash/fetch as async
-        //(this.hash and Dweb.transport.rawfetch(hash = self.hash, verbose=verbose, **options)) or # Hash must point to raw data, not another SB
+        //Not supporting url/fetch as async
+        //(this.url and Dweb.transport.rawfetch(url = self.url, verbose=verbose, **options)) or # url must point to raw data, not another SB
     }
     file() { console.assert(false, "XXX Undefined function StructuredBlock.file"); }
     size() { console.assert(false, "XXX Undefined function StructuredBlock.size"); }
@@ -106,13 +106,13 @@ class StructuredBlock extends SmartDict {
     sign(commonlist, verbose) {
         /-*
          Add a signature to a StructuredBlock and add it to a list
-         Note if the SB has a _acl field it will be encrypted first, then the hash of the encrypted block used for signing.
+         Note if the SB has a _acl field it will be encrypted first, then the url of the encrypted block used for signing.
          :param CommonList commonlist:   List its going on - has a ACL with a private key
          :return: sig so that CommonList can add to _list
          *-/
         //TODO should probaly disable storage here, and do assertion OR make it p_sign , either way avoids a race.
-        //if (!this._hash) this.p_store(verbose);  // Sets _hash immediately which is needed for signatures
-        //if (!commonlist._publichash) commonlist.p_store(verbose);    // Set _publichash immediately (required for Signature.sign)
+        //if (!this._url) this.p_store(verbose);  // Sets _url immediately which is needed for signatures
+        //if (!commonlist._publicurl) commonlist.p_store(verbose);    // Set _publicurl immediately (required for Signature.sign)
         let sig = super.sign(commonlist, verbose);  // Checks this, and commonlist are stored
         this._signatures.push(sig);
         return sig;  // so that CommonList can add to _list
@@ -156,7 +156,7 @@ class StructuredBlock extends SmartDict {
                     console.log("StructuredBlock.test sb=", sb);
                 }
                 sb.p_store(verbose)
-                    .then(() => Dweb.SmartDict.p_fetch(sb._hash)) // Will be StructuredBlock
+                    .then(() => Dweb.SmartDict.p_fetch(sb._url)) // Will be StructuredBlock
                     .then((newsb) => sb2 = newsb)
                     .then(() => {
                         if (verbose) console.assert(sb2.data === teststr, "SB should round trip", sb2.data, "!==", teststr)

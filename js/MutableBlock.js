@@ -7,7 +7,7 @@ const Dweb = require("./Dweb");
 class MutableBlock extends CommonList {
     // { _key, _current: StructuredBlock, _list: [ StructuredBlock*]
     constructor(data, master, key, verbose, options) {
-        //CL.constructor: hash, data, master, key, verbose
+        //CL.constructor: data, master, key, verbose
         //if (verbose) console.log("new MutableBlock(", data, master, key, verbose, options, ")");
         super(data, master, key, verbose, options);
         this.table = "mb"
@@ -61,15 +61,15 @@ class MutableBlock extends CommonList {
     p_update(){ console.assert(false, "Need to define p_ function")}
 
     async_update(type, data, verbose, success, error) {   console.trace(); console.assert(false, "OBSOLETE"); //TODO-IPFS obsolete with p_fetch // Send new data for this item to dWeb
-        Dweb.transport.async_update(this, this._hash, type, data, verbose, success, error);
+        Dweb.transport.async_update(this, this._url, type, data, verbose, success, error);
     }
 
     _p_storepublic(verbose) {
-        // Note that this returns immediately after setting hash, so caller may not need to wait for success
+        // Note that this returns immediately after setting url, so caller may not need to wait for success
         //(data, master, key, verbose, options)
         let mb = new MutableBlock({"name": this.name}, false, this.keypair, verbose);
-        let prom = mb.p_store(verbose);    // Returns immediately but sets _hash first
-        this._publichash = mb._hash;
+        let prom = mb.p_store(verbose);    // Returns immediately but sets _url first
+        this._publicurl = mb._url;
     }
 
     content() {
@@ -84,13 +84,13 @@ class MutableBlock extends CommonList {
     p_signandstore(verbose){    //TODO-AUTHENTICATION - add options to remove old signatures by same
         /*
          Sign and Store a version, or entry in MutableBlock master
-         Exceptions: SignedBlockEmptyException if neither hash nor structuredblock defined, ForbiddenException if !master
+         Exceptions: SignedBlockEmptyException if neither url nor structuredblock defined, ForbiddenException if !master
 
          :return: self to allow chaining of functions
          */
         if ((!this._current._acl) && this.contentacl) {
             this._current._acl = this.contentacl;    //Make sure SB encrypted when stored
-            this._current.dirty();   // Make sure stored again if stored unencrypted. - _hash will be used by signandstore
+            this._current.dirty();   // Make sure stored again if stored unencrypted. - _url will be used by signandstore
         }
         return this.p_push(this._current, verbose)
             .then((sig) => { this._current._signatures.push(sig); return sig} )// Promise resolving to sig, ERR SignedBlockEmptyException, ForbiddenException
@@ -146,17 +146,17 @@ class MutableBlock extends CommonList {
                 //(data, master, key, verbose, options
                 let siglength;
                 let mb1 = new Dweb.MutableBlock(null, true, {keygen: true},  verbose, null);
-                Dweb.SmartDict.p_fetch(sb._hash, verbose)
+                Dweb.SmartDict.p_fetch(sb._url, verbose)
                 .then((obj) => {
                     mb1._current = obj
                     mb1._allowunsafestore = true; // No ACL, so shouldnt normally store, but dont want this test to depend on ACL
                     siglength = mb1._list.length; // Will check for size below
                 })
-                .then(() => mb1.p_signandstore(verbose)) // Async, should set hash immediately but wait to retrieve after stored.
+                .then(() => mb1.p_signandstore(verbose)) // Async, should set url immediately but wait to retrieve after stored.
                 //.then(() => console.log("mb1.test after signandstore=",mb1))
                 .then(() => console.assert(mb1._list.length === siglength+1))
                 //MutableBlock(data, master, key, verbose, options) {
-                .then(() => Dweb.SmartDict.p_fetch(mb1._publichash, verbose))
+                .then(() => Dweb.SmartDict.p_fetch(mb1._publicurl, verbose))
                 .then((newmb) => mb = newmb)
                 .then(() => mb.p_list_then_current(verbose))
                 .then(() => console.assert(mb._list.length === siglength+1, "Expect list",siglength+1,"got",mb._list.length))
