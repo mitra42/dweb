@@ -12,7 +12,6 @@ class AccessControlList(EncryptionList):
 
     To create a list, it just requires a key pair, like any other List
 
-    See Authentication.rst
     From EncryptionList: accesskey   Key with which things on this list are encrypted
     From CommonList: keypair, _publichash, _list, _master, name
 
