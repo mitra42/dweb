@@ -1,6 +1,7 @@
 # encoding: utf-8
+from unittest import TestCase
+
 from datetime import datetime
-import unittest
 import os
 from pathlib2 import Path
 from json import loads, dumps
@@ -29,8 +30,7 @@ from File import File, Dir
 from Dweb import Dweb
 from ServerHTTP import DwebHTTPRequestHandler
 
-
-class Testing(unittest.TestCase):
+class Testing(TestCase):
     def setUp(self):
         super(Testing, self).setUp()
         testTransporttype = 1 #TransportLocal, TransportHTTP, TransportDistPeer, TransportDistPeer = multi  # Can switch between TransportLocal and TransportHTTP to test both
