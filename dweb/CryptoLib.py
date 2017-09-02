@@ -234,7 +234,7 @@ class CryptoLib(object):
                 print "b64enc error:", e # Dont get exceptions printed inside dumps, just obscure higher level one
                 raise e
 
-    @staticmethod
+    @staticmethod #TODO-BACKPORT remove this, use the one in Transport
     def dumps(data):
         """
         Convert arbitrary data into a JSON string that can be deterministically hashed or compared.
@@ -420,7 +420,7 @@ class WordHashKey(object):   #TODO-LIBSODIUM-CHECK-THIS-FUNCTION maybe replace w
         """
         return Mnemonic("english").to_mnemonic(self._private)
 
-def json_default(obj):
+def json_default(obj): #TODO-BACKPORT drop - use the one in Transport
     """
     Default JSON serialiser especially for handling datetime.
 

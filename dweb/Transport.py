@@ -1,5 +1,7 @@
 # encoding: utf-8
 #TODO-BACKPORT - test this file
+from json import dumps, loads
+from datetime import datetime
 
 from misc import ToBeImplementedException, MyBaseException, IntentionallyUnimplementedException
 
@@ -48,7 +50,7 @@ class Transport(object):
         raise ToBeImplementedException(name=cls.__name__+".__init__")
 
     @classmethod
-    def setup(cls, **options):
+    def setup(cls, verbose, **options):
         """
         Called to deliver a transport instance of a particular class
 
@@ -58,11 +60,50 @@ class Transport(object):
         raise ToBeImplementedException(name=cls.__name__+".setup")
 
     def _lettertoclass(self, abbrev):
+        #TODO-BACKPORTING - check if really needed after finish port (was needed on server)
         from ServerHTTP import LetterToClass
         return LetterToClass.get(abbrev, None)
 
+    def url(self, data):
+        """
+         Return an identifier for the data without storing
+
+         :param string|Buffer data   arbitrary data
+         :return string              valid id to retrieve data via p_rawfetch
+         """
+        raise ToBeImplementedException(name=cls.__name__+".url")
+
+
     def info(self, **options):
+        raise ToBeImplementedException("Backporting - unsure if needed - match JS Dweb"); #TODO-BACKPORTING
         raise ToBeImplementedException(name=cls.__name__+".info")
+
+    def dumps(self, obj):   #TODO-BACKPORT remove the one in CryptoLib
+        """
+        Convert arbitrary data into a JSON string that can be deterministically hashed or compared.
+        Must be valid for loading with json.loads (unless change all calls to that).
+        Exception: UnicodeDecodeError if data is binary
+
+        :param data:    Any
+        :return: JSON string that can be deterministically hashed or compared
+        """
+        # ensure_ascii = False was set otherwise if try and read binary content, and embed as "data" in StructuredBlock then complains
+        # if it cant convert it to UTF8. (This was an example for the Wrenchicon), but loads couldnt handle return anyway.
+        # sort_keys = True so that dict always returned same way so can be hashed
+        # separators = (,:) gets the most compact representation
+        return dumps(obj, sort_keys=True, separators=(',', ':'), default=json_default)
+
+    def loads(data):   #TODO-BACKPORT remove the one in CryptoLib
+        """
+        Pair to dumps
+
+        :param data:
+        :return: Dict or Array from loading json in data
+        """
+        if data is None:
+            pass        # For breakpoint
+        assert data is not None
+        return loads(data)
 
     def rawfetch(self, url=None, verbose=False, **options):
         """
@@ -88,6 +129,7 @@ class Transport(object):
         :return:
         """
         if verbose: print "Transport.fetch command=%s cls=%s url=%s path=%s options=%s" % (command, cls, url, path, options)
+        #TODO-BACKPORTING see if needed after full port - hint it was used in ServerHTTP but not on client side
         if cls:
             if isinstance(cls, basestring):  # Handle abbreviations for cls
                 cls = self._lettertoclass(cls)
@@ -126,6 +168,7 @@ class Transport(object):
         :param options:
         :return:
         """
+        raise ToBeImplementedException("Backporting - unsure if needed - match JS Dweb"); #TODO-BACKPORTING
 
         res = rawlist(url, verbose=verbose, **options)
         if cls:
@@ -154,6 +197,7 @@ class Transport(object):
         :param options:
         :return:
         """
+        raise ToBeImplementedException(message="Backporting - unsure if needed - match JS Dweb"); #TODO-BACKPORTING
 
         res = rawreverse(url, verbose=verbose, **options)
         if cls:
@@ -171,6 +215,7 @@ class Transport(object):
         raise ToBeImplementedException(name=cls.__name__+".rawstore")
 
     def store(self, command=None, cls=None, url=None, path=None, data=None, verbose=False, **options):
+        raise ToBeImplementedException(message="Backporting - unsure if needed - match JS Dweb");  # TODO-BACKPORTING
         #store(command, cls, url, path, data, options) = fetch(cls, url, path, options).command(data|data._data, options)
         #store(url, data)
         if not isinstance(data, basestring):
@@ -186,13 +231,31 @@ class Transport(object):
         raise ToBeImplementedException(name=cls.__name__+".rawadd")
 
     def add(self, url=None, date=None, signature=None, signedby=None, verbose=False, obj=None, **options ):
+        #TODO-BACKPORTING check if still needed after Backport - not used in JS
         #add(dataurl, sig, date, keyurl)
         if (obj and not url):
             url = obj._url
         return self.rawadd(url=url, date=date, signature=signature, signedby=signedby, verbose=verbose, **options)
 
+    #TODO-BACKPORT add listmonitor
+
     def _add_value(self, url=None, date=None, signature=None, signedby=None, verbose=False, **options ):
         store = {"url": url, "date": date, "signature": signature, "signedby": signedby}
+        return self.dumps(store)    #TODO-BACKPORTING needs to switch to dumps of signedby
 
-        from CryptoLib import CryptoLib
-        return CryptoLib.dumps(store)
+    #TODO-BACKPORT add mergeoptions
+
+def json_default(obj):
+    """
+    Default JSON serialiser especially for handling datetime.
+
+    :param obj: Anything json dumps can't serialize
+    :return: string for extended types
+    """
+    if isinstance(obj, (datetime,)):    # Using isinstance rather than hasattr because __getattr__ always returns true
+    #if hasattr(obj,"isoformat"):  # Especially for datetime
+        return obj.isoformat()
+    try:
+        return obj.dumps()
+    except Exception as e:
+        raise TypeError("Type %s not serializable (%s %s)" % (obj.__class__.__name__, e.__class__.__name__, e))
