@@ -39,15 +39,15 @@ class Signature(SmartDict):
 
 
     @classmethod
-    def sign(cls, commonlist, hash, verbose=False):
+    def sign(cls, commonlist, url, verbose=False):
         date = datetime.now()
-        signature = CryptoLib.signature(commonlist.keypair, date, hash)
-        if not commonlist._publichash:
+        signature = CryptoLib.signature(commonlist.keypair, date, url)
+        if not commonlist._publicurl:
             commonlist.store(verbose=verbose)
-        return cls({"date": date, "signature": signature, "signedby": commonlist._publichash})
+        return cls({"date": date, "signature": signature, "signedby": commonlist._publicurl})
 
-    def verify(self, hash=None):
-        return CryptoLib.verify(self, hash=hash)
+    def verify(self, url=None):
+        return CryptoLib.verify(self, url=url)
 
     def block(self, fetchblocks=True):
         """
@@ -56,9 +56,9 @@ class Signature(SmartDict):
         :return:
         """
         if fetchblocks:
-            return UnknownBlock(hash=self.hash).fetch()  # We don't know its a SB, UnknownBlock.fetch() will convert
+            return UnknownBlock(url=self.url).fetch()  # We don't know its a SB, UnknownBlock.fetch() will convert
         else:
-            return UnknownBlock(hash=self.hash)  # We don't know its a SB
+            return UnknownBlock(url=self.url)  # We don't know its a SB
 
 
 class Signatures(list):
@@ -71,29 +71,29 @@ class Signatures(list):
         """
         return min(sig.date for sig in self)
 
-    def verify(self, hash=None):
+    def verify(self, url=None):
         """
-        :param hash: hash to check (None to check hash in sigs)
+        :param url: url to check (None to check url in sigs)
         :return: True if all signatures verify
         """
-        return all(s.verify(hash=hash) for s in self)
+        return all(s.verify(url=url) for s in self)
 
     @classmethod
-    def fetch(cls, hash=None, verbose=False, fetchblocks=False, **options):
+    def fetch(cls, url=None, verbose=False, fetchblocks=False, **options):
         """
         Find all the related Signatures.
         Exception: TransportURLNotFound if empty or bad URL
 
-        :param hash:
+        :param url:
         :param verbose:
         :param options:
         :return: SignedBlocks which is a list of StructuredBlock
         """
         #key = CryptoLib.export(publickey) if publickey is not None else None,
-        assert hash is not None
-        if verbose: print "SignedBlocks.fetch looking for hash=",hash,"fetchblocks=", fetchblocks
+        assert url is not None
+        if verbose: print "SignedBlocks.fetch looking for url=",url,"fetchblocks=", fetchblocks
         try:
-            lines = Dweb.transport.rawlist(hash=hash, verbose=verbose, **options)
+            lines = Dweb.transport.rawlist(url=url, verbose=verbose, **options)
         except (TransportURLNotFound, TransportFileNotFound) as e:
             return Signatures([])    # Its ok to fail as list may be empty
         else:
@@ -107,17 +107,17 @@ class Signatures(list):
     def blocks(self, fetchblocks=True, verbose=False):
         results = {}
         for s in self:
-            hash = s.hash
-            if not results.get(hash, None):
+            url = s.url
+            if not results.get(url, None):
 
                 if fetchblocks:
-                    results[hash] = UnknownBlock(hash=hash).fetch()  # We don't know its a SB, UnknownBlock.fetch() will convert
+                    results[url] = UnknownBlock(url=url).fetch()  # We don't know its a SB, UnknownBlock.fetch() will convert
                 else:
-                    results[hash] = UnknownBlock(hash=hash)  # We don't know its a SB
-            if not results[hash]._signatures:
-                results[hash]._signatures = Signatures([])
-            results[hash]._signatures.append(s)
-        return [ results[hash] for hash in results]
+                    results[url] = UnknownBlock(url=url)  # We don't know its a SB
+            if not results[url]._signatures:
+                results[url]._signatures = Signatures([])
+            results[url]._signatures.append(s)
+        return [ results[url] for url in results]
 
     def latest(self):
         dated = self._dated()

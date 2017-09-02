@@ -71,31 +71,31 @@ class TransportHTTPBase(Transport):
             res = self._sendGetPost(False, "info", urlargs=[], verbose=verbose, params=options)
         return res.json()
 
-    def url(self, obj, command=None, hash=None, table=None, contenttype=None, url_output=None, **options):
+    def url(self, obj, command=None, url=None, table=None, contenttype=None, url_output=None, **options):
         """
 
         :return: HTTP style URL to access this resource - not sure what this works on yet.
         """
         # Identical code in TransportHTTP and ServerHTTP.url
-        hash = hash or obj._hash
+        url = url or obj._url
         if command in ["file"]:
             if url_output=="getpost":
-                return [False, command, [table or obj.table, hash]]
+                return [False, command, [table or obj.table, url]]
             else:
-                url = "http://%s:%s/%s/%s/%s" \
-                    % (self.ipandport[0], self.ipandport[1], command, table or obj.table, hash)
+                res = "http://%s:%s/%s/%s/%s" \
+                    % (self.ipandport[0], self.ipandport[1], command, table or obj.table, url)
         else:
             if url_output=="getpost":
                 raise ToBeImplementedException(name="TransportHTTP.url:command="+(command or "None")+",url_output="+url_output)
             else:
-                url =  "http://%s:%s/%s/%s"  \
-                    % (self.ipandport[0], self.ipandport[1], command or "rawfetch", hash)
+                res =  "http://%s:%s/%s/%s"  \
+                    % (self.ipandport[0], self.ipandport[1], command or "rawfetch", url)
         if contenttype:
             if command in ("update",):  # Some commands allow type as URL parameter
-                url += "/" + urllib.quote(contenttype, safe='')
+                res += "/" + urllib.quote(contenttype, safe='')
             else:
-                url += "?contenttype=" + urllib.quote(contenttype, safe='')
-        return url
+                res += "?contenttype=" + urllib.quote(contenttype, safe='')
+        return res
 
 class TransportHTTP(TransportHTTPBase):
     """
@@ -118,27 +118,27 @@ class TransportHTTP(TransportHTTPBase):
     #see other !ADD-TRANSPORT-COMMAND - add a function copying the format below
     # TransportHTTPBase handles: info()
 
-    def rawfetch(self, hash=None, verbose=False, **options):
-        if verbose: print "TransportHTTP.rawfetch(%s)" % hash
-        res = self._sendGetPost(False, "rawfetch", urlargs=[hash], verbose=verbose, params=options)
+    def rawfetch(self, url=None, verbose=False, **options):
+        if verbose: print "TransportHTTP.rawfetch(%s)" % url
+        res = self._sendGetPost(False, "rawfetch", urlargs=[url], verbose=verbose, params=options)
         return res.text
 
-    def rawlist(self, hash, verbose=False, **options):
-        if verbose: print "list", hash, options
-        res = self._sendGetPost(False, "rawlist", urlargs=[hash], params=options)
+    def rawlist(self, url, verbose=False, **options):
+        if verbose: print "list", url, options
+        res = self._sendGetPost(False, "rawlist", urlargs=[url], params=options)
         return res.json()   # Data version of list - an array
 
-    def rawreverse(self, hash, verbose=False, **options):
-        if verbose: print "reverse", hash, options
-        res = self._sendGetPost(False, "rawreverse", urlargs=[hash], params=options)
+    def rawreverse(self, url, verbose=False, **options):
+        if verbose: print "reverse", url, options
+        res = self._sendGetPost(False, "rawreverse", urlargs=[url], params=options)
         return res.json()   # Data version of list - an array
 
     def rawstore(self, data=None, verbose=False, **options):
         res = self._sendGetPost(True, "rawstore", headers={"Content-Type": "application/octet-stream"}, urlargs=[], data=data, verbose=verbose)
-        return str(res.text) # Should be the hash - need to return a str, not unicode which isn't supported by decode
+        return str(res.text) # Should be the url - need to return a str, not unicode which isn't supported by decode
 
-    def rawadd(self, hash=None, date=None, signature=None, signedby=None, verbose=False, **options):
-        if verbose: print "add", hash, date, signature, signedby, options
-        value = self._add_value( hash=hash, date=date, signature=signature, signedby=signedby, verbose=verbose, **options)+ "\n"
+    def rawadd(self, url=None, date=None, signature=None, signedby=None, verbose=False, **options):
+        if verbose: print "add", url, date, signature, signedby, options
+        value = self._add_value( url=url, date=date, signature=signature, signedby=signedby, verbose=verbose, **options)+ "\n"
         res = self._sendGetPost(True, "rawadd", urlargs = [], headers={"Content-Type": "application/json"}, params={}, data=value)
 

@@ -13,14 +13,14 @@ class MutableBlock(CommonList):
 
     {   _current: StructuredBlock       Most recently published item
         _list: [ StructuredBlock* ] }   List of all published item (think of as previous versions)
-        contentacl                      ACL, or its hash to use for content (note the MB itself is encrypted with via its own _acl field)
-        From CommonList: _publichash, _master bool, keypair
+        contentacl                      ACL, or its url to use for content (note the MB itself is encrypted with via its own _acl field)
+        From CommonList: _publicurl, _master bool, keypair
         From SmartDict: _acl,
-        From Transportable: _data, _hash
+        From Transportable: _data, _url
     """
     table = "mb"
 
-    def __init__(self, master=False, keypair=None, data=None, hash=None, contenthash=None, contentacl=None, keygen=False, verbose=False, **options):
+    def __init__(self, master=False, keypair=None, data=None, url=None, contenturl=None, contentacl=None, keygen=False, verbose=False, **options):
         """
         Create and initialize a MutableBlock
         Adapted to dweb.js.MutableBlock.constructor
@@ -28,16 +28,16 @@ class MutableBlock(CommonList):
 
 
         :param data: Public or Private key text as exported by "PEM"
-        :param hash: of key
-        :param contenthash: hash of initial content (only currently applicable to master)
+        :param url: of key
+        :param contenturl: url of initial content (only currently applicable to master)
         :param options: # Can indicate how to initialize content
         """
-        # This next line for "hash" is odd, side effect of hash being for content with MB.master and for key with MB.!master
-        if verbose: print "MutableBlock( keypair=",keypair, "data=",data, "hash=", hash, "keygen=", keygen, "options=", options,")"
-        super(MutableBlock, self).__init__(master=master, keypair=keypair, data=data, hash=hash, keygen=keygen, verbose=verbose, **options)
+        # This next line for "url" is odd, side effect of url being for content with MB.master and for key with MB.!master
+        if verbose: print "MutableBlock( keypair=",keypair, "data=",data, "url=", url, "keygen=", keygen, "options=", options,")"
+        super(MutableBlock, self).__init__(master=master, keypair=keypair, data=data, url=url, keygen=keygen, verbose=verbose, **options)
         # Exception PrivateKeyException if passed public key and master=True
         self.contentacl = contentacl    # Hash of content when publishing - calls contentacl.setter which retrieves it , only has meaning if master - triggers setter on content
-        self._current = StructuredBlock(hash=contenthash, verbose=verbose) if master else None # Create a place to hold content, pass hash to load content
+        self._current = StructuredBlock(url=contenturl, verbose=verbose) if master else None # Create a place to hold content, pass url to load content
         #OBS - table is always mb: self.__dict__["table"] = "mbm" if master else "mb"
 
     @property
@@ -49,7 +49,7 @@ class MutableBlock(CommonList):
         """
         Set the contentacl used to control whether content encrypted or not
 
-        :param value: hash, AccessControlList or None
+        :param value: url, AccessControlList or None
         """
         if value:
             if not isinstance(value, AccessControlList):
@@ -62,7 +62,7 @@ class MutableBlock(CommonList):
 
         :return: self for chaining
         """
-        if verbose: print "MutableBlock.fetch pubkey=",self._hash
+        if verbose: print "MutableBlock.fetch pubkey=",self._url
         super(MutableBlock, self).fetch(verbose=verbose, fetchblocks=False, **options)  # Dont fetch old versions
         if len(self._list):
             sig = self._list[-1] # Note this is the last of the list, if lists can get disordered then may need to sort
@@ -84,13 +84,13 @@ class MutableBlock(CommonList):
     def signandstore(self, verbose=False, **options):
         """
         Sign and Store a version, or entry in MutableBlock master
-        Exceptions: SignedBlockEmptyException if neither hash nor structuredblock defined, ForbiddenException if !master
+        Exceptions: SignedBlockEmptyException if neither url nor structuredblock defined, ForbiddenException if !master
 
         :return: self to allow chaining of functions
         """
         if (not self._current._acl) and self.contentacl:
             self._current._acl = self.contentacl    # Make sure SB encrypted when stored
-            self._current.dirty()   # Make sure stored again if stored unencrypted. - _hash will be used by signandstore
+            self._current.dirty()   # Make sure stored again if stored unencrypted. - _url will be used by signandstore
         return super(MutableBlock, self).signandstore(self._current, verbose=verbose, **options) # ERR SignedBlockEmptyException, ForbiddenException
 
     def path(self, urlargs, verbose=False, **optionsignored):
@@ -123,7 +123,7 @@ class MutableBlock(CommonList):
         mblockm.store()
         if signandstore and content:
             mblockm.signandstore(verbose=verbose)  # Sign it - this publishes it
-        if verbose: print "Created MutableBlock hash=", mblockm._hash
+        if verbose: print "Created MutableBlock url=", mblockm._url
         return mblockm
 
 

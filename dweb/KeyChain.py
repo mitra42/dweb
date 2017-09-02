@@ -12,15 +12,15 @@ class KeyChain(EncryptionList):  # TODO move to own file
     A class to hold a list of encrypted Private keys. Control of Privatekey of this gives access to all of the items pointed at.
 
     From EncryptionList accesskey       Behaves like that of the ACL
-    From CommonList: keypair, _publichash, _list, _master, name
+    From CommonList: keypair, _publicurl, _list, _master, name
     From SmartDict:     _acl            For encrypting the KeyChain itself
     """
     table = "kc"
 
-    def __init__(self, master=False, keypair=None, data=None, hash=None, verbose=False, keygen=False, mnemonic=None,
+    def __init__(self, master=False, keypair=None, data=None, url=None, verbose=False, keygen=False, mnemonic=None,
                  **options):
         self._keys = [] # Before super as may be overritten by data (unlikely since starts with '_'
-        super(KeyChain, self).__init__(master=master, keypair=keypair, data=data, hash=hash, verbose=verbose, keygen=keygen, mnemonic=mnemonic,
+        super(KeyChain, self).__init__(master=master, keypair=keypair, data=data, url=url, verbose=verbose, keygen=keygen, mnemonic=mnemonic,
                  **options);
 
 
@@ -34,9 +34,9 @@ class KeyChain(EncryptionList):  # TODO move to own file
         :param bool keygen: If True generate a key
         """
         if verbose: print "KeyChain.new mnemonic=", mnemonic, "keygen=", keygen
-        # master=False, keypair=None, data=None, hash=None, verbose=False, keygen=False, mnemonic=None, **options):  # Note hash is of data
+        # master=False, keypair=None, data=None, url=None, verbose=False, keygen=False, mnemonic=None, **options):  # Note url is of data
         kc = cls(mnemonic=mnemonic, keygen=keygen, verbose=verbose, name=name)  # Note only fetches if name matches
-        kc.store(verbose=verbose)  # Set the _publichash
+        kc.store(verbose=verbose)  # Set the _publicurl
         KeyChain.addkeychains(kc)
         kc.fetch(verbose=verbose, fetchlist=True, fetchblocks=False)  # Was fetching blocks, but now done by "keys"
         if verbose: print "Created keychain for:", kc.keypair.mnemonic
@@ -118,14 +118,14 @@ class KeyChain(EncryptionList):  # TODO move to own file
         Dweb.keychains += keychains
 
     @classmethod
-    def find(cls, publichash, verbose=False, **options):
-        kcs = [kc for kc in Dweb.keychains if kc._publichash == publichash]
+    def find(cls, publicurl, verbose=False, **options):
+        kcs = [kc for kc in Dweb.keychains if kc._publicurl == publicurl]
         if verbose and kcs: print "KeyChain.find successful"
         return kcs[0] if kcs else None
 
     def store(self, verbose=False, **options):
         return super(KeyChain, self).store(verbose=verbose, dontstoremaster=True,
-                                           **options)  # Stores public version and sets _publichash
+                                           **options)  # Stores public version and sets _publicurl
 
     def fetch(self, verbose=False, **options):
         return super(KeyChain, self).fetch(fetchbody=False, verbose=verbose,

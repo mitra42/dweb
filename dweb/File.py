@@ -44,13 +44,13 @@ class File(StructuredBlock):
         :param content: Content of the file
         :param meta:    Any meta data about the file e.g. contentype or date
         :param verbose:
-        :return:        File() with _hash and data set
+        :return:        File() with _url and data set
         """
         # Utility method to upload binary content as a Block and attach.
-        hash = Dweb.transport.rawstore(data=content, verbose=verbose)
+        url = Dweb.transport.rawstore(data=content, verbose=verbose)
         f = cls(**meta)
-        f.hash = hash
-        f.store(verbose=verbose)  # This will have data and _hash, the _hash reflects the SB not the data
+        f.url = url
+        f.store(verbose=verbose)  # This will have data and _url, the _url reflects the SB not the data
         return f
 
     @classmethod
@@ -88,7 +88,7 @@ class File(StructuredBlock):
             f = cls(content=content, **meta) # File, the ** is because can't pass hyphenated fields as arguments
             if upload:
                 try:
-                    f.store(verbose=verbose)  # This will have data and _hash, the _hash reflects the SB not the data
+                    f.store(verbose=verbose)  # This will have data and _url, the _url reflects the SB not the data
                 except UnicodeDecodeError as e:
                     print "XXX@82 failed unicode on",filepath,"contenttype=",contenttype
                     f = cls._uploadbinary(content, meta, verbose=verbose)

@@ -50,48 +50,48 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
     info.arglist=[]
 
     @exposed
-    def rawfetch(self, hash=None, contenttype="application/octet-stream", **kwargs):
+    def rawfetch(self, url=None, contenttype="application/octet-stream", **kwargs):
         """
         Retrieve a block, Paired with TransportHTTP.fetch
-        Exceptions: TransportBlockNotFound if hash invalid
+        Exceptions: TransportBlockNotFound if url invalid
 
-        :param hash: block to retrieve
+        :param url: block to retrieve
         :return: { Content-Type, data: raw data from block
         """
         return {"Content-type": contenttype,
-                "data": Dweb.transport.rawfetch(hash=hash)} # Should be raw data returned
-    rawfetch.arglist=["hash"]
+                "data": Dweb.transport.rawfetch(url=url)} # Should be raw data returned
+    rawfetch.arglist=["url"]
 
     @exposed
-    def rawlist(self, hash=hash, **kwargs):
+    def rawlist(self, url=None, **kwargs):
         """
         Retrieve a list of objects - Paired with TransportHTTP.list
 
-        :param hash: key to retrieve values for
+        :param url: key to retrieve values for
         :return:
         """
         return { 'Content-type': 'application/json',
-                 'data': Dweb.transport.rawlist(hash=hash, **kwargs)
+                 'data': Dweb.transport.rawlist(url=url, **kwargs)
                }
-    rawlist.arglist=["hash"]
+    rawlist.arglist=["url"]
 
     @exposed
-    def rawreverse(self, hash=hash, **kwargs):
+    def rawreverse(self, url=None, **kwargs):
         """
         Retrieve a list of objects - Paired with TransportHTTP.list
 
-        :param hash: key to retrieve values for
+        :param url: key to retrieve values for
         :return:
         """
         return {'Content-type': 'application/json',
-                'data': Dweb.transport.rawreverse(hash=hash, **kwargs)
+                'data': Dweb.transport.rawreverse(url=url, **kwargs)
                 }
-    rawreverse.arglist = ["hash"]
+    rawreverse.arglist = ["url"]
 
     @exposed
     def rawstore(self, data=None, **kwargs):
-        hash = Dweb.transport.rawstore(data=data, **kwargs)
-        return { "Content-type": "application/octet-stream", "data": hash }
+        url = Dweb.transport.rawstore(data=data, **kwargs)
+        return { "Content-type": "application/octet-stream", "data": url }
     rawstore.arglist=["data"]
 
     @exposed
@@ -99,7 +99,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         """
         Pass raw data on to transport layer,
 
-        :param data: Dictionary to add {hash, signature, date, signedby} or json string of it.
+        :param data: Dictionary to add {url, signature, date, signedby} or json string of it.
         """
         print "XXX@rawadd.102",data
         if isinstance(data, basestring): # Assume its JSON
@@ -108,68 +108,68 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         return  { "Content-type": "application/octet-stream",
                   "data":  Dweb.transport.rawadd(**data)
                   }
-        #hash=None, date=None, signature=None, signedby=None, verbose=False, **options):
+        #url=None, date=None, signature=None, signedby=None, verbose=False, **options):
     rawadd.arglist=["data"]
 
     @exposed
-    def content(self, table=None, hash=None, urlargs=None, contenttype=None, verbose=False, **kwargs):
-        return Dweb.transport.fetch("content", cls=table, hash=hash,path=urlargs, verbose=verbose, contenttype=contenttype, **kwargs  )
-    content.arglist=["table", "hash"]
+    def content(self, table=None, url=None, urlargs=None, contenttype=None, verbose=False, **kwargs):
+        return Dweb.transport.fetch("content", cls=table, url=url,path=urlargs, verbose=verbose, contenttype=contenttype, **kwargs  )
+    content.arglist=["table", "url"]
 
     @exposed
-    def file(self, table=None, hash=None, urlargs=None, contenttype=None, verbose=False, **kwargs):
+    def file(self, table=None, url=None, urlargs=None, contenttype=None, verbose=False, **kwargs):
         #TODO-EFFICIENCY - next call does 2 fetches
         #verbose=True
-        return Dweb.transport.fetch(command="file", cls=table, hash=hash,path=urlargs, verbose=verbose, contenttype=contenttype, **kwargs  )
-    file.arglist=["table", "hash"]
+        return Dweb.transport.fetch(command="file", cls=table, url=url,path=urlargs, verbose=verbose, contenttype=contenttype, **kwargs  )
+    file.arglist=["table", "url"]
 
 
     @exposed
-    def update(self, hash=None, contenttype=None, data=None, verbose=False, **kwargs):
+    def update(self, url=None, contenttype=None, data=None, verbose=False, **kwargs):
         """
         Update the content - this is specific to the HTTP interface so that it can be driven by editors like mce.
         #Exception PrivateKeyException if passed public key and master=True
 
         :param table:   Which table to put it in, usually mb
-        :param hash:    hash of public key of mb
+        :param url:    url of public key of mb
         :param kwargs:  Normally would include authentication
         :return:
         """
-        #Fetch key from hash
-        if verbose: print "DwebHTTPRequestHandler.update",hash,data,type
+        #Fetch key from url
+        if verbose: print "DwebHTTPRequestHandler.update",url,data,type
 
         # Store the data
         sb = StructuredBlock(verbose=verbose, **{"Content-type": contenttype})
         sb.data = data
         sb.store(verbose=verbose)
         #Create Mbm from key; load with data; sign and store
-        mbm = MutableBlock(master=True, hash=hash, contenthash=sb._hash, verbose=verbose).signandstore(verbose=verbose)
+        mbm = MutableBlock(master=True, url=url, contenturl=sb._url, verbose=verbose).signandstore(verbose=verbose)
         #Exception PrivateKeyException if passed public key and master=True
         return {"Content-type": "text/plain",       # Always returning plain text as the URL whatever type stored
-                "data": self.url(mbm, command="file", table="mb", hash=mbm._publichash)}
-    update.arglist=["hash","contenttype"]
+                "data": self.url(mbm, command="file", table="mb", url=mbm._publicurl)}
+    update.arglist=["url","contenttype"]
 
 
 
-    def url(self, obj, command=None, hash=None, table=None, contenttype=None, url_output=None, **options):
+    def url(self, obj, command=None, url=None, table=None, contenttype=None, url_output=None, **options):
         """
 
         :return: HTTP style URL to access this resource - not sure what this works on yet.
         """
         # Identical code in TransportHTTP and ServerHTTP.url
-        hash = hash or obj._hash
+        url = url or obj._url
         if command in ["file"]:
             if url_output=="getpost":
-                return [False, command, [table or obj.table, hash]]
+                return [False, command, [table or obj.table, url]]
             else:
                 url = "http://%s:%s/%s/%s/%s" \
-                    % (self.ipandport[0], self.ipandport[1], command, table or obj.table, hash)
+                    % (self.ipandport[0], self.ipandport[1], command, table or obj.table, url)
         else:
             if url_output=="getpost":
                 raise ToBeImplementedException(name="TransportHTTP.url:command="+command+",url_output="+url_output)
             else:
                 url =  "http://%s:%s/%s/%s"  \
-                    % (self.ipandport[0], self.ipandport[1], command or "rawfetch", hash)
+                    % (self.ipandport[0], self.ipandport[1], command or "rawfetch", url)
         if contenttype:
             if command in ("update",):  # Some commands allow type as URL parameter
                 url += "/" + urllib.quote(contenttype, safe='')

@@ -15,7 +15,7 @@ class AccessControlList(EncryptionList):
     To create a list, it just requires a key pair, like any other List
 
     From EncryptionList: accesskey   Key with which things on this list are encrypted
-    From CommonList: keypair, _publichash, _list, _master, name
+    From CommonList: keypair, _publicurl, _list, _master, name
 
     """
     table = "acl"
@@ -26,7 +26,7 @@ class AccessControlList(EncryptionList):
         # Super has to come after above as overrights keypair, also cant put in CommonList as MB's dont have a naclpublic and are only used for signing, not encryption
         return super(AccessControlList, self).preflight(dd)
 
-    def add(self, viewerpublichash=None, verbose=False, **options):
+    def add(self, viewerpublicurl=None, verbose=False, **options):
         """
         Add a new ACL entry
         Needs publickey of viewer
@@ -34,14 +34,14 @@ class AccessControlList(EncryptionList):
         :param self:
         :return:
         """
-        if verbose: print "AccessControlList.add viewerpublichash=",viewerpublichash
+        if verbose: print "AccessControlList.add viewerpublicurl=",viewerpublicurl
         if not self._master:
             raise ForbiddenException(what="Cant add viewers to ACL copy")
-        viewerpublickeypair = KeyPair(hash=viewerpublichash).fetch(verbose=verbose)
+        viewerpublickeypair = KeyPair(url=viewerpublicurl).fetch(verbose=verbose)
         aclinfo = {
             # Need to go B64->binary->encrypt->B64
             "token": viewerpublickeypair.encrypt(CryptoLib.b64dec(self.accesskey), b64=True, signer=self),
-            "viewer": viewerpublichash,
+            "viewer": viewerpublicurl,
         }
         sb = StructuredBlock(data=aclinfo)
         self.signandstore(sb, verbose, **options)
@@ -60,8 +60,8 @@ class AccessControlList(EncryptionList):
         """
         if verbose: print "AccessControlList.tokens decrypt=",decrypt
         self.fetch(verbose=verbose, fetchblocks=False)
-        viewerhash = viewerkeypair._hash
-        toks = [ a.block().token for a in self._list if a.block().viewer == viewerhash ]
+        viewerurl = viewerkeypair._url
+        toks = [ a.block().token for a in self._list if a.block().viewer == viewerurl ]
         if decrypt:
             toks = [ viewerkeypair.decrypt(str(a), b64=True, signer=self) for a in toks ]
         return toks

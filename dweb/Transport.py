@@ -5,7 +5,7 @@ from misc import ToBeImplementedException, MyBaseException, IntentionallyUnimple
 
 class TransportBlockNotFound(MyBaseException):
     httperror = 404
-    msg = "{hash} not found"
+    msg = "{url} not found"
 
 class TransportURLNotFound(MyBaseException):
     httperror = 404
@@ -17,7 +17,7 @@ class TransportFileNotFound(MyBaseException):
 
 class TransportPathNotFound(MyBaseException):
     httperror = 404
-    msg = "{path} not found for obj {hash}"
+    msg = "{path} not found for obj {url}"
 
 class TransportUnrecognizedCommand(MyBaseException):
     httperror = 500
@@ -27,17 +27,17 @@ class TransportUnrecognizedCommand(MyBaseException):
 class Transport(object):
     """
     The minimal transport layer implements 5 primitives:
-    rawfetch(hash) -> bytes: To retrieve data
-    rawlist(keyhash) -> [ (datahash, date, keyhash)* ]
-    rawreverse(datahash) -> [ (datahash, date, keyhash)* ]
-    rawstore(data) -> hash: Store data
-    rawadd(datahash, date, keyhash) -> Raw add to list(keyhash) and reverse(datahash)
+    rawfetch(url) -> bytes: To retrieve data
+    rawlist(keyurl) -> [ (dataurl, date, keyurl)* ]
+    rawreverse(dataurl) -> [ (dataurl, date, keyurl)* ]
+    rawstore(data) -> url: Store data
+    rawadd(dataurl, date, keyurl) -> Raw add to list(keyurl) and reverse(dataurl)
 
     These are expanded here to:
-    fetch(command, cls, hash, path)
-    list(command, cls, hash, path) = list.command([cls(l).path for l in rawlist(hash)])
-    store(command, cls, hash, path, data) = fetch(cls, hash, path).command(data) || rawstore(data)  #TODO unsure of this
-    add(obj, date, signature, signedby) = rawadd(obj._hash, date, signature, signedby ) #TODO could take "key" 
+    fetch(command, cls, url, path)
+    list(command, cls, url, path) = list.command([cls(l).path for l in rawlist(url)])
+    store(command, cls, url, path, data) = fetch(cls, url, path).command(data) || rawstore(data)  #TODO unsure of this
+    add(obj, date, signature, signedby) = rawadd(obj._url, date, signature, signedby ) #TODO could take "key"
 
     Either the raw, or cooked functions can be subclassed
     """
@@ -64,43 +64,44 @@ class Transport(object):
     def info(self, **options):
         raise ToBeImplementedException(name=cls.__name__+".info")
 
-    def rawfetch(self, hash=None, verbose=False, **options):
+    def rawfetch(self, url=None, verbose=False, **options):
         """
-        Fetch data from a hash and return as a (binary) string
+        Fetch data from a url and return as a (binary) string
 
-        :param hash:
+        :param url:
+        :param options: { ignorecache if shouldnt use any cached value (mostly in testing);
         :return: str
         """
         raise ToBeImplementedException(name=cls.__name__+".rawfetch")
 
-    def fetch(self, command=None, cls=None, hash=None, path=None, verbose=False, **options):
+    def fetch(self, command=None, cls=None, url=None, path=None, verbose=False, **options):
         """
         More comprehensive fetch function, can be sublassed either by the objects being fetched or the transport.
         Exceptions: TransportPathNotFound, TransportUnrecognizedCommand
 
         :param command: Command to be performed on the retrieved data (e.g. content, or size)
         :param cls:     Class of object being returned, if None will return a str
-        :param hash:    Hash of object to retrieve
-        :param path:    Path within object represented by hash
+        :param url:    Hash of object to retrieve
+        :param path:    Path within object represented by url
         :param verbose:
         :param options: Passed to command, NOT passed to subcalls as for example mucks up sb.__init__ by dirtying - this might be reconsidered
         :return:
         """
-        if verbose: print "Transport.fetch command=%s cls=%s hash=%s path=%s options=%s" % (command, cls, hash, path, options)
+        if verbose: print "Transport.fetch command=%s cls=%s url=%s path=%s options=%s" % (command, cls, url, path, options)
         if cls:
             if isinstance(cls, basestring):  # Handle abbreviations for cls
                 cls = self._lettertoclass(cls)
-            obj = cls(hash=hash, verbose=verbose).fetch(verbose=verbose)
+            obj = cls(url=url, verbose=verbose).fetch(verbose=verbose)
             # Can't pass **options to cls as disrupt sb.__init__ by causing dirty
             # Not passing **options to fetch, but probably could
         else:
-            obj = self.rawfetch(hash, verbose=verbose)   # Not passing **options, probably could but not used
+            obj = self.rawfetch(url, verbose=verbose)   # Not passing **options, probably could but not used
         #if verbose: print "Transport.fetch obj=",obj
         if path:
             obj = obj.path(path, verbose=verbose)   # Not passing **options as ignored, but probably could
             #TODO handle not found exception
             if not obj:
-                raise TransportPathNotFound(path=path, hash=hash)
+                raise TransportPathNotFound(path=path, url=url)
         if not command:
             return obj
         else:
@@ -111,22 +112,22 @@ class Transport(object):
                 raise TransportUnrecognizedCommand(command=command, classname=cls.__name__)
             return func(verbose=verbose, **options)
 
-    def rawlist(self, hash=None, verbose=False, **options):
+    def rawlist(self, url=None, verbose=False, **options):
         raise ToBeImplementedException(name=cls.__name__+".rawlist")
 
-    def list(self, command=None, cls=None, hash=None, path=None, verbose=False, **options):
+    def list(self, command=None, cls=None, url=None, path=None, verbose=False, **options):
         """
 
-        :param command: if found:  list.commnd(list(cls, hash, path)
-        :param cls: if found (cls(l) for l in list(hash)
-        :param hash:    Hash of list to look up - usually hash of private key of signer
+        :param command: if found:  list.commnd(list(cls, url, path)
+        :param cls: if found (cls(l) for l in list(url)
+        :param url:    Hash of list to look up - usually url of private key of signer
         :param path:    Ignored for now, unclear how applies
         :param verbose:
         :param options:
         :return:
         """
 
-        res = rawlist(hash, verbose=verbose, **options)
+        res = rawlist(url, verbose=verbose, **options)
         if cls:
             if isinstance(cls, basestring): # Handle abbreviations for cls
                 cls = self._lettertoclass(cls)
@@ -138,23 +139,23 @@ class Transport(object):
             res = func(res, verbose=verbose, **options)
         return res
 
-    def rawreverse(self, hash=None, verbose=False, **options):
+    def rawreverse(self, url=None, verbose=False, **options):
         raise ToBeImplementedException(name=cls.__name__+".rawreverse")
 
 
-    def reverse(self, command=None, cls=None, hash=None, path=None, verbose=False, **options):
+    def reverse(self, command=None, cls=None, url=None, path=None, verbose=False, **options):
         """
 
-        :param command: if found:  reverse.commnd(list(cls, hash, path)
-        :param cls: if found (cls(l) for l in reverse(hash)
-        :param hash:    Hash of reverse to look up - usually hash of data signed
+        :param command: if found:  reverse.commnd(list(cls, url, path)
+        :param cls: if found (cls(l) for l in reverse(url)
+        :param url:    Hash of reverse to look up - usually url of data signed
         :param path:    Ignored for now, unclear how applies
         :param verbose:
         :param options:
         :return:
         """
 
-        res = rawreverse(hash, verbose=verbose, **options)
+        res = rawreverse(url, verbose=verbose, **options)
         if cls:
             if isinstance(cls, basestring): # Handle abbreviations for cls
                 cls = self._lettertoclass(cls)
@@ -169,28 +170,29 @@ class Transport(object):
     def rawstore(self, data=None, verbose=False, **options):
         raise ToBeImplementedException(name=cls.__name__+".rawstore")
 
-    def store(self, command=None, cls=None, hash=None, path=None, data=None, verbose=False, **options):
-        #store(command, cls, hash, path, data, options) = fetch(cls, hash, path, options).command(data|data._data, options)
-        #store(hash, data)
+    def store(self, command=None, cls=None, url=None, path=None, data=None, verbose=False, **options):
+        #store(command, cls, url, path, data, options) = fetch(cls, url, path, options).command(data|data._data, options)
+        #store(url, data)
         if not isinstance(data, basestring):
             data = data._data
         if command:
             # TODO not so sure about this production, document any uses here if there are any
-            obj = self.fetch(command=None, cls=None, hash=hash, path=path, verbose=verbose, **options)
+            obj = self.fetch(command=None, cls=None, url=url, path=path, verbose=verbose, **options)
             return obj.command(data=data, verbose=False, **options)
         else:
             return self.rawstore(data=data, verbose=verbose, **options)
 
-    def rawadd(self, hash=None, date=None, signature=None, signedby=None, verbose=False, **options):
+    def rawadd(self, url=None, date=None, signature=None, signedby=None, verbose=False, **options):
         raise ToBeImplementedException(name=cls.__name__+".rawadd")
 
-    def add(self, hash=None, date=None, signature=None, signedby=None, verbose=False, obj=None, **options ):
-        #add(datahash, sig, date, keyhash)
-        if (obj and not hash):
-            hash = obj._hash
-        return self.rawadd(hash=hash, date=date, signature=signature, signedby=signedby, verbose=verbose, **options)
+    def add(self, url=None, date=None, signature=None, signedby=None, verbose=False, obj=None, **options ):
+        #add(dataurl, sig, date, keyurl)
+        if (obj and not url):
+            url = obj._url
+        return self.rawadd(url=url, date=date, signature=signature, signedby=signedby, verbose=verbose, **options)
 
-    def _add_value(self, hash=None, date=None, signature=None, signedby=None, verbose=False, **options ):
+    def _add_value(self, url=None, date=None, signature=None, signedby=None, verbose=False, **options ):
+        store = {"url": url, "date": date, "signature": signature, "signedby": signedby}
+
         from CryptoLib import CryptoLib
-        store = {"hash": hash, "date": date, "signature": signature, "signedby": signedby}
         return CryptoLib.dumps(store)

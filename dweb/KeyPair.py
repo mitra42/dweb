@@ -201,7 +201,7 @@ class KeyPair(SmartDict):
     @property
     def publicexport(self):
         if isinstance(self._key, WordHashKey):  # Handle own classes which have a publicexport() method
-            return self._key.publicexport()  # (Dont use k as its a hash already)
+            return self._key.publicexport()  # (Dont use k as its a url already)
         else:
             return self._exportkey(self.public)
 

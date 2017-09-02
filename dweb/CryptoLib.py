@@ -112,11 +112,11 @@ class CryptoLib(object):
     @staticmethod
     def _signable(date, data):
         """
-        Returns a string suitable for signing and dating, current implementation includes date and storage hash of data.
+        Returns a string suitable for signing and dating, current implementation includes date and storage url of data.
         Called by signature, so that same thing signed as compared
 
         :param date: Date on which it was signed
-        :param data: Storage hash of data signed (as returned by Transport layer) - will convert to str if its unicode
+        :param data: Storage url of data signed (as returned by Transport layer) - will convert to str if its unicode
         :return: Signable or comparable string
         COPIED TO JS 2017-05-23
         """
@@ -148,7 +148,7 @@ class CryptoLib(object):
             raise ToBeImplementedException(name="signature for key ="+keypair._key.__class__.__name__)
 
     @staticmethod
-    def verify(sig, hash=None):
+    def verify(sig, url=None):
         """
         Pair of signature(), compares signature and date against encrypted data.
         Typically called with \*\*block where block is a signature dictionary read from Transport with date transformed to datetime.
@@ -156,14 +156,14 @@ class CryptoLib(object):
         :return:
         """
         from CommonList import CommonList
-        cl = CommonList(hash=sig.signedby).fetch(fetchlist=False)
+        cl = CommonList(url=sig.signedby).fetch(fetchlist=False)
         # Dont know what kind of list - e.g. MutableBlock or AccessControlList but dont care as only use keys
         keypair = cl.keypair    # Sideeffect of loading from dweb
         assert keypair
         #b64decode requires a str, but signature may be unicode
         #TODO-AUTHENTICATION - replace with better signing/verification e.g. from http://pydoc.net/Python/pycrypto/2.6.1/Crypto.Signature.PKCS1_v1_5/
         #TODO-AUTHENTICATION - note this will require reworking WordHash.decrypt
-        check = CryptoLib._signable(sig.date, hash or sig.hash)
+        check = CryptoLib._signable(sig.date, url or sig.url)
         if isinstance(keypair._key, RSA._RSAobj):
             sigtocheck = CryptoLib.b64dec(str(sig.signature))
             return check == keypair.public.encrypt(sigtocheck, 32)[0]
@@ -275,12 +275,12 @@ class CryptoLib(object):
         if value.get("encrypted"):
             from AccessControlList import AccessControlList
             from KeyChain import KeyChain
-            hash = value.get("acl")
-            kc = KeyChain.find(publichash=hash)  # Matching KeyChain or None
+            url = value.get("acl")
+            kc = KeyChain.find(publicurl=url)  # Matching KeyChain or None
             if kc:
-                dec = kc.decrypt(data=value.get("encrypted"))  # Exception: DecryptionFail - unlikely since publichash matches
+                dec = kc.decrypt(data=value.get("encrypted"))  # Exception: DecryptionFail - unlikely since publicurl matches
             else:
-                acl = AccessControlList(hash=hash, verbose=verbose)  # TODO-AUTHENTICATION probably add person-to-person version
+                acl = AccessControlList(url=url, verbose=verbose)  # TODO-AUTHENTICATION probably add person-to-person version
                 dec = acl.decrypt(data=value.get("encrypted"), verbose=verbose)
             return dec
         else:
@@ -360,10 +360,10 @@ class CryptoLib(object):
 class WordHashKey(object):   #TODO-LIBSODIUM-CHECK-THIS-FUNCTION maybe replace with deterministic pub key from mnemonic
     """
     This is an odd, not really private/public key pair but it pretends to be.
-    It uses a key selected by the mnemonic words as the "private" key, and its hash as the public key.
+    It uses a key selected by the mnemonic words as the "private" key, and its url as the public key.
     The key is not stored with a keypair, either private or public since storing it would potentially expose it.
 
-    _public  hash of private
+    _public  url of private
     _private    binary key from the mnemonic words
     """
     def __init__(self, mnemonic=None, public=None):
@@ -403,7 +403,7 @@ class WordHashKey(object):   #TODO-LIBSODIUM-CHECK-THIS-FUNCTION maybe replace w
 
     def publicexport(self):
         #if CryptoLib.defaultlib != CryptoLib.CRYPTO: raise ToBeImplementedException(name="#TODO-LIBSODIUM")
-        return "WORDHASH:"+self._public     # _public is a hash already
+        return "WORDHASH:"+self._public     # _public is a url already
 
     @classmethod
     def generate(cls, strength=256):    # Move up to 32 bytes (note at 16 byte = 128 bit it breaks the symkey in LibSodium

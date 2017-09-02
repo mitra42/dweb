@@ -193,21 +193,21 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
         else:
             raise PeerCommandException(command=req.command)
 
-    def rawfetch(self, hash, verbose=False, **options):
+    def rawfetch(self, url, verbose=False, **options):
         """
         Fetch a block from the local file system and if that fails fetch from distributed and cache
         Exception: TransportFileNotFound if file doesnt exist
 
-        :param hash:
+        :param url:
         :param options:
         :return:
         """
         # Note node will check locally first so dont need to save in tl first.
-        req = PeerRequest(command="reqfetch", sourcenode=Peer(node=self), hash=hash, verbose=verbose)
+        req = PeerRequest(command="reqfetch", sourcenode=Peer(node=self), url=url, verbose=verbose)
         peerresp = self.reqfetch(req=req, verbose=verbose, **options) # Err: TransportFileNotFound
         if verbose: print "reqfetch returned:", peerresp
         if not peerresp.success:
-            raise TransportBlockNotFound(hash=hash)
+            raise TransportBlockNotFound(url=url)
         data = peerresp.data
         assert data is not None, "If returns data, then should be non-None"
         return data
@@ -216,7 +216,7 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
     def reqfetch(self, req=None, verbose=False, **options):
         """
         Fetch content based on a req.
-        Algorithm walks a tree, trying to find the "closest" node to the hash, which is most likely to have the content.
+        Algorithm walks a tree, trying to find the "closest" node to the url, which is most likely to have the content.
 
         :param req:     PeerRequest object for partially completed request
         :return:
@@ -225,47 +225,47 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
         # See if have a local copy
         if self.tl and not options.get("ignorecache"):  # Its possible to have a TransportDistPeer without a local cache
             try:
-                data = self.tl.rawfetch(req.hash, verbose=verbose, **options)
+                data = self.tl.rawfetch(req.url, verbose=verbose, **options)
                 return PeerResponse(success=True, req=req, data=data)
             except TransportFileNotFound as e:
                 pass    # Acceptable error, as is drop-thru if no tl
         res = self.forwardAlgorithmically(req=req, verbose=verbose, **options)
         if res.success and res.data:
-            hash = self.tl.rawstore(res.data, verbose=verbose)
-            if verbose: print "TransportDist.rawfetch: Saved as hash=", hash
+            url = self.tl.rawstore(res.data, verbose=verbose)
+            if verbose: print "TransportDist.rawfetch: Saved as url=", url
         return res
 
-    def rawlist(self, hash, verbose=False, **options):
+    def rawlist(self, url, verbose=False, **options):
         """
-        Retrieve record(s) matching a hash (usually the hash of a key),
+        Retrieve record(s) matching a url (usually the url of a key),
         Exception: IOError if file doesnt exist
 
-        :param hash: Hash in table to be retrieved
+        :param url: Hash in table to be retrieved
         :return: list of dictionaries for each item retrieved
         """
-        req = PeerRequest(command="reqlist", sourcenode=Peer(node=self), hash=hash, verbose=verbose)
+        req = PeerRequest(command="reqlist", sourcenode=Peer(node=self), url=url, verbose=verbose)
         peerresp = self.reqlist(req=req, verbose=verbose, **options) # Err: TransportFileNotFound
         if verbose: print "reqlist returned:", peerresp
         if not peerresp.success:
-            raise TransportBlockNotFound(hash=hash)
+            raise TransportBlockNotFound(url=url)
         data = peerresp.data
         assert data is not None, "If returns data, then should be non-None"
         return data
 
-    def rawreverse(self, hash, verbose=False, **options):
+    def rawreverse(self, url, verbose=False, **options):
 
         """
-        Retrieve record(s) matching a hash (usually the hash of a key), in this case from a local directory
+        Retrieve record(s) matching a url (usually the url of a key), in this case from a local directory
         Exception: IOError if file doesnt exist
 
-        :param hash: Hash in table to be retrieved
+        :param url: Hash in table to be retrieved
         :return: list of dictionaries for each item retrieved
         """
-        req = PeerRequest(command="reqreverse", hash=hash, sourcenode=Peer(node=self), verbose=verbose)
+        req = PeerRequest(command="reqreverse", url=url, sourcenode=Peer(node=self), verbose=verbose)
         peerresp = self.reqreverse(req=req, verbose=verbose, **options) # Err: TransportFileNotFound
         if verbose: print "reqreverse returned:", peerresp
         if not peerresp.success:
-            raise TransportBlockNotFound(hash=hash)
+            raise TransportBlockNotFound(url=url)
         data = peerresp.data
         assert data is not None, "If returns data, then should be non-None"
         return data
@@ -280,7 +280,7 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
 
     def _reqlistreverse(self, subdir=None, req=None, verbose=False, **options):
         """
-        Retrieve record(s) matching a hash (usually the hash of a key), in this case from a local directory
+        Retrieve record(s) matching a url (usually the url of a key), in this case from a local directory
         Exception: IOError if file doesnt exist
 
         :param req:     PeerRequest object for partially completed request
@@ -290,7 +290,7 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
         # See if have a local copy #TODO-TX need to be cleverer about combining results - and local cache will be out of date
         if self.tl and not options.get("ignorecache"):  # Its possible to have a TransportDistPeer without a local cache
             try:
-                data = self.tl._rawlistreverse(subdir=subdir, hash=req.hash, verbose=verbose, **options)
+                data = self.tl._rawlistreverse(subdir=subdir, url=req.url, verbose=verbose, **options)
                 return PeerResponse(success=True, req=req, data=data)
             except TransportFileNotFound as e:
                 pass    # Acceptable error, as is drop-thru if no tl
@@ -303,7 +303,7 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
         Exception: TransportBlockNotFound if file doesnt exist
 
         :param data: opaque data to store
-        :return: hash of data
+        :return: url of data
         """
         assert data is not None, "Meaningless to store None"
         req = PeerRequest(command="reqstore", data=data, sourcenode=Peer(node=self), verbose=verbose)
@@ -311,8 +311,8 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
         if verbose: print "TransportDistPeer.reqstore returned:", peerresp
         if not peerresp.success:
             print "XXX=> TransportDistPeer.rawstore err=",peerresp.err
-            raise TransportBlockNotFound(hash=hash) #TODO-TX choose better error
-        return peerresp.hash
+            raise TransportBlockNotFound(url=url) #TODO-TX choose better error
+        return peerresp.url
 
     @exposed
     def reqstore(self, req=None, verbose=False, **options):
@@ -326,40 +326,40 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
         if verbose: print "TransportDistPeer.reqstore len=", len(req.data), req
         assert req.data is not None, "Meaningless to store None"
         if self.tl and not options.get("ignorecache"):
-            hash = self.tl.rawstore(req.data, verbose=verbose, **options)  # Save local copy
-            if req.hash:
-                assert hash == req.hash
+            url = self.tl.rawstore(req.data, verbose=verbose, **options)  # Save local copy
+            if req.url:
+                assert url == req.url
             else:
-                req.hash = hash  # Need it to find targetnodeid
+                req.url = url  # Need it to find targetnodeid
         res = self.forwardClosest(req, verbose=verbose)
-        if not res: # Couldnt store closer, return our hash
-            res = PeerResponse(hash=hash, success=True, req=req)
-        assert res.hash == hash, "Returned hash must match"
+        if not res: # Couldnt store closer, return our url
+            res = PeerResponse(url=url, success=True, req=req)
+        assert res.url == url, "Returned url must match"
         return res
 
-    def rawadd(self, hash=None, date=None, signature=None, signedby=None, verbose=False, subdir=None, **options):
+    def rawadd(self, url=None, date=None, signature=None, signedby=None, verbose=False, subdir=None, **options):
         """
         Append to list on dweb (TODO-TX not kept locally now as cant yet combined with canonical)
         Exception: TransportBlockNotFound if file doesnt exist
 
         :param data: opaque data to store
-        :return: hash of data
+        :return: url of data
         """
-        if verbose: print "TransportDistPeer.rawadd: %s,%s" % (hash,subdir)
+        if verbose: print "TransportDistPeer.rawadd: %s,%s" % (url,subdir)
         subdir = subdir or ("list","reverse")
         if "list" in subdir:
-            reqL = PeerRequest(command="reqaddlist", hash=signedby, verbose=verbose, sourcenode=Peer(node=self),
-                               data={ "hash": hash, "date": date, "signature": signature, "signedby": signedby })
+            reqL = PeerRequest(command="reqaddlist", url=signedby, verbose=verbose, sourcenode=Peer(node=self),
+                               data={ "url": url, "date": date, "signature": signature, "signedby": signedby })
             peerrespL = self.reqaddlist(req=reqL, verbose=verbose, **options)
             if verbose: print "node.reqadd returned:", peerrespL
         if "reverse" in subdir:
-            reqR = PeerRequest(command="reqaddreverse", hash=hash,  verbose=verbose, sourcenode=Peer(node=self),
-                               data={ "hash": hash, "date": date, "signature": signature, "signedby": signedby })
+            reqR = PeerRequest(command="reqaddreverse", url=url,  verbose=verbose, sourcenode=Peer(node=self),
+                               data={ "url": url, "date": date, "signature": signature, "signedby": signedby })
             peerrespR = self.reqaddreverse(req=reqR, verbose=verbose, **options)
             if verbose: print "node.reqadd returned:", peerrespR
         if not peerrespL.success or not peerrespR.success:
             print "XXX=> TransportDistPeer.rawadd  err=",peerrespL,peerrespR   # Debug, figure out what error it was
-            raise TransportBlockNotFound(hash=hash) #TODO-TX choose better error
+            raise TransportBlockNotFound(url=url) #TODO-TX choose better error
         return peerrespL    # No significant result in peerrespR #TODO-QUEUE maybe merge peers etc from peerrespR
 
     @exposed
@@ -368,7 +368,7 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
         Store a signature in a pair of DHTs 
         Exception: IOError if file doesnt exist
 
-        :param PeerRequest req: Signature to store contains: hash, date, signature, signedby
+        :param PeerRequest req: Signature to store contains: url, date, signature, signedby
         :return:
         """
         if verbose: print "TransportDistPeer.reqadd len=", len(req.data), req
@@ -386,7 +386,7 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
         Store a signature in a pair of DHTs 
         Exception: IOError if file doesnt exist
 
-        :param PeerRequest req: Signature to store contains: hash, date, signature, signedby
+        :param PeerRequest req: Signature to store contains: url, date, signature, signedby
         :return:
         """
         if verbose: print "TransportDistPeer.reqadd len=", len(req.data), req
@@ -410,7 +410,7 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
         if req.verbose: print "TransportDistPeer.forwardClosest:",req
         savedhops = req.hops
         req.route.append(self.nodeid)  # Append self to route before sending on, or responding
-        assert req.hash, "Cant forward without hash"
+        assert req.url, "Cant forward without url"
         peer_intermediate = self.peers.nextnode(req.targetnodeid, exclude=req.tried, verbose=req.verbose)
         if peer_intermediate:
             req.tried.append(peer_intermediate)
@@ -569,8 +569,8 @@ class Peer(object):
         #See other !ADD-PEER -FIELDS
         return "Peer(%s, %s, %s)" % (self.nodeid, self.ipandport,self.connected)
 
-    def __hash__(self): # For the set function to know what is equal - not quite same as the __eq__ but generally wont see case of matching ipandport nad not nodeid
-        return self.nodeid or hash(tuple(self.ipandport))
+    def __url__(self): # For the set function to know what is equal - not quite same as the __eq__ but generally wont see case of matching ipandport nad not nodeid
+        return self.nodeid or url(tuple(self.ipandport))
 
     def __eq__(self, other):    # Note this facilittes "in" to work on PeerSet's
         othernodeid = other if isinstance(other, int) else other.nodeid
@@ -669,7 +669,7 @@ class PeerRequest(object):
 
     verbose     True if should gather debugging info - note this is on a per-message rather than per-node or per-routine basis
     command     function being requested e.g. "rawfetch", "rawstore"
-    hash        Hash of item being requested
+    url        Hash of item being requested
     hops        Number of hops request has been through prior to this.
     route       PeerSet, list of NodeIds it has passed through to reach targer.
     tried       PeerSet, nodes that have been tried while trying to reach destn (superset of route, includes false branches)
@@ -679,7 +679,7 @@ class PeerRequest(object):
     #!SEE-OTHER-PEERREQUEST-ADD-FIELDS
     """
 
-    def __init__(self, sourcenode=None, command=None, data=None, route=None, hash=None, hops=0, tried=None, verbose=False, **kwargs):
+    def __init__(self, sourcenode=None, command=None, data=None, route=None, url=None, hops=0, tried=None, verbose=False, **kwargs):
         self.sourcenode = Peer(sourcenode) if isinstance(sourcenode, Peer) else Peer(**sourcenode)
         self.command = command
         self.hops = hops
@@ -687,7 +687,7 @@ class PeerRequest(object):
         self.route = route or []
         self.tried = tried if isinstance(tried, PeerSet) else ( PeerSet(tried, verified=False) if tried else PeerSet())   # Initialize if unset
         self.verbose = verbose
-        self.hash = hash
+        self.url = url
         self.__dict__.update(kwargs)    # Store any parameters we don't use, will pass on with dumps
         #see other !PEERREQUEST-ADD-FIELDS
         """
@@ -698,13 +698,13 @@ class PeerRequest(object):
         """
 
     def __str__(self):
-        return "PeerRequest(%s,%s,%s bytes)" % (self.command, self.hash, None if not self.data else len(self.data))
+        return "PeerRequest(%s,%s,%s bytes)" % (self.command, self.url, None if not self.data else len(self.data))
 
     def dumps(self):
         #see other !PEERREQUEST-ADD-FIELDS
         # Make sure next line matches the parameters to init
         serialisable = self.__dict__
-        serialisable.update({ "command": self.command, "sourcenode": self.sourcenode, "hops": self.hops, "route": self.route, "tried": self.tried, "hash": self.hash,
+        serialisable.update({ "command": self.command, "sourcenode": self.sourcenode, "hops": self.hops, "route": self.route, "tried": self.tried, "url": self.url,
                  "data": CryptoLib.b64enc(self.data)})
         return serialisable
 
@@ -721,19 +721,19 @@ class PeerRequest(object):
         return PeerRequest(**dic)
 
     def copy(self):
-        return PeerRequest( command=self.command,  sourcenode=self.sourcenode, hash=self.hash, hops=self.hops, route=self.route, tried=self.tried.copy(),
+        return PeerRequest( command=self.command,  sourcenode=self.sourcenode, url=self.url, hops=self.hops, route=self.route, tried=self.tried.copy(),
                             data=self.data, verbose=self.verbose)
         #!SEE-OTHER-PEERREQUEST-ADD-FIELDS
 
     @property
     def targetnodeid(self):
         """
-        Find a destination node id based on this request's hash. This node may, but probably won't exist.
+        Find a destination node id based on this request's url. This node may, but probably won't exist.
 
-        :param hash:
+        :param url:
         :return:
         """
-        return binascii.crc32(self.hash) & (2**TransportDistPeer.bitlength - 1)
+        return binascii.crc32(self.url) & (2**TransportDistPeer.bitlength - 1)
 
 
 
@@ -749,21 +749,21 @@ class PeerResponse(object):
     """
 
 
-    def __init__(self, err=None, data=None, hash=None, req=None, success=False):
+    def __init__(self, err=None, data=None, url=None, req=None, success=False):
         self.err = err
         self.data = data
-        self.hash = hash
+        self.url = url
         self.success = success
         self.req = req if isinstance(req, PeerRequest) else PeerRequest.loads(req)
         #See other !ADD-PEERRESPONSE-FIELDS
 
     def __str__(self):
         # See other !ADD-PEERRESPONSE-FIELDS
-        return "PeerResponse(%s, %s, %s, %s)" % (self.success, self.err, self.hash, None if not self.data else len(self.data))
+        return "PeerResponse(%s, %s, %s, %s)" % (self.success, self.err, self.url, None if not self.data else len(self.data))
 
     def dumps(self):
         # See other !ADD-PEERRESPONSE-FIELDS
-        return { "err": self.err, "hash": self.hash, "success": self.success,
+        return { "err": self.err, "url": self.url, "success": self.success,
                  "data": CryptoLib.b64enc(self.data),  "req": self.req}
 
 
