@@ -6,6 +6,8 @@ fPIPUPGRADE=true
 fMAKECHANGE=true
 fVERBOSE=true
 
+#TODO-BACKPORT - review this file
+
 PIPINSTALLS="py-dateutil pycrypto sha3 requests pathlib http multihash mnemonic pynacl"
 # This set are probably builtins but get imported
 # Pip install failed (not allowed) on: os sys json hashlib

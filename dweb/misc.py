@@ -1,6 +1,7 @@
 # encoding: utf-8
 from datetime import datetime
 
+#TODO-BACKPORT - move exceptions to Errors.py
 
 class MyBaseException(Exception):
     """
@@ -29,6 +30,13 @@ class ToBeImplementedException(MyBaseException):
     httperror = 501
     msg = "{name} needs implementing"
 
+
+class IntentionallyUnimplementedException(MyBaseException):
+    """
+    Raised when some code has not been implemented yet
+    """
+    httperror = 501
+    msg = "Intentionally not implemented: {message}"
 
 class AssertionFail(MyBaseException):
     """

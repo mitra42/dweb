@@ -29,6 +29,7 @@ from KeyChain import KeyChain
 from File import File, Dir
 from Dweb import Dweb
 from ServerHTTP import DwebHTTPRequestHandler
+#TODO-BACKPORT - review this file
 
 class Testing(TestCase):
     def setUp(self):
@@ -243,7 +244,7 @@ class Testing(TestCase):
 
     def test_badblock(self):
         try:
-            resp = Dweb.transport.rawfetch(hash="12345")
+            resp = Dweb.transport.rawfetch(url="12345")
             #resp = Dweb.transport._sendGetPost(False, "rawfetch", [ "12345"], params={"contenttype": "image/png"})
         except (TransportURLNotFound,TransportFileNotFound, TransportBlockNotFound) as e:
             pass
@@ -454,11 +455,11 @@ class Testing(TestCase):
         newdata = "I am a new piece of data"    # Note *not* stored by any other test here
         hash = Dweb.transport.rawstore(data=self.quickbrownfox, verbose=self.verbose)
         assert hash == qbfhash, "Stored correctly (locally - no peers connected yet, got "+hash+" expected "+qbfhash
-        data = Dweb.transport.rawfetch(hash=qbfhash,verbose=self.verbose)
+        data = Dweb.transport.rawfetch(url=qbfhash,verbose=self.verbose)
         assert data == self.quickbrownfox, "Local cache of quick brown fox"+data
         invalidhash="SHA3256B64URL.aaaabbbbccccVfMvpedEg77ByMRYkUgPRU9P1gWaNF8="
         try:
-            data = Dweb.transport.rawfetch(hash=invalidhash,verbose=self.verbose)
+            data = Dweb.transport.rawfetch(url=invalidhash,verbose=self.verbose)
         except (TransportBlockNotFound, TransportFileNotFound) as e:
             if self.verbose: print e
         else:
@@ -475,20 +476,20 @@ class Testing(TestCase):
         assert peer.info["type"] == "DistPeerHTTP","Unexpected peer.info"+repr(peer.info)
         # Now we've got a peer so try again, should get bounced off peer server
         try:
-            data = Dweb.transport.rawfetch(hash=invalidhash, verbose=self.verbose)
+            data = Dweb.transport.rawfetch(url=invalidhash, verbose=self.verbose)
         except TransportBlockNotFound as e:
             if self.verbose: print e
         else:
             assert False, "Should trigger exception"
         assert Dweb.transport.rawstore(data=self.dog, verbose=self.verbose) == cdhash
-        assert Dweb.transport.rawfetch(hash=cdhash, verbose=self.verbose) == self.dog
+        assert Dweb.transport.rawfetch(url=cdhash, verbose=self.verbose) == self.dog
         maxport = ServerPeer.defaultipandport[1]+10
         for i in range(ServerPeer.defaultipandport[1],maxport):
             if self.verbose: print "Adding peer",i
             Dweb.transport.peers.append(Peer(ipandport=(ServerPeer.defaultipandport[0],i), verbose=self.verbose).connect(verbose=self.verbose))
         hash = Dweb.transport.rawstore(data=newdata, verbose=self.verbose)
         assert newdatahash == hash,"hashes dont match exp "+newdatahash+" got "+hash
-        assert newdata == Dweb.transport.rawfetch(hash=newdatahash, verbose=self.verbose, ignorecache=True)
+        assert newdata == Dweb.transport.rawfetch(url=newdatahash, verbose=self.verbose, ignorecache=True)
 
     def Xtest_current(self):
         self.verbose=True

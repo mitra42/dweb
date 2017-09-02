@@ -1,7 +1,7 @@
 # encoding: utf-8
-from abc import ABCMeta, abstractmethod
+#TODO-BACKPORT - test this file
 
-from misc import ToBeImplementedException, MyBaseException
+from misc import ToBeImplementedException, MyBaseException, IntentionallyUnimplementedException
 
 class TransportBlockNotFound(MyBaseException):
     httperror = 404
