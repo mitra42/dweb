@@ -4,3 +4,4 @@ cache_http
 cache_peer
 *bundled.js
 js/node_modules
+cache_local

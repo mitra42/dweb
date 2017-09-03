@@ -12,7 +12,7 @@ class TransportLocal(Transport):
     Implements the raw primitives as reads and writes of file system.
     """
 
-    def __init__(self, dir=None, **options):
+    def __init__(self, options, verbose):
         """
         Create a transport object (use "setup" instead)
         |Exceptions: TransportFileNotFound if dir invalid, IOError other OS error (e.g. cant make directory)
@@ -21,7 +21,7 @@ class TransportLocal(Transport):
         :param options:
         """
         subdirs = "list", "reverse", "block"
-
+        dir = options["local"]["dir"]
         if not os.path.isdir(dir):
             os.mkdir(dir)
             #raise TransportFileNotFound(file=dir)
@@ -33,7 +33,7 @@ class TransportLocal(Transport):
         self.options = options
 
     @classmethod
-    def setup(cls, dir=None, **options):
+    def setup(cls, options, verbose):
         """
         Setup local transport to use dir
         Exceptions: TransportFileNotFound if dir invalid
@@ -41,7 +41,7 @@ class TransportLocal(Transport):
         :param dir:     Directory to use for storage
         :param options: Unused currently
         """
-        return cls(dir=dir, **options)
+        return cls(options, verbose)
 
     #see other !ADD-TRANSPORT-COMMAND - add a function copying the format below
 
@@ -50,7 +50,6 @@ class TransportLocal(Transport):
 
     def _filename(self, subdir, url=None, key=None, verbose=False, **options):
         # key now obsoleted
-        print "XXX@_filename:52",url
         file = url or CryptoLib.Curlhash(key, verbose=verbose, **options)
         return "%s/%s/%s" % (self.dir, subdir, file)
 

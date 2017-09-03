@@ -24,7 +24,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
 
     #defaultipandport = ('192.168.1.156', 4243)
     defaultipandport = (u'localhost', 4243)
-
+    defaulthttpoptions = { "ipandport": defaultipandport }
 
     @classmethod
     def HTTPToLocalGateway(cls):
@@ -36,7 +36,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         :return: Never Returns
         """
         from TransportLocal import TransportLocal # Avoid circular references
-        Dweb.settransport(transportclass=TransportLocal, verbose=False, dir="../cache_http")  # HTTP server is storing locally
+        Dweb.transport = TransportLocal.setup({ "local": { "dir": "../cache_http" }}, verbose=False)# HTTP server is storing locally
         cls.serve_forever(verbose=True)    # Uses defaultipandport
         #TODO-HTTP its printing log, put somewhere instead
 

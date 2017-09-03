@@ -48,7 +48,7 @@ def mb(acl=None, contentacl=None, name=None, _allowunsafestore=False, content=No
 
 print "Testing commandline"
 verbose(True)
-Dweb.settransport("local")
+Dweb.transport = TransportLocal.setup({"local": {"dir": "../cache_local"}}, verbose=False)  # HTTP server is storing locally
 #Dweb.transport("http")
 keychain()
 mb(name="My MB", content="Have a nice day")

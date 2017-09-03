@@ -34,7 +34,7 @@ from ServerHTTP import DwebHTTPRequestHandler
 class Testing(TestCase):
     def setUp(self):
         super(Testing, self).setUp()
-        testTransporttype = 1 #TransportLocal, TransportHTTP, TransportDistPeer, TransportDistPeer = multi  # Can switch between TransportLocal and TransportHTTP to test both
+        testTransporttype = 2 #TransportLocal, TransportHTTP, TransportDistPeer, TransportDistPeer = multi  # Can switch between TransportLocal and TransportHTTP to test both
         self.verbose=False
         self.quickbrownfox =  "The quick brown fox ran over the lazy duck"
         self.dog = "But the clever dog chased the fox"
@@ -49,12 +49,13 @@ class Testing(TestCase):
         self.seed = "01234567890123456789012345678901"
         self.mnemonic="coral maze mimic half fat breeze thought champion couple muscle snack heavy gloom orchard tooth alert cram often ask hockey inform broken school cotton"
         if testTransporttype == 0: # TransportLocal:
-            Dweb.settransport(transportclass=TransportLocal, verbose=self.verbose, dir="../cache")
+            Dweb.transport = TransportLocal.setup({"local": {"dir": "../cache_local"}}, verbose=False)  # HTTP server is storing locally
         elif testTransporttype == 1: # TransportHTTP:
             # Run python -m ServerHTTP; before this
-            Dweb.settransport(transportclass=TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
+            Dweb.transport = TransportHTTP.setup({ "http": DwebHTTPRequestHandler.defaulthttpoptions }, self.verbose)
         elif testTransporttype in (2,3): # TransportDistPeer:
-            Dweb.settransport(transportclass=TransportDistPeer, dir="../cache", ipandport=self.ipandport, verbose=self.verbose)
+            #TODO-BACKPORT check its distpeer for TransportDistPeer
+            Dweb.transport = TransportDistPeer.setup({ "distpeer": {}, "http": {"ipandport": DwebHTTPRequestHandler.defaultipandport}, "local": {"dir": "../cache"}}, self.verbose)
             Dweb.transport.peers.append(Peer(ipandport=ServerPeer.defaultipandport, verbose=self.verbose).connect())
             if testTransporttype == 3:
                 #TODO replace this with a "learnfrom" experience, so connects background etc
@@ -191,7 +192,6 @@ class Testing(TestCase):
 
     def test_http(self):
         # Run python -m ServerHTTP; before this
-        #Dweb.settransport(transportclass=TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         multiurl = Block(data=self.quickbrownfox).store(verbose=self.verbose)._url
         block = Block(url=multiurl, verbose=self.verbose).fetch(verbose=self.verbose)
         assert block._data == self.quickbrownfox, "Should return data stored"
@@ -230,7 +230,7 @@ class Testing(TestCase):
         if isinstance(Dweb.transport, TransportLocal):
             print "Can't test_typeoverride on",Dweb.transport.__class__.__name__
             return
-        Dweb.settransport(transportclass=TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
+        Dweb.transport = TransportHTTP.setup({"http": {"ipandport": self.ipandport}}, self.verbose)
         # Store the wrench icon
         content = File.load(filepath=self.exampledir + "WrenchIcon.png").content()
         wrenchurl = Block(data=content).store(verbose=self.verbose)._url
@@ -284,7 +284,6 @@ class Testing(TestCase):
             print "Can't test_uploads on",Dweb.transport.__class__.__name__
             return
         ext = False   # True to upload larger directories (tinymce, docs)
-        #Dweb.settransport(transportclass=TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         b=Block(data=self.dog); b.store(); print self.dog,b.xurl()  #TODO-BACKPORT expect to break
         self.uploads = {}
         #self._storeas("dweb.js", "dweb_js", "application/javascript")
@@ -334,7 +333,6 @@ class Testing(TestCase):
         if isinstance(Dweb.transport, TransportLocal):
             print "Can't test_uploadandrelativepaths on",Dweb.transport.__class__.__name__
             return
-        #Dweb.settransport(transportclass=TransportHTTP, verbose=self.verbose, ipandport=self.ipandport )
         f1sz = File.load("../tinymce/langs/readme.md").size
         # Upload a multi-level directory
         f = Dir.load(filepath="../tinymce", upload=True, verbose=self.verbose,)
@@ -440,7 +438,6 @@ class Testing(TestCase):
         # Experimental testing of peer
         #self.verbose=True
         # Use cache as the local machine's - remote will use cache_peer
-        #Dweb.settransport(transportclass=TransportDistPeer, dir="../cache", verbose=self.verbose)
         if not isinstance(Dweb.transport, TransportDistPeer):
             print "Can't run test_peer on ",Dweb.transport.__class__.__name__
             return

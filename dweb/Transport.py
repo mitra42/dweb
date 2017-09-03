@@ -43,14 +43,14 @@ class Transport(object):
 
     Either the raw, or cooked functions can be subclassed
     """
-    def __init__(self, **options):
+    def __init__(self, options, verbose):
         """
         :param options:
         """
         raise ToBeImplementedException(name=cls.__name__+".__init__")
 
     @classmethod
-    def setup(cls, verbose, **options):
+    def setup(cls, options, verbose):
         """
         Called to deliver a transport instance of a particular class
 

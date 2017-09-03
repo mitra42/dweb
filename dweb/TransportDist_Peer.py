@@ -41,8 +41,7 @@ class ServerPeer(DwebHTTPRequestHandler):
         port = port or cls.defaultipandport[1]
         ipandport = (host or cls.defaultipandport[0], port)
         # Creates a transport used for outgoing, and then creates a server that answers queries and passes to transport
-        Dweb.settransport(transportclass=TransportDistPeer, ipandport=ipandport, verbose=False,
-                                  dir=dir or "../cache_peer/%s" % port)  # HTTP server is storing locally
+        Dweb.transport = TransportDistPeer.setup({"distpeer": {}, "http": { "ipandport": ipandport}, "local": {"dir": dir or "../cache_peer/%s" % port }}, verbose=False)
         try:
             cls.serve_forever(ipandport=ipandport, verbose=verbose, **options)
         except socket.error as e:
@@ -102,16 +101,16 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
     """
     bitlength = 30  # Allowsfor 2^n nodes, so 30 is ~ 1 billion.
 
-    def __init__(self, tl=None, nodeid=None, verbose=False, ipandport=None, **options):
+    def __init__(self, options, verbose):
         """
         Create a distirbuted transport object (use "setup" instead)
 
         :param options:
         """
-        super(TransportDistPeer,self).__init__(verbose=verbose, ipandport=ipandport, **options) # Takes ipandport
-        assert tl is not None, "Setup must be wrong asit needs a TransportLocal"
-        self.tl = tl    # Connect to TransportLocal
-        self.nodeid = nodeid if nodeid else randint(1, 2 ** self.bitlength - 1)  # Random id
+        #TODO-BACKPORT can simplify below
+        super(TransportDistPeer,self).__init__(options, verbose) # Takes {http: {ipandport}}
+        ipandport = options["http"]["ipandport"]
+        self.nodeid = options["distpeer"].get("nodeid", randint(1, 2 ** self.bitlength - 1))  # Random id
         self.ipandport = ipandport
         self.peers = PeerSet()  # Will hold list of peers we know about
         self.connectionqueue = Queue.PriorityQueue()    # Queue of peers to try and connect to.
@@ -119,19 +118,20 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
 
 
     @classmethod
-    def setup(cls, dir=None, **options):
+    def setup(cls, options, verbose):
         """
         Setup local transport to use dir
         Exceptions: TransportBlockNotFound if dir invalid
 
-        :param dir:     Directory to use for storage
-        :param options: Unused currently
+        :param options: { http: { ipandport }, local; { dir: }
         """
-        if dir:
-            tl = TransportLocal.setup(dir=dir, **options)   #TransportBlockNotFound if dir invalid
+        if options["local"]["dir"]:
+            tl = TransportLocal.setup({"local": { "dir": options["local"]["dir"] }}, verbose)   #TransportBlockNotFound if dir invalid
         else:
             tl = None
-        return cls(tl=tl, **options)
+        t =  cls(options, verbose)
+        t.tl = tl
+        return t
 
     def __repr__(self):
         return "TransportDistPeer(%d, %s)" % (self.nodeid, self.tl.dir)
@@ -598,7 +598,7 @@ class Peer(object):
     def connect(self, verbose=False):
         if not self.connected:
             if verbose: print "Connecting to peer", self
-            self.transport = TransportHTTP(ipandport=self.ipandport)
+            self.transport = TransportHTTP({"http": { "ipandport": self.ipandport}})
             try:
                 self.info = self.transport.info(data=Dweb.transport.infodata())
                 if verbose: print self.info
