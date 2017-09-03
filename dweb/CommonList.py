@@ -133,7 +133,7 @@ class CommonList(SmartDict):  # TODO move class to own file
         return self
 
     def publicurl(self, command=None, **options):
-        return Dweb.transport.url(self, command=command or "list", url=self._publicurl,
+        return Dweb.transport.xurl(self, command=command or "list", url=self._publicurl,
                                   **options)  # , contenttype=self.__getattr__("Content-type"))
 
     def privateurl(self):
@@ -143,7 +143,7 @@ class CommonList(SmartDict):  # TODO move class to own file
 
         :return:
         """
-        return Dweb.transport.url(self, command="update", contenttype=self._current.__getattr__("Content-type"))
+        return Dweb.transport.xurl(self, command="update", contenttype=self._current.__getattr__("Content-type"))
         # TODO-AUTHENTICATION - this is particularly vulnerable w/o authentication as stores PrivateKey in unencrypted form
 
     def signandstore(self, obj, verbose=False, **options):

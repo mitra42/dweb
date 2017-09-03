@@ -17,7 +17,8 @@ class Dweb(object):
     """
     Top level application class for Dweb
     """
-    transport = None    # These are essential global variables inside Dweb, usually set one at starting
+    transport = None    # These are essential global variables inside Dweb, usually set one at starting #TODO-BACKPORT obsolete, replaced by transportpriority and mapping url->transport
     keychains = []      #
-
+    transports = {}
+    transportpriority = []
 

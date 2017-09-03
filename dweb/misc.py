@@ -23,6 +23,10 @@ class MyBaseException(Exception):
             return self.msg+" "+unicode(self.msgargs)
 
 
+class CodingException(MyBaseException):
+    httperror = 501
+    msg = "Coding Error: {message}"
+
 class ToBeImplementedException(MyBaseException):
     """
     Raised when some code has not been implemented yet

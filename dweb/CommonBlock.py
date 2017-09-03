@@ -83,8 +83,8 @@ class Transportable(object):
         """
         table = table or self.table
         if not table:
-            raise AssertionFail(message=self.__class__.__name__+" doesnt support url()")
-        return Dweb.transport.url(self, url_output=url_output, table=table, **options)
+            raise AssertionFail(message=self.__class__.__name__+" doesnt support xurl()")
+        return Dweb.transport.xurl(self, url_output=url_output, table=table, **options)
 
 
 class SmartDict(Transportable):

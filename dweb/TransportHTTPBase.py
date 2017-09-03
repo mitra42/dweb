@@ -5,19 +5,18 @@ from misc import ToBeImplementedException
 from CryptoLib import CryptoLib
 import urllib
 
-#TODO-BACKPORT - review this file
-
 class TransportHTTPBase(Transport):
     """
     Common parts for TransportHTTP and TransportDist
     """
 
-    def __init__(self, options={}, verbose=False): #TODO-BACKPORT Find callers
+    def __init__(self, options={}, verbose=False):
         """
         Base class for both TransportHTTP and TransportDist_Peer
 
         :param blah:
         """
+        self.options = options
         self.ipandport = options["http"]["ipandport"]
         self.verbose = verbose
         self.baseurl = "http://%s:%s/" % (self.ipandport[0], self.ipandport[1])  # Note trailing /
@@ -69,7 +68,7 @@ class TransportHTTPBase(Transport):
             res = self._sendGetPost(False, "info", urlargs=[], verbose=verbose, params=options)
         return res.json()
 
-    def url(self, obj, command=None, url=None, table=None, contenttype=None, url_output=None, **options):
+    def xurl(self, obj, command=None, url=None, table=None, contenttype=None, url_output=None, **options):  #TODO-BACKPORT rethink around real URLs and this may be HTTP specific command, but do we need it?
         """
 
         :return: HTTP style URL to access this resource - not sure what this works on yet.

@@ -125,15 +125,20 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
 
         :param options: { http: { ipandport }, local; { dir: }
         """
+        print "XXX@128",options
         if options["local"]["dir"]:
             tl = TransportLocal.setup({"local": { "dir": options["local"]["dir"] }}, verbose)   #TransportBlockNotFound if dir invalid
+            print "XXX@131",tl
         else:
             tl = None
         t =  cls(options, verbose)
         t.tl = tl
+        Dweb.transports["distpeer"] = t
+        Dweb.transportpriority.append(t)
         return t
 
     def __repr__(self):
+        print "XXX@139",self.options
         return "TransportDistPeer(%d, %s)" % (self.nodeid, self.tl.dir)
 
     def __eq__(self, other):
@@ -570,7 +575,7 @@ class Peer(object):
         return "Peer(%s, %s, %s)" % (self.nodeid, self.ipandport,self.connected)
 
     def __url__(self): # For the set function to know what is equal - not quite same as the __eq__ but generally wont see case of matching ipandport nad not nodeid
-        return self.nodeid or url(tuple(self.ipandport))
+        return self.nodeid or xurl(tuple(self.ipandport))   #TODO 'url' isnt defined here, not sure what trying to do.
 
     def __eq__(self, other):    # Note this facilittes "in" to work on PeerSet's
         othernodeid = other if isinstance(other, int) else other.nodeid

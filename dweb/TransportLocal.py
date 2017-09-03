@@ -4,6 +4,7 @@ import os   # For isdir and exists
 from json import loads
 from CryptoLib import CryptoLib
 from Transport import Transport, TransportFileNotFound
+from Dweb import Dweb
 #TODO-BACKPORT - review this file
 
 class TransportLocal(Transport):
@@ -41,17 +42,20 @@ class TransportLocal(Transport):
         :param dir:     Directory to use for storage
         :param options: Unused currently
         """
-        return cls(options, verbose)
+        t = cls(options, verbose)
+        Dweb.transports["local"] = t
+        Dweb.transportpriority.append(t)
+        return t
+
 
     #see other !ADD-TRANSPORT-COMMAND - add a function copying the format below
 
     def info(self, **options):
-        return { "type": "local", "dir": self.dir }
+        return { "type": "local", "options": self.options }
 
-    def _filename(self, subdir, url=None, key=None, verbose=False, **options):
-        # key now obsoleted
-        file = url or CryptoLib.Curlhash(key, verbose=verbose, **options)
-        return "%s/%s/%s" % (self.dir, subdir, file)
+    def _filename(self, subdir, url=None, verbose=False, **options):
+        # Utility function to get filename to use for storage
+        return "%s/%s/%s" % (self.dir, subdir, url)
 
     def rawfetch(self, url, verbose=False, **options):
         """
@@ -135,7 +139,7 @@ class TransportLocal(Transport):
         return url
 
 
-    def rawadd(self, url=None, date=None, signature=None, signedby=None, verbose=False, subdir=None, **options):
+    def rawadd(self, url=None, date=None, signature=None, signedby=None, verbose=False, subdir=None, **options):    #TODO-API
         """
         Store a signature in a pair of DHTs
         Exception: IOError if file doesnt exist
@@ -144,6 +148,7 @@ class TransportLocal(Transport):
         :param date:
         :param signature:
         :param signedby:
+        :param subdir: Can select list or reverse to store only one or both halfs of the list. This is used in TransportDistPeer as the two halfs are stored in diffrent parts of the DHT
         :param verbose:
         :param options:
         :return:

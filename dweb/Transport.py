@@ -74,8 +74,7 @@ class Transport(object):
         raise ToBeImplementedException(name=cls.__name__+".url")
 
 
-    def info(self, **options):
-        raise ToBeImplementedException("Backporting - unsure if needed - match JS Dweb"); #TODO-BACKPORTING
+    def info(self, **options):  #TODO-API
         raise ToBeImplementedException(name=cls.__name__+".info")
 
     def dumps(self, obj):   #TODO-BACKPORT remove the one in CryptoLib
@@ -227,7 +226,7 @@ class Transport(object):
         else:
             return self.rawstore(data=data, verbose=verbose, **options)
 
-    def rawadd(self, url=None, date=None, signature=None, signedby=None, verbose=False, **options):
+    def rawadd(self, url=None, date=None, signature=None, signedby=None, verbose=False, subdir=None, **options):
         raise ToBeImplementedException(name=cls.__name__+".rawadd")
 
     def add(self, url=None, date=None, signature=None, signedby=None, verbose=False, obj=None, **options ):
@@ -243,7 +242,25 @@ class Transport(object):
         store = {"url": url, "date": date, "signature": signature, "signedby": signedby}
         return self.dumps(store)    #TODO-BACKPORTING needs to switch to dumps of signedby
 
-    #TODO-BACKPORT add mergeoptions
+    @staticmethod
+    def mergeoptions(a, b):
+        """
+        Deep merge options dictionaries
+         - note this might not (yet) handle Arrays correctly but handles nested dictionaries
+         
+        :param a,b: Dictionaries
+        :returns: Deep copied merge of the dictionaries
+        """
+        c = a.copy()
+        for key in b:
+            val = b[key]
+            if isinstance(val, dict) and a.get(key,None):
+                c[key] = Transport.mergeoptions(a[key], b[key])
+            else:
+                c[key] = b[key]
+        return c
+
+
 
 def json_default(obj):
     """

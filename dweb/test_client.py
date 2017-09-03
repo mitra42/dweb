@@ -34,7 +34,7 @@ from ServerHTTP import DwebHTTPRequestHandler
 class Testing(TestCase):
     def setUp(self):
         super(Testing, self).setUp()
-        testTransporttype = 2 #TransportLocal, TransportHTTP, TransportDistPeer, TransportDistPeer = multi  # Can switch between TransportLocal and TransportHTTP to test both
+        testTransporttype = 0 #TransportLocal, TransportHTTP, TransportDistPeer, TransportDistPeer = multi  # Can switch between TransportLocal and TransportHTTP to test both
         self.verbose=False
         self.quickbrownfox =  "The quick brown fox ran over the lazy duck"
         self.dog = "But the clever dog chased the fox"
@@ -270,7 +270,7 @@ class Testing(TestCase):
             self.uploads[filename]  = { "publicurl": mbm._publicurl, "editable": mbm.privateurl(), "editableurl": mbm._url, "read": url, "relread": "/"+url.split('/', 3)[3], "contenturl": mbm._current._url}
             #print self.uploads[filename]
         else:
-            #print filename + ":" + f.url(command="file", table="sb")
+            #print filename + ":" + f.xurl(command="file", table="sb")
             url = f.xurl(command="file", table="sb")  #TODO-BACKPORT expect to break
             scheme, ipandport, unused, rest = url.split('/', 3)
             self.uploads[filename]  = { "publicurl": f._url, "relread": "/"+url.split('/', 3)[3], "read": url}

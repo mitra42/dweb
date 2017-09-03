@@ -45,7 +45,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
     @exposed
     def info(self, **kwargs):
         return { 'Content-type': 'application/json',
-                 'data': { "type:": "xhttp"}
+                 'data': { "type:": "http"}
                }
     info.arglist=[]
 
@@ -146,12 +146,12 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         mbm = MutableBlock(master=True, url=url, contenturl=sb._url, verbose=verbose).signandstore(verbose=verbose)
         #Exception PrivateKeyException if passed public key and master=True
         return {"Content-type": "text/plain",       # Always returning plain text as the URL whatever type stored
-                "data": self.url(mbm, command="file", table="mb", url=mbm._publicurl)}
+                "data": self.xurl(mbm, command="file", table="mb", url=mbm._publicurl)}
     update.arglist=["url","contenttype"]
 
 
 
-    def url(self, obj, command=None, url=None, table=None, contenttype=None, url_output=None, **options):
+    def xurl(self, obj, command=None, url=None, table=None, contenttype=None, url_output=None, **options):
         """
 
         :return: HTTP style URL to access this resource - not sure what this works on yet.
