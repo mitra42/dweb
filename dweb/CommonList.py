@@ -7,7 +7,7 @@ import nacl.signing
 import nacl.encoding
 from StructuredBlock import StructuredBlock
 from SignedBlock import Signatures
-from misc import ForbiddenException, _print, AssertionFail, ToBeImplementedException
+from Errors import ForbiddenException, AssertionFail, ToBeImplementedException
 from CommonBlock import SmartDict
 from Dweb import Dweb
 #TODO-BACKPORT - review this file

@@ -22,3 +22,17 @@ class Dweb(object):
     transports = {}
     transportpriority = []
 
+# Some utilities
+"""
+# Not used, could delete, but might be useful in testing
+def _print(*foos, **kwargs):
+    import textwrap
+    first = True
+    width = kwargs.get("width", 120)
+    for foo in foos:
+        for line in textwrap.wrap(unicode(foo), width=width):
+            print ("    " if not first else "") + line
+            first=False
+"""
+
+#TODO-BACKPORT probably need table2class, mergeTypedArraysUnsafe

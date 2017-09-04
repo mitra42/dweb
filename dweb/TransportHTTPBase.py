@@ -1,7 +1,7 @@
 from sys import version as python_version
 import requests             # For outgoing HTTP http://docs.python-requests.org/en/master/
 from Transport import Transport, TransportURLNotFound
-from misc import ToBeImplementedException
+from Errors import ToBeImplementedException
 from CryptoLib import CryptoLib
 import urllib
 

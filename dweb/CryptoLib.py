@@ -16,7 +16,7 @@ import nacl.hash
 import nacl.public
 import nacl.signing
 
-from misc import MyBaseException, ToBeImplementedException
+from Errors import MyBaseException, ToBeImplementedException
 
 # See Libsodium docs
 # https://download.libsodium.org/doc/public-key_cryptography/authenticated_encryption.html

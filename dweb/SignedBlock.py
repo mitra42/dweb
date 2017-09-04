@@ -3,7 +3,7 @@
 from datetime import datetime
 import dateutil.parser  # pip py-dateutil
 from json import loads
-from misc import MyBaseException, AssertionFail, _print, ToBeImplementedException
+from Errors import MyBaseException, AssertionFail, ToBeImplementedException
 from CryptoLib import CryptoLib
 from KeyPair import KeyPair
 from CommonBlock import Transportable, UnknownBlock

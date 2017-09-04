@@ -1,7 +1,7 @@
 # encoding: utf-8
 import dateutil.parser  # pip py-dateutil
 import base64
-from misc import ObsoleteException, _print, ToBeImplementedException, AssertionFail
+from Errors import ObsoleteException, ToBeImplementedException, AssertionFail
 from Dweb import Dweb
 #TODO-BACKPORT - review this file
 

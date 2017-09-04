@@ -1,5 +1,4 @@
 # encoding: utf-8
-from datetime import datetime
 
 #TODO-BACKPORT - move exceptions to Errors.py
 
@@ -57,13 +56,4 @@ class ObsoleteException(MyBaseException):
     httperror = 500     # Forbidden (Authentication won't help)
     msg = "Coding error: The function {function} is obsolete hint:{hint}"
 
-
-def _print(*foos, **kwargs):
-    import textwrap
-    first = True
-    width = kwargs.get("width", 120)
-    for foo in foos:
-        for line in textwrap.wrap(unicode(foo), width=width):
-            print ("    " if not first else "") + line
-            first=False
 

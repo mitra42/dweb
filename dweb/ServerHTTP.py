@@ -1,11 +1,11 @@
 # encoding: utf-8
 import urllib
-from misc import _print
+#from Errors import _print
 from Block import Block
 from StructuredBlock import StructuredBlock
 from MutableBlock import MutableBlock
 from MyHTTPServer import MyHTTPRequestHandler, exposed
-from misc import ToBeImplementedException
+from Errors import ToBeImplementedException
 from CommonBlock import Transportable
 from CryptoLib import CryptoLib
 from KeyPair import KeyPair

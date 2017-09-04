@@ -2,7 +2,7 @@ from CryptoLib import CryptoLib, WordHashKey
 from KeyPair import KeyPair
 import nacl.signing
 import nacl.encoding
-from misc import ToBeImplementedException
+from Errors import ToBeImplementedException
 from Dweb import Dweb
 from CommonList import EncryptionList
 #TODO-BACKPORT - review this file

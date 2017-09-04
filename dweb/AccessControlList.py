@@ -2,7 +2,7 @@ from CryptoLib import CryptoLib, AuthenticationException, DecryptionFail
 from KeyPair import KeyPair
 import nacl.signing
 import nacl.encoding
-from misc import ForbiddenException
+from Errors import ForbiddenException
 from CommonList import EncryptionList
 from StructuredBlock import StructuredBlock
 

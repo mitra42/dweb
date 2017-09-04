@@ -10,7 +10,7 @@ import nacl.encoding
 import nacl.hash
 import nacl.public
 import nacl.signing
-from misc import ToBeImplementedException
+from Errors import ToBeImplementedException
 
 from CommonBlock import SmartDict
 from CryptoLib import CryptoLib, SecurityWarning, WordHashKey, PrivateKeyException

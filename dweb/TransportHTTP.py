@@ -2,7 +2,7 @@
 
 from Transport import Transport
 from TransportHTTPBase import TransportHTTPBase
-from misc import CodingException
+from Errors import CodingException
 from Dweb import Dweb
 
 #TODO-HTTP add support for HTTPS

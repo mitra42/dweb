@@ -12,7 +12,7 @@ import nacl.public
 import nacl.signing
 import nacl.encoding
 
-from misc import _print
+#from Errors import _print
 from CryptoLib import CryptoLib
 from KeyPair import KeyPair
 from Transport import TransportBlockNotFound, TransportURLNotFound, TransportFileNotFound

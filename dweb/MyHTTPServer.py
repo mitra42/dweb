@@ -25,7 +25,7 @@ else:
 
 import traceback
 
-from misc import MyBaseException, ToBeImplementedException
+from Errors import MyBaseException, ToBeImplementedException
 from Transport import TransportBlockNotFound,TransportFileNotFound
 
 #TODO-HTTP add support for HTTPS

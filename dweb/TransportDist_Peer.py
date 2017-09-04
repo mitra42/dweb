@@ -16,8 +16,11 @@ from Transport import TransportFileNotFound, TransportBlockNotFound, TransportUR
 from TransportHTTP import TransportHTTPBase
 from TransportLocal import TransportLocal
 from ServerHTTP import DwebHTTPRequestHandler
-from misc import MyBaseException, ToBeImplementedException
-#TODO-BACKPORT - review this file
+from Errors import MyBaseException, ToBeImplementedException
+"""
+This file implements an experimental HTTP network - its far from complete and not at all a priority, but was a platform for testing some ideas.
+Note that the server in this app also works against TansportHTTP 
+"""
 
 class PeerCommandException(MyBaseException):
         httperror = 501  # Unimplemented
