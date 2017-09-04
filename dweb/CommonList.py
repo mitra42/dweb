@@ -8,7 +8,7 @@ import nacl.encoding
 from StructuredBlock import StructuredBlock
 from SignedBlock import Signatures
 from Errors import ForbiddenException, AssertionFail, ToBeImplementedException
-from CommonBlock import SmartDict
+from SmartDict import SmartDict
 from Dweb import Dweb
 #TODO-BACKPORT - review this file
 

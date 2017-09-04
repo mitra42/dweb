@@ -1,7 +1,7 @@
 # encoding: utf-8
 #TODO-BACKPORT - review this file
 
-from CommonBlock import Transportable
+from Transportable import Transportable
 
 class Block(Transportable):
     """

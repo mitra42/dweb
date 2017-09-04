@@ -2,7 +2,7 @@
 from json import loads
 from Block import Block
 from CryptoLib import CryptoLib
-from CommonBlock import Transportable, SmartDict
+from SmartDict import SmartDict
 from Dweb import Dweb
 
 #TODO-BACKPORT - review this file

@@ -6,7 +6,8 @@ from json import loads
 from Errors import MyBaseException, AssertionFail, ToBeImplementedException
 from CryptoLib import CryptoLib
 from KeyPair import KeyPair
-from CommonBlock import Transportable, UnknownBlock
+from SmartDict import UnknownBlock
+from Transportable import Transportable
 from StructuredBlock import SmartDict, StructuredBlock
 from Transport import TransportURLNotFound, TransportFileNotFound
 from Dweb import Dweb

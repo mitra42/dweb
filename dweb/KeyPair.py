@@ -12,7 +12,7 @@ import nacl.public
 import nacl.signing
 from Errors import ToBeImplementedException
 
-from CommonBlock import SmartDict
+from SmartDict import SmartDict
 from CryptoLib import CryptoLib, SecurityWarning, WordHashKey, PrivateKeyException
 
 # See Libsodium docs

@@ -6,7 +6,7 @@ from StructuredBlock import StructuredBlock
 from MutableBlock import MutableBlock
 from MyHTTPServer import MyHTTPRequestHandler, exposed
 from Errors import ToBeImplementedException
-from CommonBlock import Transportable
+from Transportable import Transportable
 from CryptoLib import CryptoLib
 from KeyPair import KeyPair
 from Dweb import Dweb

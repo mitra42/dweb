@@ -19,7 +19,7 @@ from Transport import TransportBlockNotFound, TransportURLNotFound, TransportFil
 from TransportLocal import TransportLocal
 from TransportHTTP import TransportHTTP
 from TransportDist_Peer import TransportDistPeer, Peer, ServerPeer
-from CommonBlock import Transportable
+from Transportable import Transportable
 from Block import Block
 from StructuredBlock import StructuredBlock
 from CommonList import CommonList
