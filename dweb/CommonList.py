@@ -132,18 +132,19 @@ class CommonList(SmartDict):  # TODO move class to own file
             super(CommonList, self).store(verbose=verbose, **options)  # Stores privatekey  and sets _url
         return self
 
-    def publicurl(self, command=None, **options):
-        return Dweb.transport.xurl(self, command=command or "list", url=self._publicurl,
+    def publicurl(self, command=None, **options):   #TODO-BACKPORT this looks like xurl, not what we want after backport
+        return Dweb.transport(self._publicurl).xurl(self, command=command or "list", url=self._publicurl,
                                   **options)  # , contenttype=self.__getattr__("Content-type"))
 
-    def privateurl(self):
+    def privateurl(self):  #TODO-BACKPORT this looks like xurl, not what we want after backport
         """
         Get a URL that can be used for edits to the resource
         Side effect of storing the key
 
         :return:
         """
-        return Dweb.transport.xurl(self, command="update", contenttype=self._current.__getattr__("Content-type"))
+        #TODO-BACKPORT sure will have different way to get transport
+        return self.transport().xurl(self, command="update", contenttype=self._current.__getattr__("Content-type"))
         # TODO-AUTHENTICATION - this is particularly vulnerable w/o authentication as stores PrivateKey in unencrypted form
 
     def signandstore(self, obj, verbose=False, **options):
@@ -173,7 +174,7 @@ class CommonList(SmartDict):  # TODO move class to own file
         assert url  # Empty string, or None would be an error
         from SignedBlock import Signature
         sig = Signature.sign(self, url, verbose=verbose, **options)
-        Dweb.transport.add(url=url, date=sig.date,
+        Dweb.transport(sig.signedby).add(url=url, date=sig.date,
                            signature=sig.signature, signedby=sig.signedby, verbose=verbose, **options)
         return sig  # Typically for adding to local copy of list
         # Caller will probably want to add obj to list , not done here since MB handles differently.

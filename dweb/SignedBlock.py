@@ -93,7 +93,7 @@ class Signatures(list):
         assert url is not None
         if verbose: print "SignedBlocks.fetch looking for url=",url,"fetchblocks=", fetchblocks
         try:
-            lines = Dweb.transport.rawlist(url=url, verbose=verbose, **options)
+            lines = Dweb.transport(url).rawlist(url=url, verbose=verbose, **options)
         except (TransportURLNotFound, TransportFileNotFound) as e:
             return Signatures([])    # Its ok to fail as list may be empty
         else:

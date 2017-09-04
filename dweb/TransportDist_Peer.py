@@ -44,7 +44,9 @@ class ServerPeer(DwebHTTPRequestHandler):
         port = port or cls.defaultipandport[1]
         ipandport = (host or cls.defaultipandport[0], port)
         # Creates a transport used for outgoing, and then creates a server that answers queries and passes to transport
-        Dweb.transport = TransportDistPeer.setup({"distpeer": {}, "http": { "ipandport": ipandport}, "local": {"dir": dir or "../cache_peer/%s" % port }}, verbose=False)
+        t = TransportDistPeer.setup({"distpeer": {}, "http": { "ipandport": ipandport}, "local": {"dir": dir or "../cache_peer/%s" % port }}, verbose=False)
+        Dweb.transports["distpeer"] = t
+        Dweb.transportpriority.append(t)
         try:
             cls.serve_forever(ipandport=ipandport, verbose=verbose, **options)
         except socket.error as e:
@@ -62,8 +64,8 @@ class ServerPeer(DwebHTTPRequestHandler):
         and returns the JSON result (typically PeerResponse).
         """
         req = PeerRequest.loads(data)
-        res =  Dweb.transport.dispatch(req=req, verbose=verbose, **options)
-        Dweb.transport.learnfrom(res, verified=False)   # Learn from full set - sent and received
+        res =  Dweb.transports["distpeer"].dispatch(req=req, verbose=verbose, **options)
+        Dweb.transports["distpeer"].learnfrom(res, verified=False)   # Learn from full set - sent and received
         return { "Content-type": "application/json", "data": res }
     peer.arglist=["data"]
 
@@ -78,7 +80,7 @@ class ServerPeer(DwebHTTPRequestHandler):
         :return: 
         """
         #Subclass DwebHTTPRequestHandler.info to return info about ServerPeer
-        node = Dweb.transport
+        node = Dweb.transports["distpeer"]
         node.learnfrom(PeerSet(data["peers"], verified=False),verified=False)
         del(data["peers"])
         node.learnfrom(Peer(**data), verified=True)
@@ -110,11 +112,9 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
 
         :param options:
         """
-        #TODO-BACKPORT can simplify below
         super(TransportDistPeer,self).__init__(options, verbose) # Takes {http: {ipandport}}
-        ipandport = options["http"]["ipandport"]
         self.nodeid = options["distpeer"].get("nodeid", randint(1, 2 ** self.bitlength - 1))  # Random id
-        self.ipandport = ipandport
+        self.ipandport = options["http"]["ipandport"]
         self.peers = PeerSet()  # Will hold list of peers we know about
         self.connectionqueue = Queue.PriorityQueue()    # Queue of peers to try and connect to.
         self.backgroundthread(verbose=verbose)  # Instantiate a background thread
@@ -128,10 +128,8 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
 
         :param options: { http: { ipandport }, local; { dir: }
         """
-        print "XXX@128",options
         if options["local"]["dir"]:
             tl = TransportLocal.setup({"local": { "dir": options["local"]["dir"] }}, verbose)   #TransportBlockNotFound if dir invalid
-            print "XXX@131",tl
         else:
             tl = None
         t =  cls(options, verbose)
@@ -141,7 +139,6 @@ class TransportDistPeer(TransportHTTPBase): # Uses TransportHTTPBase for some co
         return t
 
     def __repr__(self):
-        print "XXX@139",self.options
         return "TransportDistPeer(%d, %s)" % (self.nodeid, self.tl.dir)
 
     def __eq__(self, other):
@@ -597,7 +594,7 @@ class Peer(object):
         
         :return: 
         """
-        return Dweb.transport
+        return Dweb.transports["distpeer"]
 
     def dumps(self):
         #See other !ADD-PEER-FIELDS
@@ -608,7 +605,7 @@ class Peer(object):
             if verbose: print "Connecting to peer", self
             self.transport = TransportHTTP({"http": { "ipandport": self.ipandport}})
             try:
-                self.info = self.transport.info(data=Dweb.transport.infodata())
+                self.info = self.transports["distpeer"].info(data=Dweb.transports["distpeer"].infodata())
                 if verbose: print self.info
             except ConnectionError as e:
                 pass    # Dont set connected - unconnected Peers wont get used but may get retried

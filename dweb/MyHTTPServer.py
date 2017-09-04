@@ -73,7 +73,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         cls.ipandport = ipandport or cls.defaultipandport
         cls.verbose = verbose
         cls.options = options
-        if verbose: print "Setup server at",cls.ipandport,"to",Dweb.transport
+        if verbose: print "Setup server at",cls.ipandport,"to",self.transport() # TODO-BACKPORT not clear if always "transportpriority[0]
         #HTTPServer(cls.ipandport, cls).serve_forever()  # Start http server
         ThreadedHTTPServer(cls.ipandport, cls).serve_forever()  # OR Start http server
         print "Server exited" # It never should

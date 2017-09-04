@@ -1,16 +1,16 @@
 # encoding: utf-8
 from Crypto.PublicKey import RSA
+from sys import version as python_version
+import itertools
+if python_version.startswith('3'):
+    from urllib.parse import urlparse
+else:
+    from urlparse import urlparse        # See https://docs.python.org/2/library/urlparse.html
+
 #TODO-BACKPORT - review this file
 
 """
 A collection of top level tools for demonstrating and debugging and giving a low complexity way to interact.
-
-DO NOT RELY on these tools at this time, - dont import them into other files etc, but feel free to extend and edit.
-
-use in Python sell by ...
-from dweb.Dweb import Dweb
-mnm = menmonicgen()     # Generate a set of random mnemonic words (remember these)
-keychain(mnm)          # Create a keychain from the mnemonic, add it to my keychains
 """
 
 class Dweb(object):
@@ -21,6 +21,21 @@ class Dweb(object):
     keychains = []      #
     transports = {}
     transportpriority = []
+
+    @classmethod
+    def transport(cls, url): #TODO-REL4-API
+        """
+        Pick between associated transports based on URL
+
+        url     URL or string that can be parsed into a URL
+        returns subclass of Transport that can support this kind of URL or undefined if none.
+        """
+        #TODO-efficiency, could parse URL once at higher level and pass URL down
+        if isinstance(url, basestring ):
+            url = urlparse(url);    # For efficiency, only parse once.
+        # Construct: next(itertools.ifilter(lambda..., arr),None)   returns the first element in arr that passes lambda without testing rest
+        return next(itertools.ifilter(lambda t: t.supports(url), cls.transportpriority),None) #First transport that can support this URL
+
 
 # Some utilities
 """

@@ -43,7 +43,8 @@ class Transportable(object):
         :return: url of data
         """
         if verbose: print "Storing", self.__class__.__name__, "len=", len(data or self._data)
-        self._url = Dweb.transport.rawstore(data=data or self._data, verbose=verbose)  # Note uses fact that _data will be subclassed
+        #TODO-BACKPORT figure out best way to get default Transport for storing
+        self._url = Dweb.transportpriority[0].rawstore(data=data or self._data, verbose=verbose)  # Note uses fact that _data will be subclassed
         if verbose: print self.__class__.__name__, ".stored: url=", self._url
         return self
 
@@ -64,7 +65,7 @@ class Transportable(object):
         """
         if verbose: print "Transportable.fetch _url=",self._url
         if self._needsfetch:
-            self._data = Dweb.transport.rawfetch(url=self._url, verbose=verbose, **options)
+            self._data = Dweb.transport(self._url).rawfetch(url=self._url, verbose=verbose, **options)
             self._needsfetch = False
         return self # For Chaining
 
@@ -84,7 +85,7 @@ class Transportable(object):
         table = table or self.table
         if not table:
             raise AssertionFail(message=self.__class__.__name__+" doesnt support xurl()")
-        return Dweb.transport.xurl(self, url_output=url_output, table=table, **options)
+        return Dweb.transportpriority[0].xurl(self, url_output=url_output, table=table, **options) #TODO-BACKPORT default transport for this?
 
 
 class SmartDict(Transportable):
@@ -216,7 +217,7 @@ class UnknownBlock(SmartDict):
         from ServerHTTP import LetterToClass
         from CryptoLib import CryptoLib
         if verbose: print "Transportable.fetch _url=", self._url
-        data = Dweb.transport.rawfetch(url=self._url, verbose=verbose, **options)
+        data = Dweb.transport(self._url).rawfetch(url=self._url, verbose=verbose, **options)
         dic = CryptoLib.loads(data)
         table = dic["table"]
         if not table:

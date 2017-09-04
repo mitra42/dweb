@@ -1,4 +1,9 @@
 # encoding: utf-8
+from sys import version as python_version
+if python_version.startswith('3'):
+    from urllib.parse import urlparse
+else:
+    from urlparse import urlparse        # See https://docs.python.org/2/library/urlparse.html
 
 from Transport import Transport
 from TransportHTTPBase import TransportHTTPBase
@@ -16,6 +21,7 @@ class TransportHTTP(TransportHTTPBase):
     defaulthttpoptions = {
         "ipandport": ['localhost', 4243]
     }
+    urlschemes = ['http']
 
     @classmethod
     def setup(cls, options, verbose):   #TODO-BACKPORT find callers
@@ -30,6 +36,9 @@ class TransportHTTP(TransportHTTPBase):
         Dweb.transports["http"] = t
         Dweb.transportpriority.append(t)
         return t
+
+    def supports(self, url):
+        return True; #TODO-BACKPORT once use real URLs delete this subclass so checks for "http"
 
     def url(data): #TODO-BACKPORT should return url
         """

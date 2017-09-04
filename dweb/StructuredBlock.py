@@ -44,7 +44,7 @@ class StructuredBlock(SmartDict):
             super(StructuredBlock, self).store(verbose=verbose, **options)    # Sets self._url   #TODO-EFFICIENCY DONT STORE IF NOT CHANGED
         for s in self._signatures:
             ss = s.copy()
-            Dweb.transport.add(url=self._url, date = ss.date,
+            self.transport().add(url=self._url, date = ss.date,
                                      signature = ss.signature, signedby = ss.signedby, verbose=verbose, **options)
         return self # For chaining
 
@@ -96,7 +96,7 @@ class StructuredBlock(SmartDict):
         self.fetch()
         return (
             self.data or
-            (self.url and Dweb.transport.rawfetch(url = self.url, verbose=verbose, **options)) or # Hash must point to raw data, not another SB
+            (self.url and Dweb.transport(self.url).rawfetch(url = self.url, verbose=verbose, **options)) or # Hash must point to raw data, not another SB
             (self.links and "".join(l.content(verbose=verbose, **options) for l in self.links)) or # Each link is a SB
             "")
 
@@ -129,7 +129,7 @@ class StructuredBlock(SmartDict):
         return (
             self.__dict__.get("size",None) or
             (self.data and len(self.data)) or
-            (self.url and len(Dweb.transport.rawfetch(url = self.url, verbose=verbose, **options))) or
+            (self.url and len(Dweb.transport(self.url).rawfetch(url = self.url, verbose=verbose, **options))) or
             (self.links and sum(l.size(verbose=verbose, **options) for l in self.links)) or # Each link is a SB
             None)
 

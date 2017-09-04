@@ -47,7 +47,7 @@ class File(StructuredBlock):
         :return:        File() with _url and data set
         """
         # Utility method to upload binary content as a Block and attach.
-        url = Dweb.transport.rawstore(data=content, verbose=verbose)
+        url = self.transport().rawstore(data=content, verbose=verbose)    #TODO-BACKPORT find correct way to specify defualt transport
         f = cls(**meta)
         f.url = url
         f.store(verbose=verbose)  # This will have data and _url, the _url reflects the SB not the data

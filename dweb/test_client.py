@@ -34,7 +34,7 @@ from ServerHTTP import DwebHTTPRequestHandler
 class Testing(TestCase):
     def setUp(self):
         super(Testing, self).setUp()
-        testTransporttype = 0 #TransportLocal, TransportHTTP, TransportDistPeer, TransportDistPeer = multi  # Can switch between TransportLocal and TransportHTTP to test both
+        testTransporttype = 1 #TransportLocal, TransportHTTP, TransportDistPeer, TransportDistPeer = multi  # Can switch between TransportLocal and TransportHTTP to test both
         self.verbose=False
         self.quickbrownfox =  "The quick brown fox ran over the lazy duck"
         self.dog = "But the clever dog chased the fox"
@@ -49,20 +49,26 @@ class Testing(TestCase):
         self.seed = "01234567890123456789012345678901"
         self.mnemonic="coral maze mimic half fat breeze thought champion couple muscle snack heavy gloom orchard tooth alert cram often ask hockey inform broken school cotton"
         if testTransporttype == 0: # TransportLocal:
-            Dweb.transport = TransportLocal.setup({"local": {"dir": "../cache_local"}}, verbose=False)  # HTTP server is storing locally
+            t = TransportLocal.setup({"local": {"dir": "../cache_local"}}, verbose=False)  # HTTP server is storing locally
+            Dweb.transports["local"] = t
+            Dweb.transportpriority.append(t)
         elif testTransporttype == 1: # TransportHTTP:
             # Run python -m ServerHTTP; before this
-            Dweb.transport = TransportHTTP.setup({ "http": DwebHTTPRequestHandler.defaulthttpoptions }, self.verbose)
+            t = TransportHTTP.setup({ "http": DwebHTTPRequestHandler.defaulthttpoptions }, self.verbose)
+            Dweb.transports["http"] = t
+            Dweb.transportpriority.append(t)
         elif testTransporttype in (2,3): # TransportDistPeer:
             #TODO-BACKPORT check its distpeer for TransportDistPeer
-            Dweb.transport = TransportDistPeer.setup({ "distpeer": {}, "http": {"ipandport": DwebHTTPRequestHandler.defaultipandport}, "local": {"dir": "../cache"}}, self.verbose)
-            Dweb.transport.peers.append(Peer(ipandport=ServerPeer.defaultipandport, verbose=self.verbose).connect())
+            t = TransportDistPeer.setup({ "distpeer": {}, "http": {"ipandport": DwebHTTPRequestHandler.defaultipandport}, "local": {"dir": "../cache"}}, self.verbose)
+            t.peers.append(Peer(ipandport=ServerPeer.defaultipandport, verbose=self.verbose).connect())
+            Dweb.transports["distpeer"] = t
+            Dweb.transportpriority.append(t)
             if testTransporttype == 3:
                 #TODO replace this with a "learnfrom" experience, so connects background etc
                 maxport = ServerPeer.defaultipandport[1]+10
                 for i in range(ServerPeer.defaultipandport[1],maxport):
                     if self.verbose: print "Adding peer",i
-                    Dweb.transport.peers.append(Peer(ipandport=(ServerPeer.defaultipandport[0],i), verbose=self.verbose).connect(verbose=self.verbose))
+                    t.peers.append(Peer(ipandport=(ServerPeer.defaultipandport[0],i), verbose=self.verbose).connect(verbose=self.verbose))
         else:
             assert False, "Unimplemented test for Transport "+testTransport.__class__.__name__
 
@@ -201,12 +207,12 @@ class Testing(TestCase):
         sb = StructuredBlock(**{"Content-type":"text/html"})  # ** because cant use args with hyphens\
         sb.data = content
         sb.store(verbose=self.verbose)
-        if isinstance(Dweb.transport, TransportLocal):
+        if not (Dweb.transports.get("http", None) or Dweb.transports.get("distpeer", None)):
             print "Can't run all of test_file on TransportLocal"
         else:
             sburl = sb.xurl(command="file", url_output="getpost") #TODO-BACKPORT expect to break
             assert sburl == [False, "file", ["sb", sb._url]]
-            resp = Dweb.transport._sendGetPost(sburl[0], sburl[1], sburl[2], verbose=self.verbose)
+            resp = Dweb.transportpriority[0]._sendGetPost(sburl[0], sburl[1], sburl[2], verbose=self.verbose)
             assert resp.text == content, "Should return data stored"
             assert resp.headers["Content-type"] == "text/html", "Should get type"
         # Now test a MutableBlock that uses this content
@@ -219,33 +225,32 @@ class Testing(TestCase):
         mb = MutableBlock(url=mbm._publicurl)
         mb.fetch()      # Just fetches the signatures
         assert mb.content() == mbm.content(), "Should round-trip HTML content"
-        if isinstance(Dweb.transport, TransportLocal):
+        if isinstance(Dweb.transportpriority[0], TransportLocal):
             pass # print "Can't run all of test_file on TransportLocal"
         else:
             getpostargs=mb.xurl(command="file", url_output="getpost")  #TODO-BACKPORT expect to break
-            mbcontent2 = Dweb.transport._sendGetPost(*getpostargs).text
+            mbcontent2 = Dweb.transportpriority[0]._sendGetPost(*getpostargs).text
             assert mbcontent2 == mbm.content(), "Should fetch MB content via its URL"
 
     def test_typeoverride(self):    # See if can override the type on a block
-        if isinstance(Dweb.transport, TransportLocal):
-            print "Can't test_typeoverride on",Dweb.transport.__class__.__name__
+        if isinstance(Dweb.transportpriority[0], TransportLocal):
+            print "Can't test_typeoverride on",Dweb.transportpriority[0].__class__.__name__
             return
-        Dweb.transport = TransportHTTP.setup({"http": {"ipandport": self.ipandport}}, self.verbose)
         # Store the wrench icon
         content = File.load(filepath=self.exampledir + "WrenchIcon.png").content()
         wrenchurl = Block(data=content).store(verbose=self.verbose)._url
         # And check it got there
-        resp = Dweb.transport._sendGetPost(False, "rawfetch",  [wrenchurl], params={"contenttype": "image/png"})
+        resp = Dweb.transportpriority[0]._sendGetPost(False, "rawfetch",  [wrenchurl], params={"contenttype": "image/png"})
         assert resp.headers["Content-type"] == "image/png", "Should get type"
         assert resp.content == content, "Should return data stored"
-        resp = Dweb.transport._sendGetPost(False, "file",  ["b", wrenchurl], params={"contenttype": "image/png"})
+        resp = Dweb.transportpriority[0]._sendGetPost(False, "file",  ["b", wrenchurl], params={"contenttype": "image/png"})
         assert resp.headers["Content-type"] == "image/png", "Should get type"
         assert resp.content == content, "Should return data stored"
 
     def test_badblock(self):
         try:
-            resp = Dweb.transport.rawfetch(url="12345")
-            #resp = Dweb.transport._sendGetPost(False, "rawfetch", [ "12345"], params={"contenttype": "image/png"})
+            resp = Dweb.transportpriority[0].rawfetch(url="12345")
+            #resp = Dweb.transportpriority[0]._sendGetPost(False, "rawfetch", [ "12345"], params={"contenttype": "image/png"})
         except (TransportURLNotFound,TransportFileNotFound, TransportBlockNotFound) as e:
             pass
         else:
@@ -280,8 +285,8 @@ class Testing(TestCase):
     def test_uploads(self):
         # A set of tools to upload things so available for testing.
         # All the functionality in storeas should have been tested elsewhere.
-        if isinstance(Dweb.transport, TransportLocal):
-            print "Can't test_uploads on",Dweb.transport.__class__.__name__
+        if isinstance(Dweb.transportpriority[0], TransportLocal):
+            print "Can't test_uploads on",Dweb.transportpriority[0].__class__.__name__
             return
         ext = False   # True to upload larger directories (tinymce, docs)
         b=Block(data=self.dog); b.store(); print self.dog,b.xurl()  #TODO-BACKPORT expect to break
@@ -330,8 +335,8 @@ class Testing(TestCase):
 
     def test_uploadandrelativepaths(self):
         # Test that a directory can be uploaded and then accessed by a relative path
-        if isinstance(Dweb.transport, TransportLocal):
-            print "Can't test_uploadandrelativepaths on",Dweb.transport.__class__.__name__
+        if isinstance(Dweb.transportpriority[0], TransportLocal):
+            print "Can't test_uploadandrelativepaths on",Dweb.transportpriority[0].__class__.__name__
             return
         f1sz = File.load("../tinymce/langs/readme.md").size
         # Upload a multi-level directory
@@ -339,7 +344,7 @@ class Testing(TestCase):
         #print f.url()  # url of sb at top of directory
         sb = StructuredBlock(url=f._url, verbose=self.verbose).fetch(verbose=self.verbose)
         assert len(sb.links) == 7, "tinymce should have 7 files but has "+str(len(sb.links))
-        resp = Dweb.transport._sendGetPost(False, "file", ["sb", f._url,"langs/readme.md"])
+        resp = Dweb.transportpriority[0]._sendGetPost(False, "file", ["sb", f._url,"langs/readme.md"])
         assert int(resp.headers["Content-Length"]) == f1sz,"Should match length of readme.md"
         # /file/mb/SHA3256B64URL.88S-FYlEN1iF3WuDRdXoR8SyMUG6crR5ehM21IvUuS0=/tinymce.min.js
 
@@ -438,8 +443,8 @@ class Testing(TestCase):
         # Experimental testing of peer
         #self.verbose=True
         # Use cache as the local machine's - remote will use cache_peer
-        if not isinstance(Dweb.transport, TransportDistPeer):
-            print "Can't run test_peer on ",Dweb.transport.__class__.__name__
+        if not isinstance(Dweb.transportpriority[0], TransportDistPeer):
+            print "Can't run test_peer on ",Dweb.transportpriority[0].__class__.__name__
             return
         if CryptoLib.defaultlib == CryptoLib.CRYPTO:
             qbfurl="SHA3256B64URL.heOtR2QnWEvPuVdxo-_2nPqxCSOUUjTq8GShJv8VUFI="    # Hash of self.quickbrownfox
@@ -450,19 +455,19 @@ class Testing(TestCase):
             cdurl = "BLAKE2.A5JOSLvsRV-dFuFqNlpQeBP5OojtIuJmUq9mmoAJXkA="
             newdataurl = "BLAKE2.nlUV_dAC5psmShv8jSCmDAa1-LWGbMrGKOQ2PkHcx5g="
         newdata = "I am a new piece of data"    # Note *not* stored by any other test here
-        url = Dweb.transport.rawstore(data=self.quickbrownfox, verbose=self.verbose)
+        url = Dweb.transportpriority[0].rawstore(data=self.quickbrownfox, verbose=self.verbose)
         assert url == qbfurl, "Stored correctly (locally - no peers connected yet, got "+url+" expected "+qbfurl
-        data = Dweb.transport.rawfetch(url=qbfurl,verbose=self.verbose)
+        data = Dweb.transportpriority[0].rawfetch(url=qbfurl,verbose=self.verbose)
         assert data == self.quickbrownfox, "Local cache of quick brown fox"+data
         invalidurl="SHA3256B64URL.aaaabbbbccccVfMvpedEg77ByMRYkUgPRU9P1gWaNF8="
         try:
-            data = Dweb.transport.rawfetch(url=invalidurl,verbose=self.verbose)
+            data = Dweb.transportpriority[0].rawfetch(url=invalidurl,verbose=self.verbose)
         except (TransportBlockNotFound, TransportFileNotFound) as e:
             if self.verbose: print e
         else:
             assert False, "Should trigger exception"
         # This chunk may end up in a method on TransportDist_Peer
-        node = Dweb.transport
+        node = Dweb.transportpriority[0]
         ipandport = ServerPeer.defaultipandport
         peer = node.peers.find(ipandport=ipandport) # Returns single result
         if not peer:
@@ -473,20 +478,20 @@ class Testing(TestCase):
         assert peer.info["type"] == "DistPeerHTTP","Unexpected peer.info"+repr(peer.info)
         # Now we've got a peer so try again, should get bounced off peer server
         try:
-            data = Dweb.transport.rawfetch(url=invalidurl, verbose=self.verbose)
+            data = Dweb.transportpriority[0].rawfetch(url=invalidurl, verbose=self.verbose)
         except TransportBlockNotFound as e:
             if self.verbose: print e
         else:
             assert False, "Should trigger exception"
-        assert Dweb.transport.rawstore(data=self.dog, verbose=self.verbose) == cdurl
-        assert Dweb.transport.rawfetch(url=cdurl, verbose=self.verbose) == self.dog
+        assert Dweb.transportpriority[0].rawstore(data=self.dog, verbose=self.verbose) == cdurl
+        assert Dweb.transportpriority[0].rawfetch(url=cdurl, verbose=self.verbose) == self.dog
         maxport = ServerPeer.defaultipandport[1]+10
         for i in range(ServerPeer.defaultipandport[1],maxport):
             if self.verbose: print "Adding peer",i
-            Dweb.transport.peers.append(Peer(ipandport=(ServerPeer.defaultipandport[0],i), verbose=self.verbose).connect(verbose=self.verbose))
-        url = Dweb.transport.rawstore(data=newdata, verbose=self.verbose)
+            Dweb.transportpriority[0].peers.append(Peer(ipandport=(ServerPeer.defaultipandport[0],i), verbose=self.verbose).connect(verbose=self.verbose))
+        url = Dweb.transportpriority[0].rawstore(data=newdata, verbose=self.verbose)
         assert newdataurl == url,"urles dont match exp "+newdataurl+" got "+url
-        assert newdata == Dweb.transport.rawfetch(url=newdataurl, verbose=self.verbose, ignorecache=True)
+        assert newdata == Dweb.transportpriority[0].rawfetch(url=newdataurl, verbose=self.verbose, ignorecache=True)
 
     def Xtest_current(self):
         self.verbose=True

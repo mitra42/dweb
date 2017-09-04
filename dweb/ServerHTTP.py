@@ -36,7 +36,9 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         :return: Never Returns
         """
         from TransportLocal import TransportLocal # Avoid circular references
-        Dweb.transport = TransportLocal.setup({ "local": { "dir": "../cache_http" }}, verbose=False)# HTTP server is storing locally
+        tl = TransportLocal.setup({ "local": { "dir": "../cache_http" }}, verbose=False)# HTTP server is storing locally
+        Dweb.transports["local"] = tl
+        Dweb.transportpriority.append(tl)
         cls.serve_forever(verbose=True)    # Uses defaultipandport
         #TODO-HTTP its printing log, put somewhere instead
 
@@ -59,7 +61,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         :return: { Content-Type, data: raw data from block
         """
         return {"Content-type": contenttype,
-                "data": Dweb.transport.rawfetch(url=url)} # Should be raw data returned
+                "data": Dweb.transport(url).rawfetch(url=url)} # Should be raw data returned
     rawfetch.arglist=["url"]
 
     @exposed
@@ -71,7 +73,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         :return:
         """
         return { 'Content-type': 'application/json',
-                 'data': Dweb.transport.rawlist(url=url, **kwargs)
+                 'data': Dweb.transport(url).rawlist(url=url, **kwargs)
                }
     rawlist.arglist=["url"]
 
@@ -84,13 +86,13 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         :return:
         """
         return {'Content-type': 'application/json',
-                'data': Dweb.transport.rawreverse(url=url, **kwargs)
+                'data': Dweb.transport(url).rawreverse(url=url, **kwargs)
                 }
     rawreverse.arglist = ["url"]
 
     @exposed
     def rawstore(self, data=None, **kwargs):
-        url = Dweb.transport.rawstore(data=data, **kwargs)
+        url = self.transport().rawstore(data=data, **kwargs)   #TODO-BACKPORT check for how to get default transport for writing
         return { "Content-type": "application/octet-stream", "data": url }
     rawstore.arglist=["data"]
 
@@ -101,26 +103,26 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
 
         :param data: Dictionary to add {url, signature, date, signedby} or json string of it.
         """
-        print "XXX@rawadd.102",data
         if isinstance(data, basestring): # Assume its JSON
             data = CryptoLib.loads(data)    # HTTP just delivers bytes
         data["verbose"]=verbose
+        print "XXX@109",data
         return  { "Content-type": "application/octet-stream",
-                  "data":  Dweb.transport.rawadd(**data)
+                  "data":  Dweb.transport(data["signedby"]).rawadd(**data)
                   }
         #url=None, date=None, signature=None, signedby=None, verbose=False, **options):
     rawadd.arglist=["data"]
 
     @exposed
     def content(self, table=None, url=None, urlargs=None, contenttype=None, verbose=False, **kwargs):
-        return Dweb.transport.fetch("content", cls=table, url=url,path=urlargs, verbose=verbose, contenttype=contenttype, **kwargs  )
+        return Dweb.transport(url).fetch("content", cls=table, url=url, path=urlargs, verbose=verbose, contenttype=contenttype, **kwargs  )
     content.arglist=["table", "url"]
 
     @exposed
     def file(self, table=None, url=None, urlargs=None, contenttype=None, verbose=False, **kwargs):
         #TODO-EFFICIENCY - next call does 2 fetches
         #verbose=True
-        return Dweb.transport.fetch(command="file", cls=table, url=url,path=urlargs, verbose=verbose, contenttype=contenttype, **kwargs  )
+        return Dweb.transport(url).fetch(command="file", cls=table, url=url,path=urlargs, verbose=verbose, contenttype=contenttype, **kwargs  )
     file.arglist=["table", "url"]
 
 

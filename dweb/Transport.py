@@ -64,6 +64,19 @@ class Transport(object):
         from ServerHTTP import LetterToClass
         return LetterToClass.get(abbrev, None)
 
+    def supports(self, url): #TODO-API
+        """
+        Determine if this transport supports a certain set of URLs
+
+        :param url: String or parsed URL
+        :return:    True if this protocol supports these URLs
+        """
+        if not url: return True   # Can handle default URLs
+        if isinstance(url, basestring):
+            url = urlparse(url)   # For efficiency, only parse once.
+        return url.scheme in  self.urlschemes  #Lower case, NO trailing : (unlike JS)
+
+
     def url(self, data):
         """
          Return an identifier for the data without storing

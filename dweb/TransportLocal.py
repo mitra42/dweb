@@ -13,6 +13,9 @@ class TransportLocal(Transport):
     Implements the raw primitives as reads and writes of file system.
     """
 
+    # urlschemes = ['http'] - subclasses as can handle all
+
+
     def __init__(self, options, verbose):
         """
         Create a transport object (use "setup" instead)
@@ -49,6 +52,9 @@ class TransportLocal(Transport):
 
 
     #see other !ADD-TRANSPORT-COMMAND - add a function copying the format below
+
+    def supports(self, url):
+        return True         # Local can handle any kind of URL, since cached.
 
     def info(self, **options):
         return { "type": "local", "options": self.options }
