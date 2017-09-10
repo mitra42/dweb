@@ -23,7 +23,7 @@ class Dweb(object):
     transportpriority = []
 
     @classmethod
-    def transport(cls, url): #TODO-REL4-API
+    def transport(cls, url=None): #TODO-REL4-API
         """
         Pick between associated transports based on URL
 

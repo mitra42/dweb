@@ -9,6 +9,7 @@ from Transport import Transport
 from TransportHTTPBase import TransportHTTPBase
 from Errors import CodingException
 from Dweb import Dweb
+from KeyPair import KeyPair
 
 #TODO-HTTP add support for HTTPS
 
@@ -22,6 +23,10 @@ class TransportHTTP(TransportHTTPBase):
         "ipandport": ['localhost', 4243]
     }
     urlschemes = ['http']
+
+
+    def __repr__(self):
+        return self.__class__.__name__ + " " + dumps(self.options)
 
     @classmethod
     def setup(cls, options, verbose):   #TODO-BACKPORT find callers
@@ -37,37 +42,56 @@ class TransportHTTP(TransportHTTPBase):
         Dweb.transportpriority.append(t)
         return t
 
-    def supports(self, url):
-        return True; #TODO-BACKPORT once use real URLs delete this subclass so checks for "http"
+    @staticmethod
+    def _multihash(data=None, url=None):
+        """
+        Return a multihash (string of form Q....
 
-    def url(data): #TODO-BACKPORT should return url
+        :param data:    optional - data to hash
+        :param url:     url to pull multihash from (last part of path)
+        :return:        string of form Q.... (base58 of multihash of sha256 of data)
+        """
+        if data:
+            return KeyPair.multihashsha256_58(data)
+        if url:
+            if isinstance(url,basestring):
+               url = urlparse(url)
+            return url.path.split('/')[-1]
+
+    def url(self, data=None, multihash=None): #TODO-API
         """
          Return an identifier for the data without storing
 
          :param string|Buffer data   arbitrary data
          :return string              valid id to retrieve data via rawfetch
          """
-        # TODO-REL4-MULTITRANSPORT - this needs changing the identifier should look like a real URL and use multihash like IPFS
-        return CryptoLib.Curlhash(data) #TODO-BACKPORT move from CryptoLib to here (and use multihash)
+        if data:
+            multihash = TransportLocal._multihash(data=data)
+        return "http://cas.dweb.me/multihash/"+ multihash
 
     #see other !ADD-TRANSPORT-COMMAND - add a function copying the format below
     # TransportHTTPBase handles: info()
 
     def rawfetch(self, url=None, verbose=False, **options):
         if verbose: print "TransportHTTP.rawfetch(%s)" % url
-        res = self._sendGetPost(False, "rawfetch", urlargs=[url], verbose=verbose, params=options)
+        multihash = self._multihash(url=url)
+        res = self._sendGetPost(False, "rawfetch", urlargs=[multihash], verbose=verbose, params=options)
         return res.text
 
     def rawlist(self, url, verbose=False, **options):
         if verbose: print "list", url, options
         if not url:
             raise CodingException(message="TransportHTTP.rawlist requires a url")
-        res = self._sendGetPost(False, "rawlist", urlargs=[url], params=options)
+        multihash = self._multihash(url=url)
+        res = self._sendGetPost(False, "rawlist", urlargs=[multihash], params=options)
         return res.json()   # Data version of list - an array
 
     def rawreverse(self, url, verbose=False, **options):
         if verbose: print "reverse", url, options
-        res = self._sendGetPost(False, "rawreverse", urlargs=[url], params=options)
+        if not url:
+            raise CodingException(message="TransportHTTP.rawlist requires a url")
+        multihash = self._multihash(url=url)
+        res = self._sendGetPost(False, "rawreverse", urlargs=[multihash], params=options)
         return res.json()   # Data version of list - an array
 
     def rawstore(self, data=None, verbose=False, **options):
@@ -78,8 +102,11 @@ class TransportHTTP(TransportHTTPBase):
 
     def rawadd(self, url=None, date=None, signature=None, signedby=None, verbose=False, **options):
         if verbose: print "add", url, date, signature, signedby, options
+        if not url:
+            raise CodingException(message="TransportHTTP.rawlist requires a url")
         value = self._add_value( url=url, date=date, signature=signature, signedby=signedby, verbose=verbose, **options)+ "\n"
         if not (url and date and signature and signedby):
             raise CodingException(message="TransportHTTP.rawadd requires all args:"+value)
+        # Note this is sending url, not multihash in the urlargs, that is what was signed. Should convert to multihash before storing.
         res = self._sendGetPost(True, "rawadd", urlargs = [], headers={"Content-Type": "application/json"}, params={}, data=value)
 

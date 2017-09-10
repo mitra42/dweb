@@ -6,7 +6,7 @@ import urllib
 import BaseHTTPServer       # See https://docs.python.org/2/library/basehttpserver.html for docs on how servers work
                             # also /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/BaseHTTPServer.py for good error code list
 from Dweb import Dweb
-#TODO-BACKPORT - review this file
+#TODO-API needs writing up
 
 """
 This file is intended to be Application independent , i.e. not dependent on Dweb - exceptions:
@@ -72,7 +72,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         cls.ipandport = ipandport or cls.defaultipandport
         cls.verbose = verbose
         cls.options = options
-        if verbose: print "Setup server at",cls.ipandport,"to",self.transport() # TODO-BACKPORT not clear if always "transportpriority[0]
+        if verbose: print "Setup server at",cls.ipandport,"to",Dweb.transportpriority[0]
         #HTTPServer(cls.ipandport, cls).serve_forever()  # Start http server
         ThreadedHTTPServer(cls.ipandport, cls).serve_forever()  # OR Start http server
         print "Server exited" # It never should
@@ -115,9 +115,9 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
                     # urlargs contain any beyond the
                     for arg in func.arglist:
                         if arg not in argvars:
-                            raise HTTPargrequiredException(req=req, arg=arg)  # Will be caught in MyHTTPRequestHandler._dispatch
+                            raise HTTPargrequiredException(req=req, arg=arg)            # Will be caught in MyHTTPRequestHandler._dispatch
                 if verbose: print "%s.%s %s" % (self.__class__.__name__, req, argvars)
-                res = func(urlargs=urlargs, verbose=verbose, **argvars)          # MAIN PART - run method and collect result
+                res = func(urlargs=urlargs, verbose=verbose, **argvars)                 # MAIN PART - run method and collect result
             else:
                 if verbose: print "%s.dispatch unimplemented: %s" % (self.__class__.__name__, req)
                 raise HTTPdispatcherException(req=req)  # Will be caught in MyHTTPRequestHandler._dispatch

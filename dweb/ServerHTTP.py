@@ -9,8 +9,7 @@ from Errors import ToBeImplementedException
 from Transportable import Transportable
 from KeyPair import KeyPair
 from Dweb import Dweb
-#TODO-BACKPORT - review this file
-
+#TODO-API needs writing up
 
 class DwebHTTPRequestHandler(MyHTTPRequestHandler):
 
@@ -84,7 +83,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
 
     @exposed
     def rawstore(self, data=None, **kwargs):
-        url = self.transport().rawstore(data=data, **kwargs)   #TODO-BACKPORT check for how to get default transport for writing
+        url = Dweb.transport().rawstore(data=data, **kwargs)
         return { "Content-type": "application/octet-stream", "data": url }
     rawstore.arglist=["data"]
 

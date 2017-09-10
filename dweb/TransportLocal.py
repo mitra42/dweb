@@ -1,7 +1,7 @@
 # encoding: utf-8
 #from abc import ABCMeta, abstractmethod
 import os   # For isdir and exists
-from json import loads
+from json import loads, dumps
 from Transport import Transport, TransportFileNotFound
 from KeyPair import KeyPair
 from Dweb import Dweb
@@ -40,6 +40,9 @@ class TransportLocal(Transport):
             if not os.path.isdir(dirname):
                 os.mkdir(dirname)
         self.options = options
+
+    def __repr__(self):
+        return self.__class__.__name__ + " " + dumps(self.options)
 
     @classmethod
     def setup(cls, options, verbose):
@@ -84,7 +87,15 @@ class TransportLocal(Transport):
                url = urlparse(url)
             return url.path.split('/')[-1]
 
-    def url(self, data=None, multihash=None):
+    def url(self, data=None, multihash=None): #TODO-API
+        """
+         Return an identifier for the data without storing
+
+         :param data        string|Buffer data   arbitrary data
+         :param multihash   string of form Q...
+         :return string     valid id to retrieve data via rawfetch
+         """
+
         if data:
             multihash = TransportLocal._multihash(data=data)
         return "http://cas.dweb.me/multihash/"+ multihash
