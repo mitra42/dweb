@@ -7,18 +7,10 @@ from MutableBlock import MutableBlock
 from MyHTTPServer import MyHTTPRequestHandler, exposed
 from Errors import ToBeImplementedException
 from Transportable import Transportable
-from CryptoLib import CryptoLib
 from KeyPair import KeyPair
 from Dweb import Dweb
 #TODO-BACKPORT - review this file
 
-
-LetterToClass = {
-    Block.table: Block,
-    StructuredBlock.table: StructuredBlock,
-    MutableBlock.table: MutableBlock,
-    KeyPair.table: KeyPair,
-}
 
 class DwebHTTPRequestHandler(MyHTTPRequestHandler):
 
@@ -104,9 +96,8 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         :param data: Dictionary to add {url, signature, date, signedby} or json string of it.
         """
         if isinstance(data, basestring): # Assume its JSON
-            data = CryptoLib.loads(data)    # HTTP just delivers bytes
+            data = KeyPair.loads(data)    # HTTP just delivers bytes
         data["verbose"]=verbose
-        print "XXX@109",data
         return  { "Content-type": "application/octet-stream",
                   "data":  Dweb.transport(data["signedby"]).rawadd(**data)
                   }

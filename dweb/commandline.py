@@ -1,5 +1,5 @@
 from Dweb import Dweb
-from CryptoLib import WordHashKey
+#from CryptoLib import WordHashKey
 from MutableBlock import MutableBlock
 
 #TODO-BACKPORT - review this file
@@ -18,7 +18,7 @@ def keychain(mnemonic=None):
     :return:
     """
     from KeyChain import KeyChain
-    from CryptoLib import WordHashKey, WordHashKey
+    #from CryptoLib import WordHashKey, WordHashKey
     from KeyPair import KeyPair
     return KeyChain.new(mnemonic=mnemonic, keygen=(False if mnemonic else WordHashKey), verbose=_verbose)
 

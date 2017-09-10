@@ -1,13 +1,12 @@
-from CryptoLib import CryptoLib, WordHashKey
 from KeyPair import KeyPair
 import nacl.signing
 import nacl.encoding
 from Errors import ToBeImplementedException
 from Dweb import Dweb
-from CommonList import EncryptionList
+from CommonList import CommonList
 #TODO-BACKPORT - review this file
 
-class KeyChain(EncryptionList):  # TODO move to own file
+class KeyChain(CommonList):  # TODO move to own file
     """
     A class to hold a list of encrypted Private keys. Control of Privatekey of this gives access to all of the items pointed at.
 
@@ -74,7 +73,7 @@ class KeyChain(EncryptionList):  # TODO move to own file
         """
         key = self.keypair._key
         if isinstance(key, WordHashKey):
-            return CryptoLib.sym_encrypt(res, CryptoLib.b64dec(self.accesskey), b64=b64)
+            return KeyPair.sym_encrypt(res, KeyPair.b64dec(self.accesskey), b64=b64)
         elif isinstance(key, nacl.signing.SigningKey):
             return self.keypair.encrypt(res, b64=b64, signer=self)
         else:
@@ -89,8 +88,8 @@ class KeyChain(EncryptionList):  # TODO move to own file
         """
         key = self.keypair._key
         if isinstance(key, WordHashKey):
-            symkey = CryptoLib.b64dec(self.accesskey)
-            return CryptoLib.sym_decrypt(data, symkey, b64=True)  # Exception DecryptionFail (would be bad)
+            symkey = KeyPair.b64dec(self.accesskey)
+            return KeyPair.sym_decrypt(data, symkey, b64=True)  # Exception DecryptionFail (would be bad)
         elif isinstance(key, nacl.signing.SigningKey):
             return self.keypair.decrypt(data, b64=True, signer=self)
         else:
@@ -101,7 +100,7 @@ class KeyChain(EncryptionList):  # TODO move to own file
             self):  # TODO-WORDHASHKEY any use of this in KeyChain should probably just use the PrivateKey to encrypt rather than symkey
         key = self.keypair._key
         if isinstance(key, WordHashKey):  # Needs own case as privateexport is blocked
-            return CryptoLib.b64enc(self.keypair._key._private)
+            return KeyPair.b64enc(self.keypair._key._private)
         elif isinstance(key, nacl.signing.SigningKey):
             return self.keypair._key.encode(nacl.encoding.URLSafeBase64Encoder)
         else:

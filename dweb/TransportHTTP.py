@@ -61,7 +61,7 @@ class TransportHTTP(TransportHTTPBase):
     def rawlist(self, url, verbose=False, **options):
         if verbose: print "list", url, options
         if not url:
-            raise CodingException("TransportHTTP.rawlist requires a url")
+            raise CodingException(message="TransportHTTP.rawlist requires a url")
         res = self._sendGetPost(False, "rawlist", urlargs=[url], params=options)
         return res.json()   # Data version of list - an array
 
@@ -72,7 +72,7 @@ class TransportHTTP(TransportHTTPBase):
 
     def rawstore(self, data=None, verbose=False, **options):
         if not data:
-            raise CodingException("TransportHTTP.rawstore requires data")
+            raise CodingException(message="TransportHTTP.rawstore requires data")
         res = self._sendGetPost(True, "rawstore", headers={"Content-Type": "application/octet-stream"}, urlargs=[], data=data, verbose=verbose)
         return str(res.text) # Should be the url - need to return a str, not unicode which isn't supported by decode
 
@@ -80,6 +80,6 @@ class TransportHTTP(TransportHTTPBase):
         if verbose: print "add", url, date, signature, signedby, options
         value = self._add_value( url=url, date=date, signature=signature, signedby=signedby, verbose=verbose, **options)+ "\n"
         if not (url and date and signature and signedby):
-            raise CodingException("TransportHTTP.rawadd requires all args:"+value)
+            raise CodingException(message="TransportHTTP.rawadd requires all args:"+value)
         res = self._sendGetPost(True, "rawadd", urlargs = [], headers={"Content-Type": "application/json"}, params={}, data=value)
 

@@ -1,7 +1,6 @@
 # encoding: utf-8
 from json import loads
 from Block import Block
-from CryptoLib import CryptoLib
 from SmartDict import SmartDict
 from Dweb import Dweb
 
@@ -30,10 +29,9 @@ class StructuredBlock(SmartDict):
     #---------------------------------------------------------------------------------------------------------
 
     def __init__(self, data=None, url=None, verbose=False, **options):
-        from SignedBlock import Signatures
         if verbose: print "StructuredBlock.__init__",url, data[0:50] if data else "None", options
         super(StructuredBlock, self).__init__(data=data, url=url, verbose=verbose, **options)
-        self._signatures = Signatures([])
+        self._signatures = []   #TODO-BACKPORT Was Signatures([])
 
     def store(self, verbose=False, **options):
         """
@@ -93,7 +91,6 @@ class StructuredBlock(SmartDict):
         Note that this has to use the url or data fields to get the content held, rather than _url or _data which represents the SB itself.
         :return: content of block, fetching links (possibly recursively) if required
         """
-        self.fetch()
         return (
             self.data or
             (self.url and Dweb.transport(self.url).rawfetch(url = self.url, verbose=verbose, **options)) or # Hash must point to raw data, not another SB

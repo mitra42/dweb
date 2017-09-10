@@ -10,7 +10,6 @@ import Queue    #TODO-QUEUE
 from Transport import TransportFileNotFound
 from TransportHTTP import TransportHTTP
 from MyHTTPServer import exposed
-from CryptoLib import CryptoLib
 from Dweb import Dweb
 from Transport import TransportFileNotFound, TransportBlockNotFound, TransportURLNotFound
 from TransportHTTP import TransportHTTPBase
@@ -665,7 +664,7 @@ class Peer(object):
             self.connect()
         thttp = self.transport
         # Now send via the transport
-        resp = thttp._sendGetPost(True, "peer", headers={"Content-Type": "application/json"}, urlargs=[], data=CryptoLib.dumps(req))
+        resp = thttp._sendGetPost(True, "peer", headers={"Content-Type": "application/json"}, urlargs=[], data=KeyPair.dumps(req))
         return PeerResponse.loads(resp.json()) # Return PeerResponse
 
 class PeerRequest(object):
@@ -710,7 +709,7 @@ class PeerRequest(object):
         # Make sure next line matches the parameters to init
         serialisable = self.__dict__
         serialisable.update({ "command": self.command, "sourcenode": self.sourcenode, "hops": self.hops, "route": self.route, "tried": self.tried, "url": self.url,
-                 "data": CryptoLib.b64enc(self.data)})
+                 "data": KeyPair.b64enc(self.data)})
         return serialisable
 
     @classmethod
@@ -722,7 +721,7 @@ class PeerRequest(object):
         :return: 
         """
         #TODO-TX get cleverer about reencoding subfields like route
-        dic["data"] = CryptoLib.b64dec(dic["data"])
+        dic["data"] = KeyPair.b64dec(dic["data"])
         return PeerRequest(**dic)
 
     def copy(self):
@@ -769,13 +768,13 @@ class PeerResponse(object):
     def dumps(self):
         # See other !ADD-PEERRESPONSE-FIELDS
         return { "err": self.err, "url": self.url, "success": self.success,
-                 "data": CryptoLib.b64enc(self.data),  "req": self.req}
+                 "data": KeyPair.b64enc(self.data),  "req": self.req}
 
 
     @classmethod
     def loads(cls,dic): # Pair of dumps
         # See other !ADD-PEERRESPONSE-FIELDS - only need to add here if field cant be conveyed in ascii
-        dic["data"] = CryptoLib.b64dec(dic["data"])
+        dic["data"] = KeyPair.b64dec(dic["data"])
         return cls(**dic)
 
 if __name__ == "__main__":

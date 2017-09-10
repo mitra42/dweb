@@ -1,14 +1,13 @@
-from CryptoLib import CryptoLib, AuthenticationException, DecryptionFail
 from KeyPair import KeyPair
 import nacl.signing
 import nacl.encoding
-from Errors import ForbiddenException
-from CommonList import EncryptionList
+from Errors import ForbiddenException, AuthenticationException, DecryptionFail
+from CommonList import CommonList
 from StructuredBlock import StructuredBlock
 
 #TODO-BACKPORT - review this file
 
-class AccessControlList(EncryptionList):
+class AccessControlList(CommonList):
     """
     An AccessControlList is a list for each control domain, with the entries being who has access.
 
@@ -40,7 +39,7 @@ class AccessControlList(EncryptionList):
         viewerpublickeypair = KeyPair(url=viewerpublicurl).fetch(verbose=verbose)
         aclinfo = {
             # Need to go B64->binary->encrypt->B64
-            "token": viewerpublickeypair.encrypt(CryptoLib.b64dec(self.accesskey), b64=True, signer=self),
+            "token": viewerpublickeypair.encrypt(KeyPair.b64dec(self.accesskey), b64=True, signer=self),
             "viewer": viewerpublicurl,
         }
         sb = StructuredBlock(data=aclinfo)
@@ -74,7 +73,7 @@ class AccessControlList(EncryptionList):
         :param b64: 
         :return: 
         """
-        return CryptoLib.sym_encrypt(res, CryptoLib.b64dec(self.accesskey), b64=b64)
+        return KeyPair.sym_encrypt(res, KeyPair.b64dec(self.accesskey), b64=b64)
 
     def decrypt(self, data, viewerkeypair=None, verbose=False):
         """
@@ -92,9 +91,36 @@ class AccessControlList(EncryptionList):
         for vk in vks:
             for symkey in self.tokens(viewerkeypair = vk, decrypt=True, verbose=verbose):
                 try:
-                    r = CryptoLib.sym_decrypt(data, symkey, b64=True) #Exception DecryptionFail
+                    r = KeyPair.sym_decrypt(data, symkey, b64=True) #Exception DecryptionFail
                     return r    # Dont continue to process when find one
                 except DecryptionFail as e:  # DecryptionFail but keep going
                     pass    # Ignore if cant decode maybe other keys will work
         raise AuthenticationException(message="ACL.decrypt: No valid keys found")
+
+
+    @classmethod
+    def decryptdata(cls, value, verbose=False):
+        """
+        Takes a dictionary that may contain { acl, encrypted } and returns the decrypted data.
+        No assumption is made about waht is in the decrypted data
+
+        :param value:
+        :return:
+        """
+        if value.get("encrypted"):
+            from AccessControlList import AccessControlList
+            from KeyChain import KeyChain
+            url = value.get("acl")
+            kc = KeyChain.find(publicurl=url)  # Matching KeyChain or None
+            if kc:
+                dec = kc.decrypt(
+                    data=value.get("encrypted"))  # Exception: DecryptionFail - unlikely since publicurl matches
+            else:
+                acl = AccessControlList(url=url,
+                                        verbose=verbose)  # TODO-AUTHENTICATION probably add person-to-person version
+                dec = acl.decrypt(data=value.get("encrypted"), verbose=verbose)
+            return dec
+        else:
+            return value
+
 

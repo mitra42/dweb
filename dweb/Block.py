@@ -1,5 +1,4 @@
 # encoding: utf-8
-#TODO-BACKPORT - review this file
 
 from Transportable import Transportable
 
@@ -14,9 +13,14 @@ class Block(Transportable):
         #Exception UnicodeDecodeError if data binary
         return "%s('%s')" % (self.__class__.__name__, self._data)
 
-    def size(self, verbose=False, **options):   #TODO-REFACTOR-SIZE replace all size with @property
-        return len(self._data)
+    def size(self, verbose=False, **options):
+        return len(self._getdata())
 
     def content(self):
-        return self._data
+        return self._getdata()
 
+    @classmethod
+    def fetch(cls, url, verbose):
+        data = super(Block, cls).fetch(url, verbose)
+        blk = cls(data=data)
+        return blk

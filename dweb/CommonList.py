@@ -1,189 +1,297 @@
 # encoding: utf-8
 
-from CryptoLib import CryptoLib, WordHashKey, PrivateKeyException, AuthenticationException, DecryptionFail, SecurityWarning
 from KeyPair import KeyPair
 import base64
 import nacl.signing
 import nacl.encoding
 from StructuredBlock import StructuredBlock
-from SignedBlock import Signatures
-from Errors import ForbiddenException, AssertionFail, ToBeImplementedException
+from SignedBlock import Signature
+from Errors import ForbiddenException, SecurityWarning, CodingException
 from SmartDict import SmartDict
 from Dweb import Dweb
 #TODO-BACKPORT - review this file
 
 class CommonList(SmartDict):  # TODO move class to own file
     """
-    Encapsulates a list of blocks, which includes MutableBlocks and AccessControlLists etc
-    Partially copied to dweb.js.
+    CommonList is a superclass for anything that manages a storable list of other urls
+    e.g. MutableBlock, KeyChain, AccessControlList
 
-    {
-    keypair: KeyPair           Keys for this list
-    _publicurl:                Hash that is used for refering to list - i.e. of public version of it.
-    _list: [ StructuredBlock* ] Blocks on this list
-    _master bool                True if this is the controlling object, has private keys etc
-
-    From SmartDict: _acl, name
-    From Transportable: _data, _url
-
+    Fields:
+    keypair         Holds a KeyPair used to sign items
+    _list           Holds an array of signatures of items put on the list
+    _master         True if this is a master list, i.e. can add things
+    _publicurl     Holds the url of publicly available version of the list.
+    _allowunsafestore True if should override protection against storing unencrypted private keys (usually only during testing)
+    dontstoremaster True if should not store master key
     """
-
-    # Comments on use of superclass methods without overriding here
+    table = "cl"
 
     def __repr__(self):
         return "%s(%s)" % (self.__class__.__name__, self.__dict__)
 
-    def __init__(self, master=False, keypair=None, data=None, url=None, verbose=False, keygen=False, mnemonic=None,
-                 **options):  # Note url is of data
+    def __init__(self, data=None, master=None, key=None, verbose=False, **options):
         """
-        Create and initialize a MutableBlock
-        Typically called either with args (master, keypair) if creating, or with data or url to load from dWeb
-        Adapted to dweb.js.MutableBlock.constructor
-        Exceptions: PrivateKeyException if passed public key and master=True
-        :param bool master: True if master for list
-        :param KeyPair|str keypair: Keypair or export of Key identifying this list
-        :param data: Exported data to import
-        :param url: Hash to exported data
-        :param keychain: Set to class to use for Key (supports RSA or WordHashKey)
-        :param options: Set on SmartDict unless specifically handled here
+        Create a new instance of CommonList
+
+        :param url: url of list to fetch from Dweb
+        :param data: json string or dict to load fields from
+        :param master: boolean, true if should create a master list with private key etc
+        :param key: A KeyPair, or a dict of options for creating a key: valid = mnemonic, seed, keygen:true
+            keygen: boolean, true means it should generate a key
+            mnemonic: BIP39 string to use as a mnemonic to generate the key - TODO not implemented (in JS) yet
+            seed: Seed to key generation algorithm
+        :param options: dict that overrides any fields of data
         """
-        # if verbose: print "master=%s, keypair=%s, key=%s, url=%s, verbose=%s, options=%s)" % (master, keypair, key, url, verbose, options)
-        self._master = master
-        super(CommonList, self).__init__(data=data, url=url, verbose=verbose,
-                                         **options)  # Initializes __dict__ via _data -> _setdata
-        # if mnemonic:
-        #    self.keypair = WordHashKey(mnemonic)
-        if keypair:
-            self.keypair = keypair
-        if keygen or mnemonic:
-            self.keypair = KeyPair.keygen(verbose=verbose, mnemonic=mnemonic, keytype=KeyPair.KEYTYPESIGN,
-                                          **options)  # Note these options are also set on smartdict, so catch explicitly if known.
-        if not self._master:
-            self._publicurl = url  # Maybe None.
-        self._list = Signatures([])
+        super(CommonList, self).__init__(data=data, verbose=verbose, **options)  # Initializes __dict__ via _data -> _setdata
+        if key:
+            self._setkeypair(key, verbose)
+        #Note this must be AFTER _setkeypair since that sets based on keypair found and _p_storepublic for example wants to force !master
+        if master is None:
+            self._master = self.keypair.has_private()
+        else:
+            self._master = master
+        if (not self._master) and (not self._publicurl):
+            #We aren't master, so publicurl is same as url - note URL will only have been set if constructor called from SmartDict.p_fetch
+            self._publicurl = self._url
 
-    @property
-    def keypair(self):
-        return self.__dict__.get("keypair")
+    def _setdata(self, value):
+        super(CommonList, self)._setdata(value)
+        if not self._list:
+            self._list = [] # Clear list (not undefined field) if setting data
 
-    @keypair.setter
-    def keypair(self, value):
-        if value and not isinstance(value, KeyPair):
-            value = KeyPair(key=value)
-        self.__dict__["keypair"] = value
+    @classmethod
+    def keytype(self):
+        """
+        Return the type of key to use from Dweb.KeyPair.KEYTYPE* constants
+        By default its KEYTYPESIGN, but KeyChain subclasses
+
+        :return: constant
+        """
+        return KeyPair.KEYTYPESIGN
+
+    def __setattr__(self, name, value):
+        """
+        Set a field of the object, this provides the equivalent of Python setters and getters.
+        Call chain is ...  or constructor > _setdata > _setproperties > __setattr__
+        Subclasses SmartDict
+
+        Default passes "keypair" to _setkeypair
+        :param name: string - name of attribute to set
+        :param value: anything but usually string from retrieving - what to set name to.
+        """
+        verbose = False
+        if (name == "keypair"):
+            self._setkeypair(value, verbose)
+        else:
+            super(CommonList, self).__setattr__(name, value)
+
+    def _setkeypair(self, value, verbose=False):
+        """
+        Set the keypair attribute, converts value into KeyPair if not already
+        Call chain is ...  or constructor > _setdata > _setproperties > __setattr__ > _setkeypair
+        Sets _master if value has a private key (note that is overridden in the constructor)
+
+        :param value: KeyPair, or Dict like _key field of KeyPair
+        """
+        if value and not (isinstance(value, KeyPair)):
+            value = KeyPair({ "key": value }, verbose) # Note ignoring keytype for now
+        super(CommonList, self).__setattr__("keypair", value)
         self._master = value and value.has_private()
 
     def preflight(self, dd):
-        master = dd["_master"]  # Use master from dd if modified
-        if dd.get(
-                "keypair"):  # Based on whether the CommonList is master, rather than if the key is (key could be master, and CL not)
-            if master and not dd.get("_acl") and not self._allowunsafestore:
-                raise SecurityWarning(
-                    message="Probably shouldnt be storing private key on this " + self.__class__.__name__)  # Can set KeyPair._allowunsafestore to allow this when testing
-            dd["keypair"] = dd["keypair"].privateexport if master else dd["keypair"].publicexport
-        publicurl = dd.get("_publicurl")
-        dd = super(CommonList, self).preflight(dd=dd)  # Will edit dd in place since its a dic,
-        if master:  # Only store on Master, on !Master will be None and override storing url as _publicurl
-            dd[
-                "_publicurl"] = publicurl  # May be None, have to do this AFTER the super call as super filters out "_*"  #TODO-REFACTOR_PUBLICHASH
+        """
+        Prepare a dictionary of data for storage,
+        Subclasses SmartDict to:
+            convert the keypair for export and check not unintentionally exporting a unencrypted public key
+            ensure that _publicurl is stored (by default it would be removed)
+        and subclassed by AccessControlList
+
+        :param dd: dict of attributes of this, possibly changed by superclass
+        :return: dict of attributes ready for storage.
+        """
+        if dd.get("keypair"):
+            if dd.get("_master") and not dd.get("_acl") and not self._allowunsafestore:
+                raise SecurityWarning(message="Probably shouldnt be storing private key"+repr(dd))
+            dd["keypair"] = dd["keypair"].privateexport() if dd["_master"] else dd["keypair"].publicexport()
+        publicurl = dd.get("_publicurl") # Save before preflight
+        master = dd.get("_master")
+        dd = super(CommonList, self).preflight(dd=dd)  #Edits dd in place
+        if master: # Only store on Master, on !Master will be None and override storing url as _publicurl
+            dd["_publicurl"] = publicurl  # May be None, have to do this AFTER the super call as super filters out "_*"
         return dd
 
-    # def _setdata(self, value):
-    #    super(CommonList, self)._setdata(value) # Sets __dict__ from values including keypair via setter
-    # _data = property(SmartDict._getdata, SmartDict._setdata)
-
-    def fetch(self, verbose=False, fetchbody=True, fetchlist=True, fetchblocks=False, **options):
+    def fetchlist(self, verbose=False):
         """
-        Copied to dweb.js.
-
-        :param bool fetchlist: True (default) will fetch the list (slow), otherwise just gets the keys etc
-        :param verbose:
-        :param options:
+        Load the list from the Dweb,
+        Use p_list_then_elements instead if wish to load the individual items in the list
         """
-        if fetchbody:
-            super(CommonList, self).fetch(verbose=verbose,
-                                          **options)  # only fetches if _needsfetch=True, Sets keypair etc via _data -> _setdata,
-        if fetchlist:
-            # This is ugly - self._publicurl needed for MB-master; self._url&!_master for ACl.!master; keypair for VK
-            listurl = self._publicurl or ((not self._master) and self._url) or self.keypair._url
-            assert listurl, "Must be a url to look on a list"
-            self._list = Signatures.fetch(url=listurl, fetchblocks=fetchblocks, verbose=verbose, **options)
-        return self  # for chaining
+        if not self._publicurl:
+            self._storepublic(verbose)
+        lines = self.transport().rawlist(self._publicurl, verbose) #TODO modify to allow listmonitor
+        # lines should be an array
+        if verbose: print("CommonList:p_fetchlist.success", self._url, "len=", lines.length);
+        self._list = [Signature(l, verbose) for l in lines]   #Turn each line into a Signature
 
-    def _storepublic(self, verbose=False, **options):
+    def list_then_elements(self, verbose=False):
         """
-        Store a publicly visible version of this list. 
+        Utility function to simplify nested functions, fetches body, list and each element in the list.
 
-        :param verbose: 
-        :param options: 
-        :return: 
+        :resolves: list of objects signed and added to the list
         """
-        acl2 = self.__class__(keypair=self.keypair, name=self.name)
-        acl2._master = False
-        acl2.store(verbose=verbose, **options)  # Note will call preflight with _master = False
-        return acl2._url
+        self.fetchlist(verbose)
+        # Return is [result of fetchdata] which is [new objs] (suitable for storing in keys etc)
+        return [ sig.fetchdata(verbose)
+            for sig in Signature.filterduplicates(self._list) ] #Dont load multiple copies of items on list (might need to be an option?)
 
-    def store(self, verbose=False, dontstoremaster=False, **options):
-        # - uses SmartDict.store which calls _data -> _getdata which gets the key
-        if verbose: print "CL.store"
+    def _storepublic(self, verbose=False):
+        """
+        Store a public version of the object, just stores name field and public key
+        Typically subclassed to save specific fields
+        Note that this returns immediately after setting url, so caller may not need to wait for success
+        """
+        #CL(data, master, key, verbose, options)
+        cl = self.__class__(data=None, master=False, key=self.keypair, verbose=verbose, name=self.name);
+        cl.store(verbose)    # sets _url
+        self._publicurl = cl._url
+
+    def store(self, verbose=False):
+        """
+            Store on Dweb, if _master will ensure that stores a public version as well, and saves in _publicurl
+            Will store master unless dontstoremaster is set.
+        """
         if self._master and not self._publicurl:
-            self._publicurl = self._storepublic()
-        if not (self._master and dontstoremaster):
-            super(CommonList, self).store(verbose=verbose, **options)  # Stores privatekey  and sets _url
-        return self
+            self._storepublic(verbose) # Stores asynchronously, but _publicurl set immediately
+        if not (self._master and self.dontstoremaster):
+            super(CommonList, self).store(verbose);    # Transportable.store(verbose)
 
-    def publicurl(self, command=None, **options):   #TODO-BACKPORT this looks like xurl, not what we want after backport
-        return Dweb.transport(self._publicurl).xurl(self, command=command or "list", url=self._publicurl,
-                                  **options)  # , contenttype=self.__getattr__("Content-type"))
 
-    def privateurl(self):  #TODO-BACKPORT this looks like xurl, not what we want after backport
+    #publicurl() { console.assert(false, "XXX Undefined function CommonList.publicurl"); }   // For access via web
+    #privateurl() { console.assert(false, "XXX Undefined function CommonList.privateurl"); }   // For access via web
+
+    def append(self, obj, verbose=False): # Allow JS style push or Python style append
+        return self.push(obj, verbose)
+
+    def push(self, obj, verbose=False):
         """
-        Get a URL that can be used for edits to the resource
-        Side effect of storing the key
+         Equivalent to Array.push but returns a promise because asynchronous
+         Sign and store a object on a list, stores both locally on _list and sends to Dweb
 
-        :return:
+         :param obj: Should be subclass of SmartDict, (Block is not supported), can be URL of such an obj
+         :returns: sig created in process - for adding to lists etc.
+         :throws:   ForbiddenException if not master;
         """
-        #TODO-BACKPORT sure will have different way to get transport
-        return self.transport().xurl(self, command="update", contenttype=self._current.__getattr__("Content-type"))
-        # TODO-AUTHENTICATION - this is particularly vulnerable w/o authentication as stores PrivateKey in unencrypted form
+        if not obj:
+            raise CodingException(message="CL.push obj should never be non-empty")
+        self.store()    # Make sure stored
+        if not isinstance(obj, basestring):
+            obj.store()
+        if not (self._master and self.keypair):
+            raise ForbiddenException(message="Signing a new entry when not a master list")
+        url = obj if isinstance(obj, basestring) else obj._url
+        sig = self._makesig(url, verbose)
+        self._list.append(sig);     # Keep copy locally on _list
+        self.add(sig, verbose)      # Add to list in dweb
+        return sig
 
-    def signandstore(self, obj, verbose=False, **options):
+    def _makesig(self, url, verbose=False):
         """
-        Sign and store a StructuredBlock on a list - via the SB's signatures - see add for doing independent of SB
+        Utility function to create a signature - used by p_push and in KeyChain.p_push
+        :param url:    URL of object to sign
+        :returns:       Signature
+        """
+        if not url: raise CodingException(message="Empty url is a coding error")
+        if not self._master: raise ForbiddenException(message="Must be master to sign something")
+        sig = Signature.sign(self, url, verbose); # returns a new Signature
+        assert sig.signature, "Must be a signature"
+        return sig
 
-        :param StructuredBlock obj:
+    def p_add(self, sig, verbose=False):
+        """
+        Add a signature to the Dweb for this list
+
+        :param sig: Signature
+        :resolves:  undefined
+        """
+        if not sig: raise CodingException(message="CommonList.p_add is meaningless without a sig")
+        return self.transport().rawadd(sig.url, sig.date, sig.signature, sig.signedby, verbose)
+
+    def verify(self, sig, verbose=False):   #TODO-BACKPORT add to JS
+        return self.keypair.verify(date=sig.date, url=sig.url, urlb64sig=sig.signature)
+
+
+    """
+    # Will only work if transport can do callbacks. HTTP can't Local can't and IPFS not implemented
+    listmonitor(self, callback, verbose) {  #TODO-BACKPORT support callbacks
+        self.transport().listmonitor(self._publicurl,
+             (obj) => {
+                if verbose: print("CL.listmonitor",self._publicurl,"Added",obj)
+                sig = Signature(obj, verbose)
+                if not othersig.signature in [ sig.signature for sig in self._list ]: #Check not duplicate (esp of locally pushed one
+                    self._list.append(sig)
+                callback(sig);
+             }
+        )
+    """
+
+
+"""
+#OBS - not used in JS, so returning as using array - maybe copied when implement MutableBlock & StructuredBlock
+class Signatures(list):
+    #A list of Signature (note on Javascript this is just a list, and earliest is  static methods on the Signature class)
+
+    def earliest(self):
+        #:return: earliest date of a list of signatures
+        return min(sig.date for sig in self)
+
+    def verify(self, url=None):
+        #:param url: url to check (None to check url in sigs)
+        #:return: True if all signatures verify
+        return all(s.verify(url=url) for s in self)
+
+    @classmethod
+    def fetch(cls, url=None, verbose=False, fetchblocks=False, **options):
+        "-""
+        Find all the related Signatures.
+        Exception: TransportURLNotFound if empty or bad URL
+
+        :param url:
         :param verbose:
         :param options:
-        :return:
-        """
-        self.fetch(fetchlist=False)  # Check its fetched
-        if not self._master:
-            raise ForbiddenException(what="Signing a new entry when not a master list")
-        # The obj.store stores signatures as well (e.g. see StructuredBlock.store)
-        obj.sign(self, verbose=verbose).store(verbose=verbose, **options)
-        return self
+        :return: SignedBlocks which is a list of StructuredBlock
+        "-""
+        #key = KeyPair.export(publickey) if publickey is not None else None,
+        assert url is not None
+        if verbose: print "SignedBlocks.fetch looking for url=",url,"fetchblocks=", fetchblocks
+        try:
+            lines = Dweb.transport(url).rawlist(url=url, verbose=verbose, **options)
+        except (TransportURLNotFound, TransportFileNotFound) as e:
+            return Signatures([])    # Its ok to fail as list may be empty
+        else:
+            if verbose: print "Signatures.fetch found ",len(lines) if lines else None
+            results = {}
+            sigs = Signatures(Signature(s) for s in lines )
+            if fetchblocks:
+                raise ToBeImplementedException(name="fetchblocks for Signatures")    # Note havent defined a way to store the block on the sig
+            return Signatures([ s for s in sigs if KeyPair.verify(s) ])
 
-    def add(self, obj, verbose=False, **options):
-        """
-        Add a object, typically MBM or ACL (i.e. not a StructuredBlock) to a List,
-        COPIED TO JS 2017-05-24
+    def blocks(self, fetchblocks=True, verbose=False):
+        results = {}
+        for s in self:
+            url = s.url
+            if not results.get(url, None):
 
-        :param obj: Object to store on this list or a url string.
-        """
-        url = obj if isinstance(obj, basestring) else obj._url
-        assert url  # Empty string, or None would be an error
-        from SignedBlock import Signature
-        sig = Signature.sign(self, url, verbose=verbose, **options)
-        Dweb.transport(sig.signedby).add(url=url, date=sig.date,
-                           signature=sig.signature, signedby=sig.signedby, verbose=verbose, **options)
-        return sig  # Typically for adding to local copy of list
-        # Caller will probably want to add obj to list , not done here since MB handles differently.
+                if fetchblocks:
+                    results[url] = UnknownBlock(url=url).fetch()  # We don't know its a SB, UnknownBlock.fetch() will convert
+                else:
+                    results[url] = UnknownBlock(url=url)  # We don't know its a SB
+            if not results[url]._signatures:
+                results[url]._signatures = Signatures([])
+            results[url]._signatures.append(s)
+        return [ results[url] for url in results]
 
-class EncryptionList(CommonList):
-    """
-    Common class for AccessControlList and KeyChain for things that can handle encryption
+    def latest(self):
+        dated = self._dated()
+        latest = max(key for key in dated)      # Find date of SB with latest first sig
+        return dated[latest]
 
-    accesskey   Key with which things on this list are encrypted
-    From CommonList: keypair, _publicurl, _list, _master, name
-    """
-    pass
+"""

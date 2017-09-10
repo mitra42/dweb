@@ -56,4 +56,34 @@ class ObsoleteException(MyBaseException):
     httperror = 500     # Forbidden (Authentication won't help)
     msg = "Coding error: The function {function} is obsolete hint:{hint}"
 
+class EncryptionException(MyBaseException):
+    httperror = 500  # Forbidden (Authentication won't help)
+    msg = "Encryption error: {message}"
+
+
+class PrivateKeyException(MyBaseException):
+    """
+    Raised when some code has not been implemented yet
+    """
+    httperror = 500
+    msg = "Operation requires Private Key, but only Public available."
+
+class AuthenticationException(MyBaseException):
+    """
+    Raised when some code has not been implemented yet
+    """
+    httperror = 500  # TODO-AUTHENTICATON - which code
+    msg = "Authentication Exception: {message}"
+
+class DecryptionFail(MyBaseException):
+    """
+    Raised if decrypytion failed - this could be cos its the wrong (e.g. old) key
+    """
+    msg = "Decryption fail"
+
+class SecurityWarning(MyBaseException):
+    msg = "Security warning: {message}"
+
+class SignedBlockEmptyException(MyBaseException):
+    msg = "Cant sign an empty block"
 

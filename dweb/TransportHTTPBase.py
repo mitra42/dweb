@@ -2,7 +2,6 @@ from sys import version as python_version
 import requests             # For outgoing HTTP http://docs.python-requests.org/en/master/
 from Transport import Transport, TransportURLNotFound
 from Errors import ToBeImplementedException
-from CryptoLib import CryptoLib
 import urllib
 
 class TransportHTTPBase(Transport):
@@ -63,7 +62,7 @@ class TransportHTTPBase(Transport):
         if verbose: print "%s.info" % self.__class__.__name__
         if data:
             res = self._sendGetPost(True, "info", urlargs=[], headers={"Content-Type": "application/json"},
-                                    verbose=verbose, data=CryptoLib.dumps(data), params=options)
+                                    verbose=verbose, data=KeyPair.dumps(data), params=options)
         else:
             res = self._sendGetPost(False, "info", urlargs=[], verbose=verbose, params=options)
         return res.json()

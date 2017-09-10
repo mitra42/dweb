@@ -61,7 +61,7 @@ class Transport(object):
 
     def _lettertoclass(self, abbrev):
         #TODO-BACKPORTING - check if really needed after finish port (was needed on server)
-        from ServerHTTP import LetterToClass
+        from letter2class import LetterToClass
         return LetterToClass.get(abbrev, None)
 
     def supports(self, url): #TODO-API
@@ -90,7 +90,7 @@ class Transport(object):
     def info(self, **options):  #TODO-API
         raise ToBeImplementedException(name=cls.__name__+".info")
 
-    def dumps(self, obj):   #TODO-BACKPORT remove the one in CryptoLib
+    def dumps(self, obj):
         """
         Convert arbitrary data into a JSON string that can be deterministically hashed or compared.
         Must be valid for loading with json.loads (unless change all calls to that).
@@ -105,7 +105,7 @@ class Transport(object):
         # separators = (,:) gets the most compact representation
         return dumps(obj, sort_keys=True, separators=(',', ':'), default=json_default)
 
-    def loads(data):   #TODO-BACKPORT remove the one in CryptoLib
+    def loads(data):
         """
         Pair to dumps
 
@@ -231,7 +231,7 @@ class Transport(object):
         #store(command, cls, url, path, data, options) = fetch(cls, url, path, options).command(data|data._data, options)
         #store(url, data)
         if not isinstance(data, basestring):
-            data = data._data
+            data = data._getdata()
         if command:
             # TODO not so sure about this production, document any uses here if there are any
             obj = self.fetch(command=None, cls=None, url=url, path=path, verbose=verbose, **options)

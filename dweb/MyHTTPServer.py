@@ -5,7 +5,6 @@ from cgi import parse_header, parse_multipart
 import urllib
 import BaseHTTPServer       # See https://docs.python.org/2/library/basehttpserver.html for docs on how servers work
                             # also /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/BaseHTTPServer.py for good error code list
-from CryptoLib import CryptoLib
 from Dweb import Dweb
 #TODO-BACKPORT - review this file
 
@@ -129,9 +128,9 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
             data = res.get("data","")
             if data or isinstance(data, (list, tuple)): # Allow empty arrays toreturn as []
                 if isinstance(data, (dict, list, tuple)):    # Turn it into JSON
-                    data = CryptoLib.dumps(data)        # Need to do the CrypytoLib version since dict might hold a higher level class
+                    data = KeyPair.dumps(data)        # Need to do the CrypytoLib version since dict might hold a higher level class
                 elif hasattr(data, "dumps"):
-                    data = CryptoLib.dumps(data)
+                    data = KeyPair.dumps(data)
                 if not isinstance(data, basestring):
                     print data
                     # Raise an exception - will not honor the status already sent, but this shouldnt happen as coding
@@ -153,7 +152,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
             self.send_error(httperror, str(e))  # Send an error response
 
     def do_GET(self):
-        print "XXX@do_GET:145";
+        #print "XXX@do_GET:145";
         self._dispatch()
 
 
@@ -163,7 +162,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
 
         :return:
         """
-        print "XXX@do_POST:145";
+        #print "XXX@do_POST:145";
         try:
             verbose = False
             if verbose: print self.headers
@@ -187,7 +186,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
                 #raise ToBeImplementedException(name="do_POST:application/json")
             else:
                 postvars = {}
-            print "XXX@do_POST:177",self.path,postvars
+            #print "XXX@do_POST:177",self.path,postvars
             self._dispatch(**postvars)
         #except Exception as e:
         except ZeroDivisionError as e:  # Uncomment this to actually throw exception

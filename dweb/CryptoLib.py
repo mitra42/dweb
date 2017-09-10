@@ -8,7 +8,7 @@ from datetime import datetime
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES
 from mnemonic import Mnemonic
-from multihash import encode, SHA1,SHA2_256, SHA2_512, SHA3
+from util_multihash import encode, SHA1,SHA2_256, SHA2_512, SHA3
 import nacl.secret
 import nacl.utils
 import nacl.encoding
@@ -186,7 +186,7 @@ class CryptoLib(object):
     def b64dec(data):
         """
         Decode arbitrary data encoded using b64enc
-        
+
         :param data:    b64 encoding of arbitrary binary
         :return: str    arbitrary binary
         """
@@ -210,10 +210,10 @@ class CryptoLib(object):
     @staticmethod
     def b64enc(data):
         """
-        Encode arbitrary data to b64 
+        Encode arbitrary data to b64
 
-        :param data: 
-        :return: 
+        :param data:
+        :return:
         """
         if  data is None:
             return None # Json can handle none
@@ -305,7 +305,7 @@ class CryptoLib(object):
         """
         Pair of sym_decrypt
         ERR: DecryptFail if cant decrypt - this is to be expected if unsure if have valid key (e.g. in acl.decrypt)
-        
+
         :param data:        # Data to encrypt
         :param sym_key:     Key of arbitrary length - for consistency use CryptoLib.randomkey() to generate or "SecretBox"
         :param b64:         True if want output in base64

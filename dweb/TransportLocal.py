@@ -2,10 +2,15 @@
 #from abc import ABCMeta, abstractmethod
 import os   # For isdir and exists
 from json import loads
-from CryptoLib import CryptoLib
 from Transport import Transport, TransportFileNotFound
+from KeyPair import KeyPair
 from Dweb import Dweb
-#TODO-BACKPORT - review this file
+from sys import version as python_version
+if python_version.startswith('3'):
+    from urllib.parse import urlparse
+else:
+    from urlparse import urlparse        # See https://docs.python.org/2/library/urlparse.html
+
 
 class TransportLocal(Transport):
     """
@@ -59,9 +64,30 @@ class TransportLocal(Transport):
     def info(self, **options):
         return { "type": "local", "options": self.options }
 
-    def _filename(self, subdir, url=None, verbose=False, **options):
+    def _filename(self, subdir, multihash=None, verbose=False, **options):
         # Utility function to get filename to use for storage
-        return "%s/%s/%s" % (self.dir, subdir, url)
+        return "%s/%s/%s" % (self.dir, subdir, multihash)
+
+    @staticmethod
+    def _multihash(data=None, url=None):
+        """
+        Return a multihash (string of form Q....
+
+        :param data:    optional - data to hash
+        :param url:     url to pull multihash from (last part of path)
+        :return:        string of form Q.... (base58 of multihash of sha256 of data)
+        """
+        if data:
+            return KeyPair.multihashsha256_58(data)
+        if url:
+            if isinstance(url,basestring):
+               url = urlparse(url)
+            return url.path.split('/')[-1]
+
+    def url(self, data=None, multihash=None):
+        if data:
+            multihash = TransportLocal._multihash(data=data)
+        return "http://cas.dweb.me/multihash/"+ multihash
 
     def rawfetch(self, url, verbose=False, **options):
         """
@@ -72,8 +98,9 @@ class TransportLocal(Transport):
         :param options:
         :return:
         """
+        multihash=self._multihash(url=url)
         filename=None
-        filename = self._filename("block", url)
+        filename = self._filename("block", multihash) #TODO-BACKPORT multihash
         try:
             if verbose: print "Opening" + filename
             with open(filename, 'rb') as file:
@@ -91,7 +118,8 @@ class TransportLocal(Transport):
         :param url: Hash in table to be retrieved
         :return: list of dictionaries for each item retrieved
         """
-        filename = self._filename(subdir, url=url, verbose=verbose, **options)
+        multihash=self._multihash(url=url)
+        filename = self._filename(subdir, multihash=multihash, verbose=verbose, **options)
         try:
             f = open(filename, 'rb')
             s = [ loads(s) for s in f.readlines() ]
@@ -134,14 +162,15 @@ class TransportLocal(Transport):
         :return: url of data
         """
         assert data is not None # Its meaningless (or at least I think so) to store None (empty string is meaningful)
-        url = CryptoLib.Curlhash(data)
-        filename = self._filename("block", url, verbose=verbose, **options)
+        multihash = self._multihash(data=data)
+        filename = self._filename("block", multihash, verbose=verbose, **options)  #TODO-BACKPORT multihash
         try:
             f = open(filename, 'wb')
             f.write(data)
             f.close()
         except IOError as e:
             raise TransportFileNotFound(file=filename)
+        url = self.url(multihash=multihash)
         return url
 
 
@@ -163,14 +192,16 @@ class TransportLocal(Transport):
         if verbose: print "TransportLocal.rawadd",  url, date, signature, signedby, subdir, options
         value = self._add_value(url=url, date=date, signature=signature, signedby=signedby, verbose=verbose, **options) + "\n"
         if "list" in subdir:
-            filenameL = self._filename("list", url=signedby, verbose=verbose, **options)   # List of things signedby
+            multihash = self._multihash(url=signedby)
+            filenameL = self._filename("list", multihash=multihash, verbose=verbose, **options)   # List of things signedby
             try:
                 with open(filenameL, 'ab') as f:
                     f.write(value)
             except IOError as e:
                 raise TransportFileNotFound(file=filenameL)
         if "reverse" in subdir:
-            filenameR = self._filename("reverse", url=url, verbose=verbose, **options)    # Lists that this object is on
+            multihash = self._multihash(url=url)
+            filenameR = self._filename("reverse", multihash=multihash, verbose=verbose, **options)    # Lists that this object is on
             try:
                 with open(filenameR, 'ab') as f:
                     f.write(value)

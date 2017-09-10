@@ -1,7 +1,6 @@
 # encoding: utf-8
 from Errors import AssertionFail
 from Dweb import Dweb
-#TODO-BACKPORT - review this file
 
 class Transportable(object):
     """
@@ -17,7 +16,7 @@ class Transportable(object):
     _needsfetch True if need to fetch from Dweb
     """
 
-    def __init__(self, data=None, **ignoredoptions):    #TODO-BACKPORT check callers
+    def __init__(self, data=None, **ignoredoptions):
         """
         Create a new Transportable element - storing its data and url if known.
         Subclassed to initialize from that information
@@ -25,16 +24,17 @@ class Transportable(object):
         :param data: Any opaque bytes to store
         :param url: Hash of those opaque bytes
         """
-        self._data = data   # Note will often call the @_data.setter function   #TODO-BACKPORT check
+        self._setdata(data)   # Note will often call the @_data.setter function
+        self._url = None
 
-    def transport():
+    def transport(self):
         """
         Find transport for this object,
         if not yet stored this._url will be undefined and will return default transport
 
         returns: instance of subclass of Transport
         """
-        return Dweb.transport(this._url);
+        return Dweb.transport(self._url);
 
     def _setdata(self, value):
         self._data = value  # Default behavior, assumes opaque bytes, and not a dict - note subclassed in SmartDict
@@ -42,9 +42,7 @@ class Transportable(object):
     def _getdata(self):
         return self._data;  # Default behavior - opaque bytes
 
-    _data = property(_getdata, _setdata)
-
-    def store(self, data=None, verbose=False, **options):
+    def store(self, verbose=False):
         """
         Store this block on the underlying transport, return the url for future id.
         Note this calls _data which is typically a getter/setter that returns subclass specific results.
@@ -52,42 +50,42 @@ class Transportable(object):
 
         :return: url of data
         """
-        if verbose: print "Storing", self.__class__.__name__, "len=", len(data or self._data)
-        #TODO-BACKPORT figure out best way to get default Transport for storing
-        self._url = self.transport().rawstore(data=data or self._data, verbose=verbose)  # Note uses fact that _data will be subclassed
+        if verbose: print "Storing", self.__class__.__name__
+        if self._url:           # If already stored
+            return self._url        # Return url
+        data = self._getdata()      # Note assumes _getdata() will be sublassed to construct outgoing data
+        if (verbose): print "Transportable.store data=", data
+        self._url = self.transport().rawstore(data=data, verbose=verbose)
         if verbose: print self.__class__.__name__, ".stored: url=", self._url
         return self
 
     def dirty(self):
         """
-        Flag an object as dirty, i.e. needing writing back to dWeb.
-        Subclasses should handle this to clear for example _signatures
-
+        Mark an object as needing storing again, for example because one of its fields changed.
+        Flag as dirty so needs uploading - subclasses may delete other, now invalid, info like signatures
         """
         self._url = None
 
-    def fetch(self, verbose=False, **options):
+    @classmethod
+    def fetch(cls, url=None, verbose=False):
         """
-        Retrieve the data of an object from the url
-        Usage typically XyzBlock(url=A1B2).fetch()
+        Fetch the data for a url, subclasses act on the data, typically storing it and returns data not self
 
-        :return:
+        :param url:	string of url to retrieve
+        :return:	string - arbitrary bytes retrieved.
         """
-        if verbose: print "Transportable.fetch _url=",self._url
-        if self._needsfetch:
-            self._data = self.transport().rawfetch(url=self._url, verbose=verbose, **options)
-            self._needsfetch = False
-        return self # For Chaining
+        if verbose: print "Transportable.fetch _url=",url
+        return Dweb.transport(url).rawfetch(url=url, verbose=verbose)
 
-    def file(self, verbose=False, contenttype=None, **options):
+    def file(self, verbose=False, contenttype=None, **options): #TODO-API
         return { "Content-type": contenttype or "application/octet-stream",
-            "data": self._data }
+            "data": self._getdata() }
 
-    def xurl(self, url_output=None, table=None, **options): #TODO-BACKPORT rename
+    def xurl(self, url_output=None, table=None, **options): #TODO-BACKPORT rename - maybe don't need
         """
         Get the body of a URL based on the transport just used.
         Subclasses must define table if want to support URL's
-        And retrieval depends on that table being in ServerHTTP.LetterToClass
+        And retrieval depends on that table being in Dweb.LetterToClass
 
         :param str url_output: "URL"/default for URL, "getpost" for getpost parms
         :return:    URL or other representation of this object
