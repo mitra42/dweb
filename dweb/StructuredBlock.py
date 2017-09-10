@@ -62,7 +62,7 @@ class StructuredBlock(SmartDict):
 
     def dirty(self):
         super(StructuredBlock, self).dirty()
-        from SignedBlock import Signatures
+        from Signature import Signatures
         self._signatures = Signatures([]) # Cant be signed if changed from stored version
 
     #---------------------------------------------------------------------------------------------------------
@@ -157,7 +157,7 @@ class StructuredBlock(SmartDict):
         :param CommonList commonlist:   List its going on - has a ACL with a private key
         :return: self
         """
-        from SignedBlock import Signature
+        from Signature import Signature
         if not self._url:
             self.store()  # Sets _url which is needed for signatures #TODO-EFFICIENCY only store if not stored
         self._signatures.append(Signature.sign(commonlist=commonlist, url=self._url, verbose=verbose))

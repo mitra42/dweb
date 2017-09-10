@@ -5,7 +5,7 @@ import base64
 import nacl.signing
 import nacl.encoding
 from StructuredBlock import StructuredBlock
-from SignedBlock import Signature
+from Signature import Signature
 from Errors import ForbiddenException, SecurityWarning, CodingException
 from SmartDict import SmartDict
 from Dweb import Dweb

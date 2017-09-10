@@ -26,7 +26,7 @@ from CommonList import CommonList
 from MutableBlock import MutableBlock
 from AccessControlList import AccessControlList
 from KeyChain import KeyChain
-from SignedBlock import Signature
+from Signature import Signature
 from File import File, Dir
 from Dweb import Dweb
 from ServerHTTP import DwebHTTPRequestHandler
