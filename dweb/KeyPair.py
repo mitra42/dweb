@@ -10,7 +10,7 @@ import nacl.encoding
 import nacl.hash
 import nacl.public
 import nacl.signing
-from Errors import ToBeImplementedException, EncryptionException
+from Errors import ToBeImplementedException, EncryptionException, DecryptionFail
 
 from util_multihash import encode, SHA1, SHA2_256, SHA2_512, SHA3
 from base58 import b58encode
@@ -371,17 +371,16 @@ class KeyPair(SmartDict):
         #if isinstance(self._key, (nacl.public.PrivateKey, nacl.signing.SigningKey)):
         assert signer, "Until PyNaCl bindings have secretbox we require a signer and have to add authentication"
         nonce = nacl.utils.random(nacl.bindings.crypto_box_NONCEBYTES)
-
-        box = nacl.public.Box(signer.keypair._key["sign"], self._key["encrypt"])
+        box = nacl.public.Box(signer.keypair._key["encrypt"], self._key["encrypt"].public_key)
         return box.encrypt(data, nonce=nonce, encoder=(nacl.encoding.URLSafeBase64Encoder if b64 else nacl.encoding.RawEncoder))
 
-    def decrypt(self, data, b64=False, signer=None):
+    def decrypt(self, data, signer=None, outputformat=None ):
         """
-        Decrypt date encrypted with encrypt (above)
+        Decrypt data encrypted with encrypt (above)
 
         :param data:  urlsafebase64 or Uint8array, starting with nonce
         :param signer AccessControlList: If result was signed (currently ignored for RSA, reqd for NACL)
-        :param outputformat: Compatible with LibSodium, typicall "text" to return a string
+        :param outputformat:    Only currently supports "text"
         :return: Data decrypted to outputformat
         :raises: EnryptionError if no encrypt.privateKey, CodingError if !data||!signer
         """
@@ -397,14 +396,14 @@ class KeyPair(SmartDict):
             return KeyPair.sym_decrypt(data, aeskey)
         elif isinstance(self._key, (nacl.public.PrivateKey, nacl.signing.SigningKey)):
         """
+        assert outputformat == "text", "Unlike JS, box.decrypt doesnt support output format - should always be text, else write encoder"
         if not data: raise EncryptionException(message="Cant decrypt empty data")
         if not signer: raise EncryptionException(message="Until PyNaCl bindings have secretbox we require a signer and have to add authentication")
-        nonce = data[0:nacl.bindings.crypto_box_NONCEBYTES]
-        data = data[nacl.bindings.crypto_box_NONCEBYTES:]
-        box = nacl.public.Box(self._key["encrypt"], signer.keypair._key["sign"])
+        if not self._key["encrypt"]._private_key: raise EncryptionException(message="Need private key to decrypt")
+        # Note PyNaCl box.decrypt is much smarter than the JS version, it can decode from URLSafeBase64, and extract nonce
+        box = nacl.public.Box(self._key["encrypt"], signer.keypair._key["encrypt"].public_key)
         # Convert data to "str" first as its most likely unicode having gone through JSON.
-        return box.decrypt(str(data), nonce=nonce,
-                           encoder=(nacl.encoding.URLSafeBase64Encoder if b64 else nacl.encoding.RawEncoder))
+        return box.decrypt(str(data), encoder=nacl.encoding.URLSafeBase64Encoder)
 
     @staticmethod
     def _signable(date, data):
@@ -531,26 +530,27 @@ class KeyPair(SmartDict):
 
 
     @classmethod
-    def sym_decrypt(cls, data, sym_key, b64=False, **options):
+    def sym_decrypt(cls, data, sym_key, outputformat, **options):
         """
         Decrypt data based on a symetric key
 
-        :param data:    urlsafebase64 string or Uint8Array
+        :param data:    urlsafebase64
         :param sym_key: symetric key encoded in urlsafebase64 or Uint8Array
-        :param outputformat:    Libsodium output format one of "uint8array", "text", "base64" or "urlsafebase64"
+        :param outputformat:    Only "text" supported
         :returns:       decrypted data in selected outputformat
         """
+        assert outputformat == "text", "Only support output format of text currently, can add encoding if reqd"
         if not data:
             raise EncryptionException(message="Keypair.sym_decrypt meaningless to decrypt undefined, null or empty strings")
         if isinstance(sym_key, basestring):
             sym_key = nacl.secret.SecretBox(sym_key)  # Requires 32 bytes
-        encoder = nacl.encoding.URLSafeBase64Encoder if b64 else nacl.encoding.RawEncoder
-        if b64:
-            data = str(data)  # URLSafeBase64Encoder can't handle Unicode
-        nonce = data[0:nacl.bindings.crypto_secretbox_NONCEBYTES]
-        data = data[nacl.bindings.crypto_secretbox_NONCEBYTES:]
+        encoder = nacl.encoding.URLSafeBase64Encoder    # Its always urlsafebase64
+        data = str(data)  # URLSafeBase64Encoder can't handle Unicode
+        #Not reqd, decrypt() can automatically find nonce:
+        # nonce = data[0:nacl.bindings.crypto_secretbox_NONCEBYTES]
+        # data = data[nacl.bindings.crypto_secretbox_NONCEBYTES:]
         try:
-            return sym_key.decrypt(data, nonce=nonce, encoder=encoder)
+            return sym_key.decrypt(data, encoder=encoder)
         except nacl.exceptions.CryptoError as e:
             raise DecryptionFail()  # Is expected in some cases, esp as looking for a valid key in acl.decrypt
 

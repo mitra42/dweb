@@ -352,45 +352,23 @@ class Testing(TestCase):
         assert int(resp.headers["Content-Length"]) == f1sz,"Should match length of readme.md"
         # /file/mb/SHA3256B64URL.88S-FYlEN1iF3WuDRdXoR8SyMUG6crR5ehM21IvUuS0=/tinymce.min.js
 
-    def Xtest_crypto(self):
-        if self.verbose: print "test_crypto: tests of the crypto library - esp round trips through functions"
-        # Try symetric encrypt/decrypt
-        symkey = KeyPair.randomkey()
-        enc = KeyPair.sym_encrypt(self.quickbrownfox, symkey)
-        dec = KeyPair.sym_decrypt(enc, symkey)
-        assert dec == self.quickbrownfox
-        if True: # CryptoLib.defaultlib == CryptoLib.NACL:
-            keypair = KeyPair({"key": { "keygen": True }}, self.verbose)
-            svpair = KeyPair({"key": { "keygen": True }}, self.verbose)
-            svpair_key = svpair._key.encode(nacl.encoding.RawEncoder)
-            svpair_encrypt = nacl.public.PrivateKey(svpair_key)
-            newkey = svpair_encrypt.encode(nacl.encoding.RawEncoder)
-            print "FAILING", "assert svpair_key != newkey", "TODO - Looks like PrivateKey didn't actually use as a seed"
-            sendingbox = nacl.public.Box(svpair_encrypt, keypair._key.public_key)
-            #print "sendingbox.sharedsecret=",sendingbox.shared_key()
-            encmsg = sendingbox.encrypt(self.quickbrownfox)
-            receivingbox = nacl.public.Box(keypair._key, svpair_encrypt.public_key)
-            #print "receivingbox.sharedsecret=",receivingbox.shared_key()
-            assert sendingbox.shared_key() == receivingbox.shared_key()
-            res = receivingbox.decrypt(encmsg)
-            assert res == self.quickbrownfox
-            #print res
-            assert sendingbox.encode(nacl.encoding.URLSafeBase64Encoder) == receivingbox.encode(nacl.encoding.URLSafeBase64Encoder)
-            seed = "01234567890123456789012345678901"
-            boxkey = nacl.public.PrivateKey(seed)
-            pe = boxkey.encode(nacl.encoding.RawEncoder)
-            assert seed == pe
-        else:
-            # Try RSA encrypt/decrypt
-            keypair = KeyPair.keygen()
-            enc = keypair.encrypt(self.quickbrownfox)
-            enclong = keypair.encrypt(self.quickbrownfox*100)
-            dec = keypair.decrypt(enc)
-            assert dec == self.quickbrownfox
-        #These should work for any defaultlib
-        foo = KeyPair.keygen(keytype=KeyPair.KEYTYPESIGN, seed=self.seed)
-        assert foo.mnemonic == self.mnemonic
 
+    def test_keypair(self):
+        signer = CommonList(key={"passphrase": "water water everywhere" })
+        bytes32 = "12345678901234567890123456789012"
+        keypair1 = KeyPair({"key":{"seed":bytes32}})
+        enc = keypair1.encrypt(self.quickbrownfox, b64=True, signer=signer)
+        print enc
+        dec = keypair1.decrypt(enc, signer=signer, outputformat="text")
+        assert dec == self.quickbrownfox,"Should round trip through private key encryption"
+        # Now test signing / verification
+        now = datetime.now()
+        sig = keypair1.sign(now, self.quickbrownfox, verbose=self.verbose)
+        assert keypair1.verify(now, self.quickbrownfox, sig), "Should verify sig"
+        symkey = bytes32
+        enc = KeyPair.sym_encrypt(data=self.quickbrownfox, sym_key=symkey, b64=True)
+        dec = KeyPair.sym_decrypt(data=enc, sym_key=symkey, outputformat="text")
+        assert self.quickbrownfox == dec, "Should round trip through sym_encrypt/decrypt"
 
 
     def Xtest_keychain(self):
