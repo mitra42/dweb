@@ -1,6 +1,5 @@
 # encoding: utf-8
 
-#TODO-BACKPORT - move exceptions to Errors.py
 
 class MyBaseException(Exception):
     """
@@ -21,11 +20,6 @@ class MyBaseException(Exception):
         except:
             return self.msg+" "+unicode(self.msgargs)
 
-
-class CodingException(MyBaseException):
-    httperror = 501
-    msg = "Coding Error: {message}"
-
 class ToBeImplementedException(MyBaseException):
     """
     Raised when some code has not been implemented yet
@@ -33,40 +27,19 @@ class ToBeImplementedException(MyBaseException):
     httperror = 501
     msg = "{name} needs implementing"
 
+# Note TransportError is in Transport.py
 
-class IntentionallyUnimplementedException(MyBaseException):
-    """
-    Raised when some code has not been implemented yet
-    """
+class CodingException(MyBaseException):
     httperror = 501
-    msg = "Intentionally not implemented: {message}"
-
-class AssertionFail(MyBaseException):
-    """
-    Raised when something that should be true isn't - usually a coding failure or some change not propogated fully
-    """
-    httperror = 500
-    msg = "{message}"
-
-class ForbiddenException(MyBaseException):
-    httperror = 403     # Forbidden (Authentication won't help)
-    msg = "Not allowed: {what}"
-
-class ObsoleteException(MyBaseException):
-    httperror = 500     # Forbidden (Authentication won't help)
-    msg = "Coding error: The function {function} is obsolete hint:{hint}"
+    msg = "Coding Error: {message}"
 
 class EncryptionException(MyBaseException):
     httperror = 500  # Forbidden (Authentication won't help)
     msg = "Encryption error: {message}"
 
-
-class PrivateKeyException(MyBaseException):
-    """
-    Raised when some code has not been implemented yet
-    """
-    httperror = 500
-    msg = "Operation requires Private Key, but only Public available."
+class ForbiddenException(MyBaseException):
+    httperror = 403     # Forbidden (Authentication won't help)
+    msg = "Not allowed: {what}"
 
 class AuthenticationException(MyBaseException):
     """
@@ -75,7 +48,14 @@ class AuthenticationException(MyBaseException):
     httperror = 500  # TODO-AUTHENTICATON - which code
     msg = "Authentication Exception: {message}"
 
-class DecryptionFail(MyBaseException):
+class IntentionallyUnimplementedException(MyBaseException):
+    """
+    Raised when some code has not been implemented yet
+    """
+    httperror = 501
+    msg = "Intentionally not implemented: {message}"
+
+class DecryptionFailException(MyBaseException):
     """
     Raised if decrypytion failed - this could be cos its the wrong (e.g. old) key
     """
@@ -84,6 +64,22 @@ class DecryptionFail(MyBaseException):
 class SecurityWarning(MyBaseException):
     msg = "Security warning: {message}"
 
-class SignedBlockEmptyException(MyBaseException):
-    msg = "Cant sign an empty block"
 
+class AssertionFail(MyBaseException): #TODO-BACKPORT - console.assert on JS should throw this
+    """
+    Raised when something that should be true isn't - usually a coding failure or some change not propogated fully
+    """
+    httperror = 500
+    msg = "{message}"
+
+
+"""
+
+# Following are currently obsolete - not being used in Python or JS
+
+class PrivateKeyException(MyBaseException):
+    #Raised when some code has not been implemented yet
+    httperror = 500
+    msg = "Operation requires Private Key, but only Public available."
+
+"""

@@ -79,7 +79,7 @@ class SmartDict(Transportable):
         Prepares data for sending. Retrieves attributes, runs through preflight.
         If there is an _acl field then it passes data through it for encrypting (see AccessControl library)
         Exception: UnicodeDecodeError - if its binary
-        :return:	String suitable for p_rawstore
+        :return:	String suitable for rawstore
         """
         try:
             res = self.transport().dumps(self.preflight(self.__dict__.copy())) # Should call self.dumps below { k:self.__dict__[k] for k in self.__dict__ if k[0]!="_" })
@@ -105,7 +105,7 @@ class SmartDict(Transportable):
                 # Its data - should be JSON
                 value = self.transport().loads(value)  # Will throw exception if it isn't JSON
             if "encrypted" in value:
-                raise EncryptionException("Should have been decrypted in p_fetch")
+                raise EncryptionException("Should have been decrypted in fetch")
             self._setproperties(value)
 
     def _match(self, key, val):
@@ -127,35 +127,35 @@ class SmartDict(Transportable):
 
 
     @classmethod
-    def p_fetch(cls, url, verbose):
+    def fetch(cls, url, verbose):
         """
-        Fetches the object from Dweb, passes to p_decrypt in case it needs decrypting,
+        Fetches the object from Dweb, passes to decrypt in case it needs decrypting,
         and creates an object of the appropriate class and passes data to _setdata
-        This should not need subclassing, (subclass _setdata or p_decrypt instead).
+        This should not need subclassing, (subclass _setdata or decrypt instead).
 
         :return: New object - e.g. StructuredBlock or MutableBlock
         :catch: TransportError - can probably, or should throw TransportError if transport fails
         :throws: TransportError if url invalid, Authentication Error
         """
         from letter2class.py import LetterToClass
-        if verbose: print "SmartDict.p_fetch", url;
-        data = super(SmartDict, cls).p_fetch(url, verbose) #Fetch the data Throws TransportError immediately if url invalid, expect it to catch if Transport fails
+        if verbose: print "SmartDict.fetch", url;
+        data = super(SmartDict, cls).fetch(url, verbose) #Fetch the data Throws TransportError immediately if url invalid, expect it to catch if Transport fails
         data = Dweb.transport(url).loads(data)          # Parse JSON //TODO-REL3 maybe function in Transportable
         table = data.table                              # Find the class it belongs to
         cls = LetterToClass[table]             # Gets class name, then looks up in Dweb - avoids dependency
         if not cls:
-            raise ToBeImplementedException("SmartDict.p_fetch: "+table+" isnt implemented in table2class")
+            raise ToBeImplementedException("SmartDict.fetch: "+table+" isnt implemented in table2class")
         if not isinstance(Dweb.table2class[table], cls):
             raise ForbiddenException("Avoiding data driven hacks to other classes - seeing "+table);
-        data = cls.p_decrypt(data, verbose)             # decrypt - may return string or obj , note it can be suclassed for different encryption
+        data = cls.decrypt(data, verbose)             # decrypt - may return string or obj , note it can be suclassed for different encryption
         data["_url"] = url;                             # Save where we got it - preempts a store - must do this afer decrypt
         return cls(data)
 
     @classmethod
-    def p_decrypt(data, verbose):
+    def decrypt(data, verbose):
         """
          This is a hook to an upper layer for decrypting data, if the layer isn't there then the data wont be decrypted.
-         Chain is SD.p_fetch > SD.p_decryptdata > ACL|KC.decrypt, then SD.setdata
+         Chain is SD.fetch > SD.decryptdata > ACL|KC.decrypt, then SD.setdata
 
          :param data: possibly encrypted object produced from json stored on Dweb
          :return: same object if not encrypted, or decrypted version

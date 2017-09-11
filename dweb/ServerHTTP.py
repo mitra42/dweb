@@ -9,6 +9,12 @@ from Errors import ToBeImplementedException
 from Transportable import Transportable
 from KeyPair import KeyPair
 from Dweb import Dweb
+from sys import version as python_version
+if python_version.startswith('3'):
+    from urllib.parse import urlparse
+else:
+    from urlparse import urlparse        # See https://docs.python.org/2/library/urlparse.html
+
 #TODO-API needs writing up
 
 class DwebHTTPRequestHandler(MyHTTPRequestHandler):
@@ -51,6 +57,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         :param url: block to retrieve
         :return: { Content-Type, data: raw data from block
         """
+        #print "ServerHTTP.rawfetch url=",url
         return {"Content-type": contenttype,
                 "data": Dweb.transport(url).rawfetch(url=url)} # Should be raw data returned
     rawfetch.arglist=["url"]
@@ -84,6 +91,8 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
     @exposed
     def rawstore(self, data=None, **kwargs):
         url = Dweb.transport().rawstore(data=data, **kwargs)
+        multihash = urlparse(url).path.split('/')[-1]
+        url = "http://%s:%s/rawfetch/%s" % (self.ipandport[0],self.ipandport[1],multihash)
         return { "Content-type": "application/octet-stream", "data": url }
     rawstore.arglist=["data"]
 
@@ -95,7 +104,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         :param data: Dictionary to add {url, signature, date, signedby} or json string of it.
         """
         if isinstance(data, basestring): # Assume its JSON
-            data = KeyPair.loads(data)    # HTTP just delivers bytes
+            data = KeyPair.loads(data)    # HTTP just delivers bytes    //TODO-HTTP obviously wron
         data["verbose"]=verbose
         return  { "Content-type": "application/octet-stream",
                   "data":  Dweb.transport(data["signedby"]).rawadd(**data)

@@ -30,12 +30,12 @@ from Signature import Signature
 from File import File, Dir
 from Dweb import Dweb
 from ServerHTTP import DwebHTTPRequestHandler
-#TODO-BACKPORT - review this file
+#TODO-BACKPORT - some tests (starting Xtest instead of test) need updating
 
 class Testing(TestCase):
     def setUp(self):
         super(Testing, self).setUp()
-        testTransporttype = 1 #TransportLocal, TransportHTTP, TransportDistPeer, TransportDistPeer = multi  # Can switch between TransportLocal and TransportHTTP to test both
+        testTransporttype = 0 #TransportLocal, TransportHTTP, TransportDistPeer, TransportDistPeer = multi  # Can switch between TransportLocal and TransportHTTP to test both
         self.verbose=False
         self.quickbrownfox =  "The quick brown fox ran over the lazy duck"
         self.dog = "But the clever dog chased the fox"
@@ -126,7 +126,7 @@ class Testing(TestCase):
 
     def Xtest_StructuredBlock(self):
         # Test Structured block
-        sb = StructuredBlock(data=KeyPair.dumps(self.mydic), verbose=self.verbose)
+        sb = StructuredBlock(data=Transport.dumps(self.mydic), verbose=self.verbose)
         assert sb.a == self.mydic['a'], "Testing attribute access"
         multiurl = sb.store(verbose=self.verbose)._url
         sb2 = StructuredBlock(url=multiurl, verbose=self.verbose)
@@ -143,7 +143,7 @@ class Testing(TestCase):
         #commonlist0 = CommonList(keypair=keypair, master=False)
         #print commonlist0
         #signedblock.sign(commonlist0, verbose=self.verbose) # This should fail, but
-        if self.verbose: print "test_Signatures CommonLost"
+        if self.verbose: print "test_Signatures CommonList"
         CommonList.table = "BOGUS"  # Defeat errors
         commonlist = CommonList(keypair=keypair, keygen=True, master=True, name="test_Signatures.commonlist")
         if self.verbose: print "test_Signatures sign"
@@ -361,8 +361,9 @@ class Testing(TestCase):
         assert dec == self.quickbrownfox,"Should round trip through private key encryption"
         # Now test signing / verification
         now = datetime.now()
-        sig = keypair1.sign(now, self.quickbrownfox, verbose=self.verbose)
-        assert keypair1.verify(now, self.quickbrownfox, sig), "Should verify sig"
+        signable = now.isoformat() + self.quickbrownfox
+        sig = keypair1.sign(signable=signable, verbose=self.verbose)
+        assert keypair1.verify(signable=signable, urlb64sig=sig), "Should verify sig"
         symkey = bytes32
         enc = KeyPair.sym_encrypt(data=self.quickbrownfox, sym_key=symkey, b64=True)
         dec = KeyPair.sym_decrypt(data=enc, sym_key=symkey, outputformat="text")

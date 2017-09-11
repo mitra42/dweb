@@ -6,6 +6,7 @@ import urllib
 import BaseHTTPServer       # See https://docs.python.org/2/library/basehttpserver.html for docs on how servers work
                             # also /System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/BaseHTTPServer.py for good error code list
 from Dweb import Dweb
+from KeyPair import KeyPair
 #TODO-API needs writing up
 
 """
@@ -25,7 +26,8 @@ else:
 import traceback
 
 from Errors import MyBaseException, ToBeImplementedException
-from Transport import TransportBlockNotFound,TransportFileNotFound
+from Transport import TransportBlockNotFound, TransportFileNotFound
+from TransportHTTP import TransportHTTP
 
 #TODO-HTTP add support for HTTPS
 
@@ -72,7 +74,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         cls.ipandport = ipandport or cls.defaultipandport
         cls.verbose = verbose
         cls.options = options
-        if verbose: print "Setup server at",cls.ipandport,"to",Dweb.transportpriority[0]
+        if verbose: print "Setup server at", cls.ipandport, "to", Dweb.transportpriority[0]
         #HTTPServer(cls.ipandport, cls).serve_forever()  # Start http server
         ThreadedHTTPServer(cls.ipandport, cls).serve_forever()  # OR Start http server
         print "Server exited" # It never should
@@ -128,9 +130,9 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
             data = res.get("data","")
             if data or isinstance(data, (list, tuple)): # Allow empty arrays toreturn as []
                 if isinstance(data, (dict, list, tuple)):    # Turn it into JSON
-                    data = KeyPair.dumps(data)        # Need to do the CrypytoLib version since dict might hold a higher level class
-                elif hasattr(data, "dumps"):
-                    data = KeyPair.dumps(data)
+                    data = TransportHTTP.dumps(data)        # Need to do the CrypytoLib version since dict might hold a higher level class
+                elif hasattr(data, "dumps"):                # Unclear if this is used except maybe in TransportDist_Peer
+                    data = TransportHTTP.dumps(data)            # And maype this should be data.dumps()
                 if not isinstance(data, basestring):
                     print data
                     # Raise an exception - will not honor the status already sent, but this shouldnt happen as coding
@@ -140,7 +142,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
                     data = data.encode("utf-8") # Needed to make sure any unicode in data converted to utf8 BUT wont work for intended binary
             self.send_header('content-length', str(len(data)) if data else 0)
             self.end_headers()
-            if (data):
+            if data:
                 self.wfile.write(data)                   # Write content of result if applicable
             #self.wfile.close()
         except (TransportBlockNotFound, TransportFileNotFound, DWEBMalformedURLException) as e:         # Gentle errors, entry in log is sufficient (note line is app specific)
@@ -149,6 +151,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         except Exception as e:
             traceback.print_exc(limit=None)  # unfortunately only prints to try above so need to raise
             httperror = e.httperror if hasattr(e, "httperror") else 500
+            print "XXX@150 sending error",httperror,str(e)
             self.send_error(httperror, str(e))  # Send an error response
 
     def do_GET(self):

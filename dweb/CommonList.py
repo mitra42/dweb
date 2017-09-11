@@ -9,9 +9,8 @@ from Signature import Signature
 from Errors import ForbiddenException, SecurityWarning, CodingException
 from SmartDict import SmartDict
 from Dweb import Dweb
-#TODO-BACKPORT - review this file
 
-class CommonList(SmartDict):  # TODO move class to own file
+class CommonList(SmartDict):
     """
     CommonList is a superclass for anything that manages a storable list of other urls
     e.g. MutableBlock, KeyChain, AccessControlList
@@ -45,13 +44,13 @@ class CommonList(SmartDict):  # TODO move class to own file
         super(CommonList, self).__init__(data=data, verbose=verbose, **options)  # Initializes __dict__ via _data -> _setdata
         if key:
             self._setkeypair(key, verbose)
-        #Note this must be AFTER _setkeypair since that sets based on keypair found and _p_storepublic for example wants to force !master
+        #Note this must be AFTER _setkeypair since that sets based on keypair found and _storepublic for example wants to force !master
         if master is None:
             self._master = self.keypair.has_private()
         else:
             self._master = master
         if (not self._master) and (not self._publicurl):
-            #We aren't master, so publicurl is same as url - note URL will only have been set if constructor called from SmartDict.p_fetch
+            #We aren't master, so publicurl is same as url - note URL will only have been set if constructor called from SmartDict.fetch
             self._publicurl = self._url
 
     def _setdata(self, value):
@@ -113,6 +112,7 @@ class CommonList(SmartDict):  # TODO move class to own file
             if dd.get("_master") and not dd.get("_acl") and not self._allowunsafestore:
                 raise SecurityWarning(message="Probably shouldnt be storing private key"+repr(dd))
             dd["keypair"] = dd["keypair"].privateexport() if dd["_master"] else dd["keypair"].publicexport()
+        # Note same code for publicurl in CommonList & KeyPair
         publicurl = dd.get("_publicurl") # Save before preflight
         master = dd.get("_master")
         dd = super(CommonList, self).preflight(dd=dd)  #Edits dd in place
@@ -123,13 +123,13 @@ class CommonList(SmartDict):  # TODO move class to own file
     def fetchlist(self, verbose=False):
         """
         Load the list from the Dweb,
-        Use p_list_then_elements instead if wish to load the individual items in the list
+        Use list_then_elements instead if wish to load the individual items in the list
         """
         if not self._publicurl:
             self._storepublic(verbose)
-        lines = self.transport().rawlist(self._publicurl, verbose) #TODO modify to allow listmonitor
+        lines = self.transport().rawlist(self._publicurl, verbose)
         # lines should be an array
-        if verbose: print("CommonList:p_fetchlist.success", self._url, "len=", lines.length);
+        if verbose: print("CommonList:fetchlist.success", self._url, "len=", lines.length);
         self._list = [Signature(l, verbose) for l in lines]   #Turn each line into a Signature
 
     def list_then_elements(self, verbose=False):
@@ -182,20 +182,20 @@ class CommonList(SmartDict):  # TODO move class to own file
         """
         if not obj:
             raise CodingException(message="CL.push obj should never be non-empty")
-        self.store()    # Make sure stored
+        self.store(verbose)    # Make sure stored
         if not isinstance(obj, basestring):
-            obj.store()
+            obj.store(verbose)
         if not (self._master and self.keypair):
             raise ForbiddenException(message="Signing a new entry when not a master list")
         url = obj if isinstance(obj, basestring) else obj._url
-        sig = self._makesig(url, verbose)
+        sig = self.sign(url, verbose)
         self._list.append(sig);     # Keep copy locally on _list
         self.add(sig, verbose)      # Add to list in dweb
         return sig
 
-    def _makesig(self, url, verbose=False):
+    def sign(self, url, verbose=False):
         """
-        Utility function to create a signature - used by p_push and in KeyChain.p_push
+        Utility function to create a signature - used by push and in KeyChain.push
         :param url:    URL of object to sign
         :returns:       Signature
         """
@@ -205,18 +205,18 @@ class CommonList(SmartDict):  # TODO move class to own file
         assert sig.signature, "Must be a signature"
         return sig
 
-    def p_add(self, sig, verbose=False):
+    def add(self, sig, verbose=False):
         """
         Add a signature to the Dweb for this list
 
         :param sig: Signature
         :resolves:  undefined
         """
-        if not sig: raise CodingException(message="CommonList.p_add is meaningless without a sig")
+        if not sig: raise CodingException(message="CommonList.add is meaningless without a sig")
         return self.transport().rawadd(sig.url, sig.date, sig.signature, sig.signedby, verbose)
 
-    def verify(self, sig, verbose=False):   #TODO-BACKPORT add to JS
-        return self.keypair.verify(date=sig.date, url=sig.url, urlb64sig=sig.signature)
+    def verify(self, sig, verbose=False):
+        return self.keypair.verify(signable=sig.signable(), urlb64sig=sig.signature)
 
 
     """

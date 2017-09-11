@@ -43,7 +43,7 @@ class KeyChain(CommonList):  # TODO move to own file
         returns:    Array of KeyPair
         """
         self._keys = super(KeyChain,self).list_then_elements(verbose)
-        if (verbose): print "KC.p_list_then_elements Got keys", consolearr(self._keys)
+        if (verbose): print "KC.list_then_elements Got keys", consolearr(self._keys)
         return self._keys
 
 
@@ -60,7 +60,7 @@ class KeyChain(CommonList):  # TODO move to own file
     def decrypt(self, data, verbose=False):
         """
         Decrypt data with this KeyChain - pair of .encrypt()
-        Chain is SD.p_fetch > SD.p_decryptdata > ACL|KC.decrypt, then SD.setdata
+        Chain is SD.fetch > SD.decryptdata > ACL|KC.decrypt, then SD.setdata
 
         :param data: String from json, b64 encoded
         :return: decrypted text as string
@@ -92,7 +92,7 @@ class KeyChain(CommonList):  # TODO move to own file
         Note - does not return a promise, the store is happening in the background
         Sets this_publicurl to the URL of this stored version.
         """
-        if (verbose): print "KeyChain._p_storepublic"
+        if (verbose): print "KeyChain._storepublic"
         kc = KeyChain({name: self.name}, false, self.keypair, verbose)
         kc.store(verbose)
         self._publicurl = kc._url
@@ -100,10 +100,10 @@ class KeyChain(CommonList):  # TODO move to own file
     def store(self, verbose=False):
         """
         Subclasses CommonList.store
-        Unlike other p_store this ONLY stores the public version, and sets the _publicurl, on the assumption that the private key of a KeyChain should never be stored.
+        Unlike other store this ONLY stores the public version, and sets the _publicurl, on the assumption that the private key of a KeyChain should never be stored.
         Private/master version should never be stored since the KeyChain is itself the encryption root.
         """
-        self.dontstoremaster = true    #Make sure p_store only stores public version
+        self.dontstoremaster = true    #Make sure store only stores public version
         return super(KeyChain, self).store(verbose)   #Stores public version and sets _publicurl
 
 

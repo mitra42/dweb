@@ -1,5 +1,4 @@
 # encoding: utf-8
-#TODO-BACKPORT - test this file
 from json import dumps, loads
 from datetime import datetime
 
@@ -28,21 +27,16 @@ class TransportUnrecognizedCommand(MyBaseException):
 
 class Transport(object):
     """
-    The minimal transport layer implements 5 primitives:
-    rawfetch(url) -> bytes: To retrieve data
-    rawlist(keyurl) -> [ (dataurl, date, keyurl)* ]
-    rawreverse(dataurl) -> [ (dataurl, date, keyurl)* ]
-    rawstore(data) -> url: Store data
-    rawadd(dataurl, date, keyurl) -> Raw add to list(keyurl) and reverse(dataurl)
+    Setup the resource and open any P2P connections etc required to be done just once.
+    In almost all cases this will call the constructor of the subclass
+    Should return a new Promise that resolves to a instance of the subclass
 
-    These are expanded here to:
-    fetch(command, cls, url, path)
-    list(command, cls, url, path) = list.command([cls(l).path for l in rawlist(url)])
-    store(command, cls, url, path, data) = fetch(cls, url, path).command(data) || rawstore(data)  #TODO unsure of this
-    add(obj, date, signature, signedby) = rawadd(obj._url, date, signature, signedby ) #TODO could take "key"
-
-    Either the raw, or cooked functions can be subclassed
+    :param obj transportoptions: Data structure required by underlying transport layer (format determined by that layer)
+    :param boolean verbose: True for debugging output
+    :param options: Data structure stored on the .options field of the instance returned.
+    :resolve Transport: Instance of subclass of Transport
     """
+
     def __init__(self, options, verbose):
         """
         :param options:
@@ -59,6 +53,7 @@ class Transport(object):
         """
         raise ToBeImplementedException(name=cls.__name__+".setup")
 
+
     def _lettertoclass(self, abbrev):
         #TODO-BACKPORTING - check if really needed after finish port (was needed on server)
         from letter2class import LetterToClass
@@ -74,7 +69,8 @@ class Transport(object):
         if not url: return True   # Can handle default URLs
         if isinstance(url, basestring):
             url = urlparse(url)   # For efficiency, only parse once.
-        return url.scheme in  self.urlschemes  #Lower case, NO trailing : (unlike JS)
+        if not url.scheme: raise CodingException(message="url passed with no scheme (part before :): "+url)
+        return url.scheme in self.urlschemes  #Lower case, NO trailing : (unlike JS)
 
 
     def url(self, data):
@@ -82,15 +78,15 @@ class Transport(object):
          Return an identifier for the data without storing
 
          :param string|Buffer data   arbitrary data
-         :return string              valid id to retrieve data via p_rawfetch
+         :return string              valid id to retrieve data via rawfetch
          """
         raise ToBeImplementedException(name=cls.__name__+".url")
-
 
     def info(self, **options):  #TODO-API
         raise ToBeImplementedException(name=cls.__name__+".info")
 
-    def dumps(self, obj):
+    @classmethod
+    def dumps(cls, obj):
         """
         Convert arbitrary data into a JSON string that can be deterministically hashed or compared.
         Must be valid for loading with json.loads (unless change all calls to that).
@@ -105,7 +101,8 @@ class Transport(object):
         # separators = (,:) gets the most compact representation
         return dumps(obj, sort_keys=True, separators=(',', ':'), default=json_default)
 
-    def loads(data):
+    @classmethod
+    def loads(cls, data):
         """
         Pair to dumps
 
@@ -116,6 +113,22 @@ class Transport(object):
             pass        # For breakpoint
         assert data is not None
         return loads(data)
+
+    def rawstore(self, data=None, verbose=False, **options):
+        raise ToBeImplementedException(name=cls.__name__+".rawstore")
+
+    def store(self, command=None, cls=None, url=None, path=None, data=None, verbose=False, **options):
+        raise ToBeImplementedException(message="Backporting - unsure if needed - match JS Dweb");  # TODO-BACKPORTING
+        #store(command, cls, url, path, data, options) = fetch(cls, url, path, options).command(data|data._data, options)
+        #store(url, data)
+        if not isinstance(data, basestring):
+            data = data._getdata()
+        if command:
+            # TODO not so sure about this production, document any uses here if there are any
+            obj = self.fetch(command=None, cls=None, url=url, path=path, verbose=verbose, **options)
+            return obj.command(data=data, verbose=False, **options)
+        else:
+            return self.rawstore(data=data, verbose=verbose, **options)
 
     def rawfetch(self, url=None, verbose=False, **options):
         """
@@ -165,6 +178,16 @@ class Transport(object):
             if not func:
                 raise TransportUnrecognizedCommand(command=command, classname=cls.__name__)
             return func(verbose=verbose, **options)
+
+    def rawadd(self, url=None, date=None, signature=None, signedby=None, verbose=False, subdir=None, **options):
+        raise ToBeImplementedException(name=cls.__name__+".rawadd")
+
+    def add(self, url=None, date=None, signature=None, signedby=None, verbose=False, obj=None, **options ):
+        #TODO-BACKPORTING check if still needed after Backport - not used in JS
+        #add(dataurl, sig, date, keyurl)
+        if (obj and not url):
+            url = obj._url
+        return self.rawadd(url=url, date=date, signature=signature, signedby=signedby, verbose=verbose, **options)
 
     def rawlist(self, url=None, verbose=False, **options):
         raise ToBeImplementedException(name=cls.__name__+".rawlist")
@@ -223,37 +246,11 @@ class Transport(object):
             res = func(res, verbose=verbose, **options)
         return res
 
-    def rawstore(self, data=None, verbose=False, **options):
-        raise ToBeImplementedException(name=cls.__name__+".rawstore")
-
-    def store(self, command=None, cls=None, url=None, path=None, data=None, verbose=False, **options):
-        raise ToBeImplementedException(message="Backporting - unsure if needed - match JS Dweb");  # TODO-BACKPORTING
-        #store(command, cls, url, path, data, options) = fetch(cls, url, path, options).command(data|data._data, options)
-        #store(url, data)
-        if not isinstance(data, basestring):
-            data = data._getdata()
-        if command:
-            # TODO not so sure about this production, document any uses here if there are any
-            obj = self.fetch(command=None, cls=None, url=url, path=path, verbose=verbose, **options)
-            return obj.command(data=data, verbose=False, **options)
-        else:
-            return self.rawstore(data=data, verbose=verbose, **options)
-
-    def rawadd(self, url=None, date=None, signature=None, signedby=None, verbose=False, subdir=None, **options):
-        raise ToBeImplementedException(name=cls.__name__+".rawadd")
-
-    def add(self, url=None, date=None, signature=None, signedby=None, verbose=False, obj=None, **options ):
-        #TODO-BACKPORTING check if still needed after Backport - not used in JS
-        #add(dataurl, sig, date, keyurl)
-        if (obj and not url):
-            url = obj._url
-        return self.rawadd(url=url, date=date, signature=signature, signedby=signedby, verbose=verbose, **options)
-
     #TODO-BACKPORT add listmonitor
 
     def _add_value(self, url=None, date=None, signature=None, signedby=None, verbose=False, **options ):
         store = {"url": url, "date": date, "signature": signature, "signedby": signedby}
-        return self.dumps(store)    #TODO-BACKPORTING needs to switch to dumps of signedby
+        return self.dumps(store)
 
     @staticmethod
     def mergeoptions(a, b):

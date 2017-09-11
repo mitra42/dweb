@@ -1,13 +1,7 @@
 # encoding: utf-8
 
 from datetime import datetime
-import dateutil.parser  # pip py-dateutil
-from json import loads
-from Errors import MyBaseException, AssertionFail, ToBeImplementedException
-from KeyPair import KeyPair
-from Transportable import Transportable
-from StructuredBlock import SmartDict, StructuredBlock
-from Transport import TransportURLNotFound, TransportFileNotFound
+from StructuredBlock import SmartDict
 from Dweb import Dweb
 
 
@@ -20,12 +14,11 @@ The date is included in what is signed
 
 Note they are not subclassed off StructuredBlock because they have, rather than are, StructuredBlocks
 """
-#TODO-BACKPORT change name to Signature.py (after commit so changed visible)
 
 class Signature(SmartDict):
     """
     The Signature class holds a signed entry that can be added to a CommonList.
-    The url of the signed object is stored with the signature in CommonList.p_add()
+    The url of the signed object is stored with the signature in CommonList.add()
 
     Fields:
     date:       Date stamp (according to browser) when item signed
@@ -41,6 +34,14 @@ class Signature(SmartDict):
         #if isinstance(self.date, basestring):
         #    self.date = dateutil.parser.parse(self.date)
 
+    def signable(self):
+        """
+        Returns a string suitable for signing and dating, current implementation includes date and storage url of data.
+
+        :return: Signable or comparable string
+        """
+        return self.date.isoformat() + self.url
+
     @classmethod
     def sign(cls, commonlist, url, verbose=False):
         """
@@ -51,13 +52,13 @@ class Signature(SmartDict):
         :return: Signature (dated with current time on browser)
         """
         date = datetime.now()
-        signature = commonlist.keypair.sign(date, url)
-
         if not commonlist._publicurl:
             commonlist.store(verbose=verbose)
-        return cls({"date": date, "url": url, "signature": signature, "signedby": commonlist._publicurl}, verbose)
+        assert commonlist._publicurl, "publicurl must be set by now"
+        sig = cls({"date": date, "url": url, "signedby": commonlist._publicurl}, verbose)
+        sig.signature = commonlist.keypair.sign(sig.signable())
+        return sig
 
-    #TODO-BACKPORT - copy to JS
     def verify(self, commonlist, verbose=False):
         return commonlist.verify(self, verbose)
 

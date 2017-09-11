@@ -98,7 +98,7 @@ class TransportLocal(Transport):
 
         if data:
             multihash = TransportLocal._multihash(data=data)
-        return "http://cas.dweb.me/multihash/"+ multihash
+        return "local:/rawfetch/"+ multihash
 
     def rawfetch(self, url, verbose=False, **options):
         """
@@ -110,8 +110,7 @@ class TransportLocal(Transport):
         :return:
         """
         multihash=self._multihash(url=url)
-        filename=None
-        filename = self._filename("block", multihash) #TODO-BACKPORT multihash
+        filename = self._filename("block", multihash)
         try:
             if verbose: print "Opening" + filename
             with open(filename, 'rb') as file:
@@ -174,7 +173,7 @@ class TransportLocal(Transport):
         """
         assert data is not None # Its meaningless (or at least I think so) to store None (empty string is meaningful)
         multihash = self._multihash(data=data)
-        filename = self._filename("block", multihash, verbose=verbose, **options)  #TODO-BACKPORT multihash
+        filename = self._filename("block", multihash, verbose=verbose, **options)
         try:
             f = open(filename, 'wb')
             f.write(data)

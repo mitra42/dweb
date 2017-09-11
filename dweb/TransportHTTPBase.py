@@ -62,7 +62,7 @@ class TransportHTTPBase(Transport):
         if verbose: print "%s.info" % self.__class__.__name__
         if data:
             res = self._sendGetPost(True, "info", urlargs=[], headers={"Content-Type": "application/json"},
-                                    verbose=verbose, data=KeyPair.dumps(data), params=options)
+                                    verbose=verbose, data=TransportHTTP.dumps(data), params=options)
         else:
             res = self._sendGetPost(False, "info", urlargs=[], verbose=verbose, params=options)
         return res.json()

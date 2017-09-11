@@ -29,7 +29,7 @@ class TransportHTTP(TransportHTTPBase):
         return self.__class__.__name__ + " " + dumps(self.options)
 
     @classmethod
-    def setup(cls, options, verbose):   #TODO-BACKPORT find callers
+    def setup(cls, options, verbose):
         """
         Called to deliver a transport instance of a particular class.
         Copied to dweb.js
@@ -67,7 +67,7 @@ class TransportHTTP(TransportHTTPBase):
          """
         if data:
             multihash = TransportLocal._multihash(data=data)
-        return "http://cas.dweb.me/multihash/"+ multihash
+        return "http://"+this.options["http"]["ipandport"][0]+":"+this.options["http"]["ipandport"][1]+"/rawfetch/"+ multihash
 
     #see other !ADD-TRANSPORT-COMMAND - add a function copying the format below
     # TransportHTTPBase handles: info()

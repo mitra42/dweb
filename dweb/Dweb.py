@@ -1,13 +1,11 @@
 # encoding: utf-8
 from Crypto.PublicKey import RSA
-from sys import version as python_version
 import itertools
+from sys import version as python_version
 if python_version.startswith('3'):
     from urllib.parse import urlparse
 else:
     from urlparse import urlparse        # See https://docs.python.org/2/library/urlparse.html
-
-#TODO-BACKPORT - review this file
 
 """
 A collection of top level tools for demonstrating and debugging and giving a low complexity way to interact.
@@ -17,7 +15,6 @@ class Dweb(object):
     """
     Top level application class for Dweb
     """
-    transport = None    # These are essential global variables inside Dweb, usually set one at starting #TODO-BACKPORT obsolete, replaced by transportpriority and mapping url->transport
     keychains = []      #
     transports = {}
     transportpriority = []

@@ -1,5 +1,5 @@
 from KeyPair import KeyPair
-from Errors import ForbiddenException, AuthenticationException, DecryptionFail
+from Errors import ForbiddenException, AuthenticationException, DecryptionFailException
 from CommonList import CommonList
 from SmartDict import SmartDict
 from Dweb import Dweb
@@ -19,6 +19,11 @@ class AccessControlList(CommonList):
         token:  accesskey encrypted with PublicKey from the KeyPair
     """
     table = "acl"
+
+    def __init__(self, data=None, master=None, key=None, verbose=False, **options):
+        super(AccessControlList, self).__init__(data, master, key, verbose, **options)
+        if self._master and not self.accesskey:
+            self.accesskey = KeyPair.b64enc(KeyPair.randomkey())
 
     @classmethod
     def new(cls, data=None, master=None, key=None, verbose=False, options=None, kc=None):
@@ -50,7 +55,7 @@ class AccessControlList(CommonList):
         # Super has to come after above as overrights keypair, also cant put in CommonList as MB's dont have a publickey and are only used for signing, not encryption
         return super(AccessControlList, self).preflight(dd)
 
-    def add_acle(self, viewerpublicurl=None, verbose=False):
+    def add_acle(self, viewerpublicurl=None, data=None, verbose=False):
         """
         Add a new ACL entry - that gives a viewer the ability to see the accesskey of this URL
 
@@ -67,17 +72,18 @@ class AccessControlList(CommonList):
         acle = SmartDict({
                     #Need to go B64->binary->encrypt->B64
                     "token": viewerpublickeypair.encrypt(data=KeyPair.b64dec(self.accesskey), b64=True, signer=self),
-                    "viewer": viewerpublicurl
+                    "viewer": viewerpublicurl,
+                    "name": data["name"]  #TODO could handle more data
                 }, verbose=verbose)
-        self.p_push(acle, verbose=verbose)
-        return self
+        self.push(acle, verbose=verbose)
+        return acle
 
     def tokens(self, viewerkeypair=None, decrypt=True, verbose=False, **options):
         """
         Find the entries, if any, in the ACL for a specific viewer
         There might be more than one if either the accesskey changed or the person was added multiple times.
         Entries are SmartDict with token being the decryptable accesskey we want
-        The ACL should have been p_list_then_elements() before so that this can run synchronously.
+        The ACL should have been list_then_elements() before so that this can run synchronously.
 
         :param viewerkeypair:  KeyPair of viewer
         :param decrypt: If should decrypt the
@@ -109,7 +115,7 @@ class AccessControlList(CommonList):
     def decrypt(self, data, viewerkeypair=None, verbose=False):
         """
         Decrypt data for a viewer.
-        Chain is SD.p_fetch > SD.p_decryptdata > ACL|KC.decrypt, then SD.setdata
+        Chain is SD.fetch > SD.decryptdata > ACL|KC.decrypt, then SD.setdata
 
         :param data: string from json of encrypted data - b64 encrypted
         :param viewerkeypair:   Keypair of viewer wanting to decrypt, or array, defaults to all KeyPair in Dweb.keychains
@@ -124,9 +130,9 @@ class AccessControlList(CommonList):
             # Find any tokens in ACL for this KeyPair and decrypt to get accesskey (maybe empty)
             for accesskey in self.tokens(viewerkeypair = vk, decrypt=True, verbose=verbose):
                 try: # If can descrypt then return the data
-                    return KeyPair.sym_decrypt(data=data, sym_key=accesskey, outputformat="text") #Exception DecryptionFail
+                    return KeyPair.sym_decrypt(data=data, sym_key=accesskey, outputformat="text") #DecryptionFailException
                     # Dont continue to process when find one
-                except DecryptionFail as e:  # DecryptionFail but keep going
+                except DecryptionFailException as e:  # DecryptionFailException but keep going
                     pass    # Ignore if cant decode maybe other keys will work
         raise AuthenticationException(message="ACL.decrypt: No valid keys found")
 
@@ -151,7 +157,7 @@ class AccessControlList(CommonList):
         Else returns a promise that resolves to the data
         No assumption is made about what is in the decrypted data
 
-        Chain is SD.p_fetch > SD.p_decryptdata > ACL.p_decrypt > ACL|KC.decrypt, then SD.setdata
+        Chain is SD.fetch > SD.decryptdata > ACL.decrypt > ACL|KC.decrypt, then SD.setdata
 
         :param value: object from parsing incoming JSON that may contain {acl, encrypted} acl will be url of AccessControlList or KeyChain
         :return: data or promise that resolves to data
@@ -164,9 +170,9 @@ class AccessControlList(CommonList):
             aclurl = value.get("acl")
             kc = KeyChain.keychains_find({"_publicurl": aclurl}, verbose=verbose)  # Matching KeyChain or None
             if kc:
-                data = kc.decrypt(data=value["encrypted"], verbose=verbose) # Exception: DecryptionFail - unlikely since publicurl matches
+                data = kc.decrypt(data=value["encrypted"], verbose=verbose) # DecryptionFailException - unlikely since publicurl matches
             else:
                 acl = SmartDict.fetch(url=aclurl, verbose=verbose) # Will be AccessControlList
-                acl.p_list_then_elements(verbose)               # Will load blocks in sig as well
+                acl.list_then_elements(verbose)               # Will load blocks in sig as well
                 data = acl.decrypt(data=value.get("encrypted"), viewerkeypair=None, verbose=verbose) #Resolves to data or throws AuthentictionError
             return Dweb.transport().loads(data)
