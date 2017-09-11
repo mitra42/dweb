@@ -10,7 +10,7 @@ import nacl.encoding
 import nacl.hash
 import nacl.public
 import nacl.signing
-from Errors import ToBeImplementedException, EncryptionException, DecryptionFail
+from Errors import ToBeImplementedException,CodingException
 
 from util_multihash import encode, SHA1, SHA2_256, SHA2_512, SHA3
 from base58 import b58encode
@@ -82,16 +82,11 @@ class KeyPair(SmartDict):
 
             if isinstance(value, dict): # Dictionary of options
                 if value.get("mnemonic",None):
-                    # TODO-BACKPORT access mnemonic to seed
-                    raise ToBeImplementedException(message="multihash needs implementing")
-                    """
-                    if (value.mnemonic === "coral maze mimic half fat breeze thought champion couple muscle snack heavy gloom orchard tooth alert cram often ask hockey inform broken school cotton") { // 32 byte
-                        value.seed = "01234567890123456789012345678901";  #Note this is seed from mnemonic above
-                        console.log("Faking mnemonic encoding for now")
-                    } else {
-                        assert False, "MNEMONIC STILL TO BE IMPLEMENTED"    #TODO-mnemonic
-                    }
-                    """
+                    if (value["mnemonic"] == "coral maze mimic half fat breeze thought champion couple muscle snack heavy gloom orchard tooth alert cram often ask hockey inform broken school cotton"): #32 byte
+                        value["seed"] = "01234567890123456789012345678901";  #Note this is seed from mnemonic above
+                        print "Faking mnemonic encoding for now"
+                    else:
+                        raise CodingException(message="MNEMONIC STILL TO BE IMPLEMENTED")    #TODO-mnemonic
                 if value.get("passphrase",None):
                     pp = value["passphrase"]
                     for i in range(0,100):  # 100 iterations

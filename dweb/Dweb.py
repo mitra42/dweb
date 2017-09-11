@@ -49,5 +49,10 @@ def _print(*foos, **kwargs):
             print ("    " if not first else "") + line
             first=False
 """
+def consolearr(arr):
+    if arr and len(arr) > 0:
+        return str(len(arr)) + " items inc:" + str(arr[-1])
+    else:
+        return arr
 
 #TODO-BACKPORT probably need table2class, mergeTypedArraysUnsafe

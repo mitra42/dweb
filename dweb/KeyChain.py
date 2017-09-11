@@ -1,155 +1,130 @@
 from KeyPair import KeyPair
 import nacl.signing
 import nacl.encoding
-from Errors import ToBeImplementedException
-from Dweb import Dweb
+from Errors import ToBeImplementedException, EncryptionException, CodingException
+from Dweb import Dweb, consolearr
 from CommonList import CommonList
-#TODO-BACKPORT - review this file
+from json import dumps
 
 class KeyChain(CommonList):  # TODO move to own file
     """
-    A class to hold a list of encrypted Private keys. Control of Privatekey of this gives access to all of the items pointed at.
+    KeyChain extends CommonList to store a users keys, MutableBlocks and AccessControlLists
 
-    From EncryptionList accesskey       Behaves like that of the ACL
-    From CommonList: keypair, _publicurl, _list, _master, name
-    From SmartDict:     _acl            For encrypting the KeyChain itself
+    Fields:
+    _keys:  Array of keys (the signed objects on the list)
     """
     table = "kc"
 
-    def __init__(self, master=False, keypair=None, data=None, url=None, verbose=False, keygen=False, mnemonic=None,
-                 **options):
+    def __init__(self, data=None, master=False, key=None, verbose=False):
         self._keys = [] # Before super as may be overritten by data (unlikely since starts with '_'
-        super(KeyChain, self).__init__(master=master, keypair=keypair, data=data, url=url, verbose=verbose, keygen=keygen, mnemonic=mnemonic,
-                 **options);
-
+        super(KeyChain, self).__init__(data=data, master=master, key=key, verbose=verbose)
 
     @classmethod
-    def new(cls, mnemonic=None, keygen=False, name="My KeyChain", verbose=False):
+    def new(cls, data=None, key=None, verbose=False):
         """
-        Utility function grouping the most common things done with a new key
-        Creates the key, stores if reqd, fetches anything already on it
-
-        :param mnemonic:    Words to translate into keypair
-        :param bool keygen: If True generate a key
+        Create a new KeyChain object based on a new or existing key.
+        Store and add to the Dweb.keychains, list any elements already on the KeyChain (relevant for existing keys)
+        data, key:  See CommonList for parameters
+        returns:    KeyChain created
         """
-        if verbose: print "KeyChain.new mnemonic=", mnemonic, "keygen=", keygen
-        # master=False, keypair=None, data=None, url=None, verbose=False, keygen=False, mnemonic=None, **options):  # Note url is of data
-        kc = cls(mnemonic=mnemonic, keygen=keygen, verbose=verbose, name=name)  # Note only fetches if name matches
-        kc.store(verbose=verbose)  # Set the _publicurl
+        kc = cls(data=data, master=True, key=key, verbose=verbose)
+        kc.store(verbose)
         KeyChain.addkeychains(kc)
-        kc.fetch(verbose=verbose, fetchlist=True, fetchblocks=False)  # Was fetching blocks, but now done by "keys"
-        if verbose: print "Created keychain for:", kc.keypair.mnemonic
-        if verbose and not mnemonic: print "Record these words if you want to access again"
+        kc.list_then_elements(verbose)
         return kc
 
-    @property
-    def keys(self):
-        if not self._keys:
-            self._keys = self._list.blocks()
+    def keytype(self):
+        return KeyPair.KEYTYPESIGNANDENCRYPT
+
+    def list_then_elements(self, verbose=False):
+        """
+        Subclasses CommonList to store elements in a _keys array.
+
+        returns:    Array of KeyPair
+        """
+        self._keys = super(KeyChain,self).list_then_elements(verbose)
+        if (verbose): print "KC.p_list_then_elements Got keys", consolearr(self._keys)
         return self._keys
 
-    def add(self, obj, verbose=False, **options):
-        """
-        Add a obj (usually a MutableBlock or a ViewerKey) to the keychain. by signing with this key.  
-        Item should usually itself be encrypted (by setting its _acl field)
-        COPIED TO JS 2017-05-24
-
-        :param obj: 
-        :param verbose: 
-        :param options: 
-        :return: 
-        """
-        sig = super(KeyChain, self).add(obj, verbose=verbose, **options)  # Adds to dWeb list
-        self._list.append(sig)
-        self._keys.append(obj)
 
     def encrypt(self, res, b64=False):
         """
         Encrypt an object (usually represented by the json string). Pair of .decrypt()
 
         :param res: The material to encrypt, usually JSON but could probably also be opaque bytes
-        :param b64: 
-        :return: 
+        :param b64: True if result wanted in urlsafebase64 (usually)
+        :return:    Data encrypted by Public Key of this KeyChain.
         """
-        key = self.keypair._key
-        if isinstance(key, WordHashKey):
-            return KeyPair.sym_encrypt(res, KeyPair.b64dec(self.accesskey), b64=b64)
-        elif isinstance(key, nacl.signing.SigningKey):
-            return self.keypair.encrypt(res, b64=b64, signer=self)
-        else:
-            raise ToBeImplementedException(name="Keypair.encrypt for " + key.__class__.__name__)
+        return self.keypair.encrypt(res, b64=b64, signer=self)
 
     def decrypt(self, data, verbose=False):
         """
+        Decrypt data with this KeyChain - pair of .encrypt()
+        Chain is SD.p_fetch > SD.p_decryptdata > ACL|KC.decrypt, then SD.setdata
 
         :param data: String from json, b64 encoded
-        :param verbose:
-        :return:
+        :return: decrypted text as string
+        :throws: :throws: EncryptionException if no encrypt.privateKey, CodingError if !data
         """
-        key = self.keypair._key
-        if isinstance(key, WordHashKey):
-            symkey = KeyPair.b64dec(self.accesskey)
-            return KeyPair.sym_decrypt(data, symkey, b64=True)  # Exception DecryptionFail (would be bad)
-        elif isinstance(key, nacl.signing.SigningKey):
-            return self.keypair.decrypt(data, b64=True, signer=self)
-        else:
-            raise ToBeImplementedException(name="Keypair.decrypt for " + key.__class__.__name__)
+        if not self.keypair._key["encrypt"]:
+            raise EncryptionException(message="No decryption key in"+dumps(self.keypair._key))
+        return self.keypair.decrypt(data, self, "text") #data, signer, outputformat - Throws EnryptionException if no encrypt.privateKey, CodingError if !data
 
-    @property
-    def accesskey(
-            self):  # TODO-WORDHASHKEY any use of this in KeyChain should probably just use the PrivateKey to encrypt rather than symkey
-        key = self.keypair._key
-        if isinstance(key, WordHashKey):  # Needs own case as privateexport is blocked
-            return KeyPair.b64enc(self.keypair._key._private)
-        elif isinstance(key, nacl.signing.SigningKey):
-            return self.keypair._key.encode(nacl.encoding.URLSafeBase64Encoder)
-        else:
-            raise ToBeImplementedException(name="accesskey for " + key.__class__.__name__)
+    def accesskey(self):
+        raise CodingException(message="KeyChain doesnt have an accesskey")
 
     @classmethod
-    def addkeychains(cls, *keychains):
+    def addkeychains(cls, keychains):
         """
-        Add keys I can view under to ACL (note *keychains means even with single argument keychains is an array)
+        Add keys I can use for viewing to Dweb.keychains where it will be iterated over during decryption.
 
-        :param keychains:   Array of keychains
-        :return:
+        :param keychains:   keychain or Array of keychains
         """
-        Dweb.keychains += keychains
+        if isinstance(keychains, (list, tuple)):
+            Dweb.keychains += keychains
+        else:
+            Dweb.keychains.append(keychains)
 
-    @classmethod
-    def find(cls, publicurl, verbose=False, **options):
-        kcs = [kc for kc in Dweb.keychains if kc._publicurl == publicurl]
-        if verbose and kcs: print "KeyChain.find successful"
+    def _storepublic(self, verbose=False):
+        """
+        Subclasses CommonList._storepublic
+        Store a publicly viewable version of KeyChain - note the keys should be encrypted
+        Note - does not return a promise, the store is happening in the background
+        Sets this_publicurl to the URL of this stored version.
+        """
+        if (verbose): print "KeyChain._p_storepublic"
+        kc = KeyChain({name: self.name}, false, self.keypair, verbose)
+        kc.store(verbose)
+        self._publicurl = kc._url
+
+    def store(self, verbose=False):
+        """
+        Subclasses CommonList.store
+        Unlike other p_store this ONLY stores the public version, and sets the _publicurl, on the assumption that the private key of a KeyChain should never be stored.
+        Private/master version should never be stored since the KeyChain is itself the encryption root.
+        """
+        self.dontstoremaster = true    #Make sure p_store only stores public version
+        return super(KeyChain, self).store(verbose)   #Stores public version and sets _publicurl
+
+
+    @staticmethod
+    def keychains_find(dict, verbose):
+        """
+        Locate a needed KeyChain on Dweb.keychains by some filter.
+
+        :param dict:    dictionary to check against the keychain (see CommonList.match() for interpretation
+        :return:        AccessControlList or KeyChain or None
+        """
+        kcs = [kc for kc in Dweb.keychains if kc.match(dict)]  # Empty string if
         return kcs[0] if kcs else None
 
-    def store(self, verbose=False, **options):
-        return super(KeyChain, self).store(verbose=verbose, dontstoremaster=True,
-                                           **options)  # Stores public version and sets _publicurl
-
-    def fetch(self, verbose=False, **options):
-        return super(KeyChain, self).fetch(fetchbody=False, verbose=verbose,
-                                           **options)  # Dont fetch body, it wasn't stored, but get list
-
-    @classmethod
-    def _findbyclass(cls, clstarget):
-        # Super obscure double loop, but works and fast
-        return [k for kc in Dweb.keychains for k in kc.keys if isinstance(k, clstarget)]
-
-    @classmethod
-    def myviewerkeys(cls):
+    @staticmethod
+    def mykeys(clstarget):
         """
-        Find any Viewer Keys on the KeyChains
+        Utility function to find any keys in any of Dweb.keychains for the target class.
 
-        :return:
+        clstarget:  Class to search Dweb.keychains for, KeyPair, or something with a KeyPair e.g. subclass of CommonList(ACL, MB)
+        returns:    (possibly empty) array of KeyPair or CommonList
         """
-        return cls._findbyclass(KeyPair)
-
-    @classmethod
-    def mymutableBlocks(cls):
-        """
-        Find any Mutable Blocks Keys on the KeyChains
-
-        :return:
-        """
-        from MutableBlock import MutableBlock
-        return cls._findbyclass(MutableBlock)
+        #Dweb.keychains is an array of arrays so have to flatten the result - super obscure python but works and fast
+        return [key for kc in Dweb.keychains for key in kc._keys if isinstance(key, clstarget)]

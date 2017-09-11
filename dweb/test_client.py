@@ -45,8 +45,6 @@ class Testing(TestCase):
         self.exampledir = "../examples/"    # Where example files placed
         self.keytail = ["_rsa","_nacl"][1]  # 0 was old RSA
         # Random valid mnemonic
-        #self.mnemonic = "lecture name virus model jealous whisper stone broom harvest april notable lunch"  # 16byte
-        #self.mnemonic = "olympic high dress found sport caution grant insect receive upper connect regret limit awesome image text bamboo dawn fold pen raccoon math delay virus" # 32 byte
         self.seed = "01234567890123456789012345678901"
         self.mnemonic="coral maze mimic half fat breeze thought champion couple muscle snack heavy gloom orchard tooth alert cram often ask hockey inform broken school cotton"
         if testTransporttype == 0: # TransportLocal:
@@ -375,15 +373,21 @@ class Testing(TestCase):
         """
         This is a supercomplex test, that effectively tests a lot of subsystems including AccessControlLists, KeyChains and encryption in transport
         """
-        #self.verbose=True
+        self.verbose=True
+        if self.verbose: print "test_keychain"
+        mnemonic = "coral maze mimic half fat breeze thought champion couple muscle snack heavy gloom orchard tooth alert cram often ask hockey inform broken school cotton"
+        qbf = "The quick brown fox ran over the lazy duck"
+        vkpname = "test_keychain viewerkeypair"
+        keypairexport = "NACL SEED:w71YvVCR7Kk_lrgU2J1aGL4JMMAHnoUtyeHbqkIi2Bk=" #So same result each time
         if self.verbose: print "KEYCHAIN 0 - create"
         # Not using KeyChain.new as don't want to fetch for test, .new is tested below
-        kc = KeyChain(mnemonic=self.mnemonic, verbose=self.verbose, name="test_keychain kc").store(verbose=self.verbose)
-        KeyChain.addkeychains(kc)
+        kc = KeyChain.new(data={"name": "test_keychain kc"}, key={"mnemonic": mnemonic}, verbose=self.verbose)
+        #TODO-BACKPORT have to complete test from here down
         if self.verbose: print "KEYCHAIN 1 - add mbm to it"
         mblockm = MutableBlock.new(name="test_keychain mblockm", acl=kc, content=self.quickbrownfox, _allowunsafestore=True, signandstore=True, verbose=self.verbose)
         mbmurl = mblockm._url
         kc.add(mblockm, verbose=self.verbose)   # Sign and store on KC's list
+
         if self.verbose: print "KEYCHAIN 2 - add viewerkeypair to it"
         vkpname="test_keychain viewerkeypair"
         viewerkeypair = KeyPair(name=vkpname, key=self.keyfromfile("test_viewer1"+self.keytail, private=True, keytype=KeyPair.KEYTYPEENCRYPT))
@@ -396,7 +400,7 @@ class Testing(TestCase):
         assert mbm2.name == mblockm.name, "Names should survive round trip"
         if self.verbose: print "KEYCHAIN 4: reconstructing KeyChain and fetch"
         Dweb.keychains = [] # Clear Key Chains
-        kcs2 = KeyChain.new(mnemonic=self.mnemonic, verbose=self.verbose, name="test_keychain kc") # Note only fetches if name matches
+        kcs2 = KeyChain.new(mnemonic=mnemonic, verbose=self.verbose, name="test_keychain kc") # Note only fetches if name matches
         if self.verbose: print "KEYCHAIN 5: Check MBM carried ok"
         mbm3 = kcs2.mymutableBlocks()[-1]
         assert mbm3.__class__.__name__ == "MutableBlock", "Should be a mutable block"
