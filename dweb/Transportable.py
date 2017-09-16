@@ -81,16 +81,3 @@ class Transportable(object):
         return { "Content-type": contenttype or "application/octet-stream",
             "data": self._getdata() }
 
-    def xurl(self, url_output=None, table=None, **options): #TODO-BACKPORT rename - maybe don't need
-        """
-        Get the body of a URL based on the transport just used.
-        Subclasses must define table if want to support URL's
-        And retrieval depends on that table being in Dweb.LetterToClass
-
-        :param str url_output: "URL"/default for URL, "getpost" for getpost parms
-        :return:    URL or other representation of this object
-        """
-        table = table or self.table
-        if not table:
-            raise AssertionFail(message=self.__class__.__name__+" doesnt support xurl()")
-        return self.transport().xurl(self, url_output=url_output, table=table, **options) #TODO-BACKPORT default transport for this?

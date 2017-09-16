@@ -574,7 +574,7 @@ class Peer(object):
         return "Peer(%s, %s, %s)" % (self.nodeid, self.ipandport,self.connected)
 
     def __url__(self): # For the set function to know what is equal - not quite same as the __eq__ but generally wont see case of matching ipandport nad not nodeid
-        return self.nodeid or xurl(tuple(self.ipandport))   #TODO 'url' isnt defined here, not sure what trying to do.
+        return self.nodeid or xurl(tuple(self.ipandport))   #TODO 'xurl' isnt defined here, not sure what trying to do.
 
     def __eq__(self, other):    # Note this facilittes "in" to work on PeerSet's
         othernodeid = other if isinstance(other, int) else other.nodeid

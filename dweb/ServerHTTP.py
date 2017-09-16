@@ -127,59 +127,6 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         #verbose=True
         return Dweb.transport(url).fetch(command="file", cls=table, url=url,path=urlargs, verbose=verbose, contenttype=contenttype, **kwargs  )
 
-
-    @exposed
-    def update(self, url=None, contenttype=None, data=None, verbose=False, **kwargs):
-        """
-        Update the content - this is specific to the HTTP interface so that it can be driven by editors like mce.
-        #Exception PrivateKeyException if passed public key and master=True
-
-        :param table:   Which table to put it in, usually mb
-        :param url:    url of public key of mb
-        :param kwargs:  Normally would include authentication
-        :return:
-        """
-        #Fetch key from url
-        if verbose: print "DwebHTTPRequestHandler.update",url,data,type
-
-        # Store the data
-        sb = StructuredBlock(verbose=verbose, **{"Content-type": contenttype})
-        sb.data = data
-        sb.store(verbose=verbose)
-        #Create Mbm from key; load with data; sign and store
-        mbm = MutableBlock(master=True, url=url, contenturl=sb._url, verbose=verbose).signandstore(verbose=verbose)
-        #Exception PrivateKeyException if passed public key and master=True
-        return {"Content-type": "text/plain",       # Always returning plain text as the URL whatever type stored
-                "data": self.xurl(mbm, command="file", table="mb", url=mbm._publicurl)}
-
-
-
-    def xurl(self, obj, command=None, url=None, table=None, contenttype=None, url_output=None, **options):
-        """
-
-        :return: HTTP style URL to access this resource - not sure what this works on yet.
-        """
-        # Identical code in TransportHTTP and ServerHTTP.url
-        url = url or obj._url
-        if command in ["file"]:
-            if url_output=="getpost":
-                return [False, command, [table or obj.table, url]]
-            else:
-                url = "http://%s:%s/%s/%s/%s" \
-                    % (self.ipandport[0], self.ipandport[1], command, table or obj.table, url)
-        else:
-            if url_output=="getpost":
-                raise ToBeImplementedException(name="TransportHTTP.url:command="+command+",url_output="+url_output)
-            else:
-                url =  "http://%s:%s/%s/%s"  \
-                    % (self.ipandport[0], self.ipandport[1], command or "rawfetch", url)
-        if contenttype:
-            if command in ("update",):  # Some commands allow type as URL parameter
-                url += "/" + urllib.quote(contenttype, safe='')
-            else:
-                url += "?contenttype=" + urllib.quote(contenttype, safe='')
-        return url
-
 if __name__ == "__main__":
     DwebHTTPRequestHandler.HTTPToLocalGateway() # Run local gateway
 

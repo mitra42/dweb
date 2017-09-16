@@ -67,29 +67,3 @@ class TransportHTTPBase(Transport):
             res = self._sendGetPost(False, "info", urlargs=[], verbose=verbose, params=options)
         return res.json()
 
-    def xurl(self, obj, command=None, url=None, table=None, contenttype=None, url_output=None, **options):  #TODO-BACKPORT rethink around real URLs and this may be HTTP specific command, but do we need it?
-        """
-
-        :return: HTTP style URL to access this resource - not sure what this works on yet.
-        """
-        # Identical code in TransportHTTP and ServerHTTP.url
-        url = url or obj._url
-        if command in ["file"]:
-            if url_output == "getpost":
-                return [False, command, [table or obj.table, url]]
-            else:
-                res = "http://%s:%s/%s/%s/%s" \
-                      % (self.ipandport[0], self.ipandport[1], command, table or obj.table, url)
-        else:
-            if url_output == "getpost":
-                raise ToBeImplementedException(
-                    name="TransportHTTP.url:command=" + (command or "None") + ",url_output=" + url_output)
-            else:
-                res = "http://%s:%s/%s/%s" \
-                      % (self.ipandport[0], self.ipandport[1], command or "rawfetch", url)
-        if contenttype:
-            if command in ("update",):  # Some commands allow type as URL parameter
-                res += "/" + urllib.quote(contenttype, safe='')
-            else:
-                res += "?contenttype=" + urllib.quote(contenttype, safe='')
-        return res

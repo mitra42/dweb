@@ -212,7 +212,7 @@ class Testing(TestCase):
         if not (Dweb.transports.get("http", None) or Dweb.transports.get("distpeer", None)):
             print "Can't run all of test_file on TransportLocal"
         else:
-            sburl = sb.xurl(command="file", url_output="getpost") #TODO-BACKPORT expect to break
+            sburl = sb.xurl(command="file", url_output="getpost") #TODO-BACKPORT expect to break // Note xurl is obsolete
             assert sburl == [False, "file", ["sb", sb._url]]
             resp = Dweb.transportpriority[0]._sendGetPost(sburl[0], sburl[1], sburl[2], verbose=self.verbose)
             assert resp.text == content, "Should return data stored"
@@ -230,7 +230,7 @@ class Testing(TestCase):
         if isinstance(Dweb.transportpriority[0], TransportLocal):
             pass # print "Can't run all of test_file on TransportLocal"
         else:
-            getpostargs=mb.xurl(command="file", url_output="getpost")  #TODO-BACKPORT expect to break
+            getpostargs=mb.xurl(command="file", url_output="getpost")  #TODO-BACKPORT expect to break xurl is obsolete
             mbcontent2 = Dweb.transportpriority[0]._sendGetPost(*getpostargs).text
             assert mbcontent2 == mbm.content(), "Should fetch MB content via its URL"
 
@@ -277,8 +277,8 @@ class Testing(TestCase):
             self.uploads[filename]  = { "publicurl": mbm._publicurl, "editable": mbm.privateurl(), "editableurl": mbm._url, "read": url, "relread": "/"+url.split('/', 3)[3], "contenturl": mbm._current._url}
             #print self.uploads[filename]
         else:
-            #print filename + ":" + f.xurl(command="file", table="sb")
-            url = f.xurl(command="file", table="sb")  #TODO-BACKPORT expect to break
+            #print filename + ":" + f.xurl(command="file", table="sb") # Note xurl obsoleted
+            url = f.xurl(command="file", table="sb")  #TODO-BACKPORT expect to break xurl obsoleted
             scheme, ipandport, unused, rest = url.split('/', 3)
             self.uploads[filename]  = { "publicurl": f._url, "relread": "/"+url.split('/', 3)[3], "read": url}
             #print self.uploads[filename]
@@ -291,7 +291,7 @@ class Testing(TestCase):
             print "Can't test_uploads on",Dweb.transportpriority[0].__class__.__name__
             return
         ext = False   # True to upload larger directories (tinymce, docs)
-        b=Block(data=self.dog); b.store(); print self.dog,b.xurl()  #TODO-BACKPORT expect to break
+        b=Block(data=self.dog); b.store(); print self.dog,b.xurl()  #TODO-BACKPORT expect to break xurl obsoleted
         self.uploads = {}
         #self._storeas("dweb.js", "dweb_js", "application/javascript")
         #self._storeas("jquery-3.1.1.js", None, "application/javascript")
