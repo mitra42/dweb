@@ -127,6 +127,8 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
             # Send the content-type
             self.send_response(200)  # Send an ok response
             self.send_header('Content-type', res.get("Content-type","application/octet-stream"))
+            if self.headers.get('Origin'):
+                self.send_header('Access-Control-Allow-Origin', self.headers['Origin'])  # '*' didnt work
             data = res.get("data","")
             if data or isinstance(data, (list, tuple)): # Allow empty arrays toreturn as []
                 if isinstance(data, (dict, list, tuple)):    # Turn it into JSON
@@ -158,6 +160,16 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         #print "XXX@do_GET:145";
         self._dispatch()
 
+    def do_OPTIONS(self):
+        print("Options request")
+        self.send_response(200)
+        self.send_header('Access-Control-Allow-Methods', "POST,GET,OPTIONS")
+        self.send_header('Access-Control-Allow-Headers', self.headers['Access-Control-Request-Headers'])    # Allow anythihg, but '*' doesnt work
+        self.send_header('content-length','0')
+        self.send_header('Content-Type','text/plain')
+        if self.headers.get('Origin'):
+            self.send_header('Access-Control-Allow-Origin', self.headers['Origin'])    # '*' didnt work
+        self.end_headers()
 
     def do_POST(self):
         """
@@ -167,7 +179,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         """
         #print "XXX@do_POST:145";
         try:
-            verbose = False
+            verbose = True
             if verbose: print self.headers
             ctype, pdict = parse_header(self.headers['content-type'])
             if verbose: print ctype, pdict
@@ -180,7 +192,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
                 postvars = { p: (q[0] if (isinstance(q, list) and len(q)==1) else q) for p,q in parse_qs(
                     self.rfile.read(length),
                     keep_blank_values=1).iteritems() }
-            elif ctype == 'application/octet-stream':  # Block sends this
+            elif (ctype == 'application/octet-stream') or ('text/plain' in ctype):  # Block sends this
                 length = int(self.headers['content-length'])
                 postvars = {"data": self.rfile.read(length)}
             elif ctype == 'application/json':

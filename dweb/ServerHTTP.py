@@ -10,6 +10,7 @@ from Transportable import Transportable
 from KeyPair import KeyPair
 from Dweb import Dweb
 from sys import version as python_version
+from json import loads, dumps
 if python_version.startswith('3'):
     from urllib.parse import urlparse
 else:
@@ -104,7 +105,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         :param data: Dictionary to add {url, signature, date, signedby} or json string of it.
         """
         if isinstance(data, basestring): # Assume its JSON
-            data = KeyPair.loads(data)    # HTTP just delivers bytes    //TODO-HTTP obviously wron
+            data = loads(data)    # HTTP just delivers bytes    //TODO-HTTP obviously wron
         data["verbose"]=verbose
         return  { "Content-type": "application/octet-stream",
                   "data":  Dweb.transport(data["signedby"]).rawadd(**data)
