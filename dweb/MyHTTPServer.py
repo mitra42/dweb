@@ -59,6 +59,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
     """
     exposed = []
     protocol_version = "HTTP/1.1"
+    onlyexposed = False  # Dont Limit to @exposed functions (override in subclass if using @exposed)
 
     @classmethod
     def serve_forever(cls, ipandport=None, verbose=False, **options):
@@ -79,61 +80,46 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         ThreadedHTTPServer(cls.ipandport, cls).serve_forever()  # OR Start http server
         print "Server exited" # It never should
 
-    def _dispatch(self, **vars):
+    def _dispatch(self, **postvars):
         """
-        Support function - dispatch the function found with postparams &/or URL arguments (former take precedence)
-        Special argument vars["data"] has posted data or JSON
-        Exception: DWEBMalformedURLException if URL bad
+        HTTP dispatcher (replaced a more complex version Sept 2017
+        URLS of form GET /foo/bar/baz?a=b,c=d
+        Are passed to foo(bar,baz,a=b,c=d) which mirrors Python argument conventions i.e.  if def foo(bar,baz,**kwargs) then foo(aaa,bbb) == foo(baz=bbb, bar=aaa)
+        POST will pass a dictionary, if its just a body text or json it will be passed with a single value { date: content data }
+        In case of conflict, postvars overwrite args in the query string, but you shouldn't be getting both in most cases.
 
-        :param vars: dictionary of vars - typically from post, but also data="..."
+        :param vars:
         :return:
         """
+        # In documentation, assuming call with /foo/aaa/bbb?x=ccc,y=ddd
         try:
-            #asyncprint "XXX@_dispatch",self.headers
-            verbose=True   # Cant pass through vars as they are postvariables
-            o = urlparse(self.path)
-            argvars =  dict(parse_qsl(o.query))     # Look for arguments in URL
-            verbose = argvars.get("verbose", verbose)
-            if verbose: print "Handler._dispatch", o.path[1:], vars, argvars
-            argvars.update(vars)                    # URL args are updated by any from postparms
-            req = o.path[1:]                        # The first part of the URL, the command to run
-            #TODO - split req if has / and use parms from exposed.
-            if '/' in req:
-                urlargs = [ urllib.unquote(u) for u in req.split('/') ]
-                req = urlargs.pop(0)    # urlargs will be the rest of the args
-            else:
-                urlargs = []
-            # Dispatch a request - drawn from the URL, to a function with the same name, pass any args,
-            if verbose: print "HTTPdispatcher.dispatch", req, urlargs, argvars
-            func = getattr(self, req, None)
-            if func and func.exposed:
-                if func.arglist:
-                    # Override any of the args specified in arglist by the fields of the URL in order
-                    for i in range(len(urlargs)):
-                        if i >= len(func.arglist):
-                            break
-                        argname = func.arglist[i]
-                        argvars[argname]=urlargs.pop(0)
-                    # urlargs contain any beyond the
-                    for arg in func.arglist:
-                        if arg not in argvars:
-                            raise HTTPargrequiredException(req=req, arg=arg)            # Will be caught in MyHTTPRequestHandler._dispatch
-                if verbose: print "%s.%s %s" % (self.__class__.__name__, req, argvars)
-                res = func(urlargs=urlargs, verbose=verbose, **argvars)                 # MAIN PART - run method and collect result
-            else:
-                if verbose: print "%s.dispatch unimplemented: %s" % (self.__class__.__name__, req)
-                raise HTTPdispatcherException(req=req)  # Will be caught in MyHTTPRequestHandler._dispatch
-            if verbose: print "_dispatch:Result=",res
+            httpverbose=True
+            if httpverbose: print "dispatcher",self.path
+            o = urlparse(self.path)             # Parsed URL {path:"/foo/aaa/bbb", query: "bbb?x=ccc,y=ddd"}
+
+            # Get url args, remove HTTP quote (e.g. %20=' '), ignore leading / and anything before it. Will always be at least one item (empty after /)
+            args = [ urllib.unquote(u) for u in o.path.split('/')][1:]
+            cmd = args.pop(0)                   # foo
+            kwargs = dict(parse_qsl(o.query))  # { baz: bbb, bar: aaa }
+            kwargs.update(postvars)
+            #TODO-HTTP-POST Handle postparms over argvars
+            func = getattr(self, cmd, None) # self.foo (should be a method)
+            if not func or (self.onlyexposed and not func.exposed):
+                raise HTTPdispatcherException(req=cmd)  # Will be caught in except
+            res = func(*args, **kwargs)
+            # Function should return
+
             # Send the content-type
             self.send_response(200)  # Send an ok response
             self.send_header('Content-type', res.get("Content-type","application/octet-stream"))
-            if self.headers.get('Origin'):
+            if self.headers.get('Origin'):  # Handle CORS (Cross-Origin)
                 self.send_header('Access-Control-Allow-Origin', self.headers['Origin'])  # '*' didnt work
             data = res.get("data","")
             if data or isinstance(data, (list, tuple)): # Allow empty arrays toreturn as []
                 if isinstance(data, (dict, list, tuple)):    # Turn it into JSON
                     data = TransportHTTP.dumps(data)        # Need to do the CrypytoLib version since dict might hold a higher level class
                 elif hasattr(data, "dumps"):                # Unclear if this is used except maybe in TransportDist_Peer
+                    raise ToBeImplementedException(message="Just checking if this is used anywhere, dont think so")
                     data = TransportHTTP.dumps(data)            # And maype this should be data.dumps()
                 if not isinstance(data, basestring):
                     print data
@@ -147,14 +133,15 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
             if data:
                 self.wfile.write(data)                   # Write content of result if applicable
             #self.wfile.close()
-        except (TransportBlockNotFound, TransportFileNotFound, DWEBMalformedURLException) as e:         # Gentle errors, entry in log is sufficient (note line is app specific)
-            print "XXX@141 sending error",e.httperror
-            self.send_error(e.httperror, str(e))    # Send an error response
-        except Exception as e:
-            traceback.print_exc(limit=None)  # unfortunately only prints to try above so need to raise
+
+        except Exception as e:         # Gentle errors, entry in log is sufficient (note line is app specific)
+            # TypeError Message will be like "sandbox() takes exactly 3 arguments (2 given)" or whatever exception returned by function
             httperror = e.httperror if hasattr(e, "httperror") else 500
-            print "XXX@150 sending error",httperror,str(e)
-            self.send_error(httperror, str(e))  # Send an error response
+            if not isinstance(e, (TypeError, TransportBlockNotFound, TransportFileNotFound, DWEBMalformedURLException)):  # Unexpected error
+                traceback.print_exc(limit=None)  # unfortunately only prints to try above so may need to raise?
+            print "Sending error",httperror,str(e)
+            self.send_error(httperror, str(e))    # Send an error response
+
 
     def do_GET(self):
         #print "XXX@do_GET:145";
@@ -177,7 +164,6 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
 
         :return:
         """
-        #print "XXX@do_POST:145";
         try:
             verbose = True
             if verbose: print self.headers
@@ -192,16 +178,14 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
                 postvars = { p: (q[0] if (isinstance(q, list) and len(q)==1) else q) for p,q in parse_qs(
                     self.rfile.read(length),
                     keep_blank_values=1).iteritems() }
-            elif (ctype == 'application/octet-stream') or ('text/plain' in ctype):  # Block sends this
+            elif ctype in ('application/octet-stream', 'text/plain'):  # Block sends this
                 length = int(self.headers['content-length'])
                 postvars = {"data": self.rfile.read(length)}
             elif ctype == 'application/json':
                 length = int(self.headers['content-length'])
                 postvars = {"data": loads(self.rfile.read(length))}
-                #raise ToBeImplementedException(name="do_POST:application/json")
             else:
                 postvars = {}
-            #print "XXX@do_POST:177",self.path,postvars
             self._dispatch(**postvars)
         #except Exception as e:
         except ZeroDivisionError as e:  # Uncomment this to actually throw exception

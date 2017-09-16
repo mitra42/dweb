@@ -23,6 +23,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
     #defaultipandport = ('192.168.1.156', 4243)
     defaultipandport = (u'localhost', 4243)
     defaulthttpoptions = { "ipandport": defaultipandport }
+    onlyexposed = True          # Only allow calls to @exposed methods
 
     @classmethod
     def HTTPToLocalGateway(cls):
@@ -43,11 +44,19 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
     #see other !ADD-TRANSPORT-COMMAND - add a function copying the format below
 
     @exposed
+    def sandbox(self, foo, bar, **kwargs):
+        # Changeable, just for testing HTTP
+        print "foo=",foo,"bar=",bar, kwargs
+        return { 'Content-type': 'application/json',
+                 'data': { "FOO": foo, "BAR": bar, "kwargs": kwargs}
+               }
+
+
+    @exposed
     def info(self, **kwargs):
         return { 'Content-type': 'application/json',
                  'data': { "type:": "http"}
                }
-    info.arglist=[]
 
     @exposed
     def rawfetch(self, url=None, contenttype="application/octet-stream", **kwargs):
@@ -61,7 +70,6 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         #print "ServerHTTP.rawfetch url=",url
         return {"Content-type": contenttype,
                 "data": Dweb.transport(url).rawfetch(url=url)} # Should be raw data returned
-    rawfetch.arglist=["url"]
 
     @exposed
     def rawlist(self, url=None, **kwargs):
@@ -74,7 +82,6 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         return { 'Content-type': 'application/json',
                  'data': Dweb.transport(url).rawlist(url=url, **kwargs)
                }
-    rawlist.arglist=["url"]
 
     @exposed
     def rawreverse(self, url=None, **kwargs):
@@ -87,7 +94,6 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         return {'Content-type': 'application/json',
                 'data': Dweb.transport(url).rawreverse(url=url, **kwargs)
                 }
-    rawreverse.arglist = ["url"]
 
     @exposed
     def rawstore(self, data=None, **kwargs):
@@ -95,7 +101,6 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         multihash = urlparse(url).path.split('/')[-1]
         url = "http://%s:%s/rawfetch/%s" % (self.ipandport[0],self.ipandport[1],multihash)
         return { "Content-type": "application/octet-stream", "data": url }
-    rawstore.arglist=["data"]
 
     @exposed
     def rawadd(self, data=None, verbose=False, **kwargs):
@@ -111,19 +116,16 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
                   "data":  Dweb.transport(data["signedby"]).rawadd(**data)
                   }
         #url=None, date=None, signature=None, signedby=None, verbose=False, **options):
-    rawadd.arglist=["data"]
 
     @exposed
     def content(self, table=None, url=None, urlargs=None, contenttype=None, verbose=False, **kwargs):
         return Dweb.transport(url).fetch("content", cls=table, url=url, path=urlargs, verbose=verbose, contenttype=contenttype, **kwargs  )
-    content.arglist=["table", "url"]
 
     @exposed
     def file(self, table=None, url=None, urlargs=None, contenttype=None, verbose=False, **kwargs):
         #TODO-EFFICIENCY - next call does 2 fetches
         #verbose=True
         return Dweb.transport(url).fetch(command="file", cls=table, url=url,path=urlargs, verbose=verbose, contenttype=contenttype, **kwargs  )
-    file.arglist=["table", "url"]
 
 
     @exposed
@@ -149,7 +151,6 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         #Exception PrivateKeyException if passed public key and master=True
         return {"Content-type": "text/plain",       # Always returning plain text as the URL whatever type stored
                 "data": self.xurl(mbm, command="file", table="mb", url=mbm._publicurl)}
-    update.arglist=["url","contenttype"]
 
 
 
