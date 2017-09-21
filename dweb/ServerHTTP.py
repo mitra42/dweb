@@ -1,16 +1,10 @@
 # encoding: utf-8
-import urllib
-#from Errors import _print
-from Block import Block
-from StructuredBlock import StructuredBlock
-from MutableBlock import MutableBlock
-from MyHTTPServer import MyHTTPRequestHandler, exposed
-from Errors import ToBeImplementedException
-from Transportable import Transportable
-from KeyPair import KeyPair
-from Dweb import Dweb
+from json import loads
 from sys import version as python_version
-from json import loads, dumps
+
+from Dweb import Dweb
+from ServerBase import MyHTTPRequestHandler, exposed
+
 if python_version.startswith('3'):
     from urllib.parse import urlparse
 else:
@@ -20,13 +14,11 @@ else:
 
 class DwebHTTPRequestHandler(MyHTTPRequestHandler):
 
-    #defaultipandport = ('192.168.1.156', 4243)
-    defaultipandport = (u'localhost', 4243)
-    defaulthttpoptions = { "ipandport": defaultipandport }
+    defaulthttpoptions = { "ipandport": (u'localhost', 4243) }
     onlyexposed = True          # Only allow calls to @exposed methods
 
     @classmethod
-    def HTTPToLocalGateway(cls):
+    def DwebHTTPServeForever(cls):
         """
         DWeb HTTP server, all this one does is gateway from HTTP Transport to Local Transport, allowing calls to happen over net.
         One instance of this will be created for each request, so don't override __init__()
@@ -55,7 +47,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
     @exposed
     def info(self, **kwargs):
         return { 'Content-type': 'application/json',
-                 'data': { "type:": "http"}
+                 'data': { "type": "http"}
                }
 
     @exposed
@@ -128,5 +120,5 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         return Dweb.transport(url).fetch(command="file", cls=table, url=url,path=urlargs, verbose=verbose, contenttype=contenttype, **kwargs  )
 
 if __name__ == "__main__":
-    DwebHTTPRequestHandler.HTTPToLocalGateway() # Run local gateway
+    DwebHTTPRequestHandler.DwebHTTPServeForever() # Run local gateway
 

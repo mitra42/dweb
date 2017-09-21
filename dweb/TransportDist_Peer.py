@@ -9,7 +9,7 @@ import threading
 import Queue    #TODO-QUEUE
 from Transport import TransportFileNotFound
 from TransportHTTP import TransportHTTP
-from MyHTTPServer import exposed
+from ServerBase import exposed
 from Dweb import Dweb
 from Transport import TransportFileNotFound, TransportBlockNotFound, TransportURLNotFound
 from TransportHTTP import TransportHTTPBase
