@@ -11,7 +11,10 @@ fi
 git checkout deployed # Will run server branch
 git pull
 git merge origin/deployable
-git push
+if git commit -a -m "merged
+then
+	git push
+fi
 echo "Starting Server "
 cd dweb
 if ps -f | grep ServerHTTP | grep -v grep 
