@@ -11,7 +11,7 @@ fi
 git checkout deployed # Will run server branch
 git pull
 git merge origin/deployable
-if git commit -a -m "merged
+if git commit -a -m "merged"
 then
 	git push
 fi
