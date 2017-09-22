@@ -1,20 +1,17 @@
 # encoding: utf-8
 
-from Crypto import Random
-from Crypto.PublicKey import RSA
-from Crypto.Cipher import PKCS1_OAEP
-from mnemonic import Mnemonic
-import nacl.secret
-import nacl.utils
 import nacl.encoding
 import nacl.hash
 import nacl.public
+import nacl.secret
 import nacl.signing
-from Errors import ToBeImplementedException,CodingException
-
-from util_multihash import encode, SHA1, SHA2_256, SHA2_512, SHA3
+import nacl.utils
 from base58 import b58encode
+
+from Errors import CodingException
 from SmartDict import SmartDict
+from util_multihash import encode, SHA2_256
+
 
 # See Libsodium docs
 # https://download.libsodium.org/doc/public-key_cryptography/authenticated_encryption.html

@@ -35,12 +35,12 @@ from ServerHTTP import DwebHTTPRequestHandler
 class Testing(TestCase):
     def setUp(self):
         super(Testing, self).setUp()
-        testTransporttype = 0 #TransportLocal, TransportHTTP, TransportDistPeer, TransportDistPeer = multi  # Can switch between TransportLocal and TransportHTTP to test both
+        testTransporttype = 1 #TransportLocal, TransportHTTP, TransportDistPeer, TransportDistPeer = multi  # Can switch between TransportLocal and TransportHTTP to test both
         self.verbose=False
         self.quickbrownfox =  "The quick brown fox ran over the lazy duck"
         self.dog = "But the clever dog chased the fox"
         self.mydic = { "a": "AAA", "1":100, "B_date": datetime.now()}  # Dic can't contain integer field names
-        self.ipandport = DwebHTTPRequestHandler.defaultipandport  # Serve it via HTTP on all addresses
+        self.ipandport = DwebHTTPRequestHandler.defaulthttpoptions["ipandport"]  # Serve it via HTTP on all addresses
         #self.ipandport = ('192.168.1.156',4243)  # Serve it via HTTP on all addresses
         self.exampledir = "../examples/"    # Where example files placed
         self.keytail = ["_rsa","_nacl"][1]  # 0 was old RSA

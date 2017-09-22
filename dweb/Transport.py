@@ -86,7 +86,7 @@ class Transport(object):
         raise ToBeImplementedException(name=cls.__name__+".info")
 
     @classmethod
-    def dumps(cls, obj):
+    def dumps(cls, obj):    #TODO-BACKPORT FROM GATEWAY - moved to miscutils
         """
         Convert arbitrary data into a JSON string that can be deterministically hashed or compared.
         Must be valid for loading with json.loads (unless change all calls to that).

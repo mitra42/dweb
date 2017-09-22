@@ -3,7 +3,8 @@ from json import loads
 from sys import version as python_version
 
 from Dweb import Dweb
-from ServerBase import MyHTTPRequestHandler, exposed
+from ServerBase import MyHTTPRequestHandler, exposed, DWEBMalformedURLException
+from Transport import TransportBlockNotFound, TransportFileNotFound,Transport
 
 if python_version.startswith('3'):
     from urllib.parse import urlparse
@@ -12,13 +13,15 @@ else:
 
 #TODO-API needs writing up
 
+
 class DwebHTTPRequestHandler(MyHTTPRequestHandler):
 
     defaulthttpoptions = { "ipandport": (u'localhost', 4243) }
     onlyexposed = True          # Only allow calls to @exposed methods
+    expectedExceptions = [TypeError, TransportBlockNotFound, TransportFileNotFound, DWEBMalformedURLException] # List any exceptions that you "expect" (and dont want stacktraces for)
 
     @classmethod
-    def DwebHTTPServeForever(cls):
+    def DwebHTTPServeForever(cls, httpoptions={}, verbose=True):
         """
         DWeb HTTP server, all this one does is gateway from HTTP Transport to Local Transport, allowing calls to happen over net.
         One instance of this will be created for each request, so don't override __init__()
@@ -27,10 +30,13 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         :return: Never Returns
         """
         from TransportLocal import TransportLocal # Avoid circular references
+
         tl = TransportLocal.setup({ "local": { "dir": "../cache_http" }}, verbose=False)# HTTP server is storing locally
         Dweb.transports["local"] = tl
         Dweb.transportpriority.append(tl)
-        cls.serve_forever(verbose=True)    # Uses defaultipandport
+
+        httpoptions = Transport.mergeoptions(cls.defaulthttpoptions, httpoptions) # Deepcopy to merge options
+        cls.serve_forever(ipandport=httpoptions["ipandport"], verbose=verbose)    # Uses defaultipandport
         #TODO-HTTP its printing log, put somewhere instead
 
     #see other !ADD-TRANSPORT-COMMAND - add a function copying the format below
