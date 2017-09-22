@@ -10,14 +10,15 @@ from KeyPair import KeyPair
 #TODO-API needs writing up
 
 """
-This file is intended to be Application independent , i.e. not dependent on Dweb - exceptions:
-CrytoLib.dumps  - generalized dumps that can call dumps methods on objects
+This file is intended to be Application independent , i.e. not dependent on Dweb Library
 """
+#TODO-PYTHON3 - this file needs review for Python2/3 compatability
+
 
 if python_version.startswith('3'):
     from urllib.parse import parse_qs, parse_qs, urlparse
     from http.server import BaseHTTPRequestHandler
-else:
+else:   # Python 2
     from urlparse import parse_qs, parse_qsl, urlparse        # See https://docs.python.org/2/library/urlparse.html
     from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
     from SocketServer import ThreadingMixIn
@@ -28,8 +29,6 @@ import traceback
 from Errors import MyBaseException, ToBeImplementedException
 from Transport import TransportBlockNotFound, TransportFileNotFound
 from TransportHTTP import TransportHTTP
-
-#TODO-HTTP add support for HTTPS
 
 class HTTPdispatcherException(MyBaseException):
     httperror = 501     # Unimplemented
@@ -60,6 +59,8 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
     exposed = []
     protocol_version = "HTTP/1.1"
     onlyexposed = False  # Dont Limit to @exposed functions (override in subclass if using @exposed)
+    defaultipandport = { "ipandport": (u'localhost', 8080) }
+    expectedExceptions = None # List any exceptions that you "expect" (and dont want stacktraces for)
 
     @classmethod
     def serve_forever(cls, ipandport=None, verbose=False, **options):
@@ -75,10 +76,9 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         cls.ipandport = ipandport or cls.defaultipandport
         cls.verbose = verbose
         cls.options = options
-        if verbose: print "Setup server at", cls.ipandport, "to", Dweb.transportpriority[0]
         #HTTPServer(cls.ipandport, cls).serve_forever()  # Start http server
         ThreadedHTTPServer(cls.ipandport, cls).serve_forever()  # OR Start http server
-        print "Server exited" # It never should
+        print("Server exited") # It never should
 
     def _dispatch(self, **postvars):
         """
@@ -94,7 +94,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         # In documentation, assuming call with /foo/aaa/bbb?x=ccc,y=ddd
         try:
             httpverbose=True
-            if httpverbose: print "dispatcher",self.path
+            if httpverbose: print("dispatcher",self.path)
             o = urlparse(self.path)             # Parsed URL {path:"/foo/aaa/bbb", query: "bbb?x=ccc,y=ddd"}
 
             # Get url args, remove HTTP quote (e.g. %20=' '), ignore leading / and anything before it. Will always be at least one item (empty after /)
@@ -102,7 +102,6 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
             cmd = args.pop(0)                   # foo
             kwargs = dict(parse_qsl(o.query))  # { baz: bbb, bar: aaa }
             kwargs.update(postvars)
-            #TODO-HTTP-POST Handle postparms over argvars
             func = getattr(self, cmd, None) # self.foo (should be a method)
             if not func or (self.onlyexposed and not func.exposed):
                 raise HTTPdispatcherException(req=cmd)  # Will be caught in except
@@ -118,11 +117,11 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
             if data or isinstance(data, (list, tuple)): # Allow empty arrays toreturn as []
                 if isinstance(data, (dict, list, tuple)):    # Turn it into JSON
                     data = TransportHTTP.dumps(data)        # Need to do the CrypytoLib version since dict might hold a higher level class
-                elif hasattr(data, "dumps"):                # Unclear if this is used except maybe in TransportDist_Peer
-                    raise ToBeImplementedException(message="Just checking if this is used anywhere, dont think so")
-                    data = TransportHTTP.dumps(data)            # And maype this should be data.dumps()
+                #elif hasattr(data, "dumps"):                # Unclear if this is used except maybe in TransportDist_Peer
+                #    raise ToBeImplementedException(message="Just checking if this is used anywhere, dont think so")
+                #    data = dumps(data)            # And maype this should be data.dumps()
                 if not isinstance(data, basestring):
-                    print data
+                    print(data)
                     # Raise an exception - will not honor the status already sent, but this shouldnt happen as coding
                     # error in the dispatched function if it returns anything else
                     raise ToBeImplementedException(name=self.__class__.__name__+"._dispatch for return data "+data.__class__.__name__)
@@ -137,9 +136,10 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         except Exception as e:         # Gentle errors, entry in log is sufficient (note line is app specific)
             # TypeError Message will be like "sandbox() takes exactly 3 arguments (2 given)" or whatever exception returned by function
             httperror = e.httperror if hasattr(e, "httperror") else 500
-            if not isinstance(e, (TypeError, TransportBlockNotFound, TransportFileNotFound, DWEBMalformedURLException)):  # Unexpected error
+            print "XXX@139",self.expectedExceptions
+            if not (self.expectedExceptions and isinstance(e, self.expectedExceptions)):  # Unexpected error
                 traceback.print_exc(limit=None)  # unfortunately only prints to try above so may need to raise?
-            print "Sending error",httperror,str(e)
+            print("Sending error",httperror,str(e))
             self.send_error(httperror, str(e))    # Send an error response
 
 
@@ -166,9 +166,9 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         """
         try:
             verbose = True
-            if verbose: print self.headers
+            if verbose: print(self.headers)
             ctype, pdict = parse_header(self.headers['content-type'])
-            if verbose: print ctype, pdict
+            if verbose: print(ctype, pdict)
             if ctype == 'multipart/form-data':
                 postvars = parse_multipart(self.rfile, pdict)
             elif ctype == 'application/x-www-form-urlencoded':

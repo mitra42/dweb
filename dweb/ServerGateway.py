@@ -19,11 +19,12 @@ For documentation on this project see https://docs.google.com/document/d/1FO6Tdj
 
 class DwebGatewayHTTPRequestHandler(MyHTTPRequestHandler):
 
-    defaulthttpoptions = { "ipandport": (u'localhost', 4243) }
+    defaulthttpoptions = { "ipandport": (u'localhost', 4244) }
     onlyexposed = True          # Only allow calls to @exposed methods
+    expectedExceptions = []     # List any exceptions that you "expect" (and dont want stacktraces for)
 
     @classmethod
-    def DwebGatewayHTTPServeForever(cls):
+    def DwebGatewayHTTPServeForever(cls, httpoptions={}, verbose=False):
         """
         DWeb HTTP server, all this one does is gateway from HTTP Transport to Local Transport, allowing calls to happen over net.
         One instance of this will be created for each request, so don't override __init__()
@@ -34,38 +35,35 @@ class DwebGatewayHTTPRequestHandler(MyHTTPRequestHandler):
 
         :return: Never Returns
         """
+        httpoptions = mergeoptions(cls.defaulthttpoptions, httpoptions) # Deepcopy to merge options
+        if (verbose): print("Starting server with options=",httpoptions)
         #TODO any code needed once (not per thread) goes here.
-        cls.serve_forever(ipandport=defaulthttpoptions["ipandport"], verbose=True)    # Uses defaultipandport
+        cls.serve_forever(ipandport=httpoptions["ipandport"], verbose=verbose)    # Uses defaultipandport
 
-    @exposed    // Exposes this function for outside use
+    @exposed    # Exposes this function for outside use
     def sandbox(self, foo, bar, **kwargs):
         # Changeable, just for testing HTTP etc, feel free to play with in your branch, and expect it to be overwritten on master branch.
-        print "foo=",foo,"bar=",bar, kwargs
+        print("foo=",foo,"bar=",bar, kwargs)
         return { 'Content-type': 'application/json',
                  'data': { "FOO": foo, "BAR": bar, "kwargs": kwargs}
                }
 
     @exposed
     def info(self, **kwargs):   # http://.../info
-        /*
+        """
         Return info about this server
         The content of this may change, make sure to retain the "type" field.
 
         ConsumedBy:
             "type" consumed by status function TransportHTTP (in Dweb client library)
         Consumes:
-        */
+        """
         return { 'Content-type': 'application/json',
-                 'data': { "type": "gateway"
+                 'data': { "type": "gateway",
                            "services": [ ]}     # A list of names of services supported below  (not currently consumed anywhere)
                }
 
-    @exposed
-    def name(self,namespace, **kwargs):  // http://..../name/<namespace>,
-        /*
-        Resolve a name into a <TBD> JSon structure
-
 
 if __name__ == "__main__":
-    DwebGatewayHTTPRequestHandler.DwebGatewayHTTPServeForever() # Run local gateway
+    DwebGatewayHTTPRequestHandler.DwebGatewayHTTPServeForever({'ipandport': (u'localhost',4244)}) # Run local gateway
 

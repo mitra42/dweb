@@ -18,7 +18,7 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
 
     defaulthttpoptions = { "ipandport": (u'localhost', 4243) }
     onlyexposed = True          # Only allow calls to @exposed methods
-    expectedExceptions = [TypeError, TransportBlockNotFound, TransportFileNotFound, DWEBMalformedURLException] # List any exceptions that you "expect" (and dont want stacktraces for)
+    expectedExceptions = (TypeError, TransportBlockNotFound, TransportFileNotFound, DWEBMalformedURLException) # List any exceptions that you "expect" (and dont want stacktraces for)
 
     @classmethod
     def DwebHTTPServeForever(cls, httpoptions={}, verbose=True):
@@ -126,5 +126,5 @@ class DwebHTTPRequestHandler(MyHTTPRequestHandler):
         return Dweb.transport(url).fetch(command="file", cls=table, url=url,path=urlargs, verbose=verbose, contenttype=contenttype, **kwargs  )
 
 if __name__ == "__main__":
-    DwebHTTPRequestHandler.DwebHTTPServeForever() # Run local gateway
+    DwebHTTPRequestHandler.DwebHTTPServeForever({'ipandport': (u'localhost',4243)}, verbose=True) # Run local gateway
 
