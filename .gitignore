@@ -6,3 +6,4 @@ cache_peer
 js/node_modules
 cache_local
 *pyc
+*swp
