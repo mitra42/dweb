@@ -4,7 +4,10 @@ PIPS=py-dateutil
 cd /usr/local/mitra42_dweb
 pip install --disable-pip-version-check -U $PIPS
 [ -d cache_http ] || mkdir cache_http
-git commit -a -m "Local changes"
+if git commit -a -m "Local changes"
+then
+	git push
+fi
 git checkout deployed # Will run server branch
 git pull
 git merge origin/deployable
