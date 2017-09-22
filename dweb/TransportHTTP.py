@@ -20,7 +20,7 @@ class TransportHTTP(TransportHTTPBase):
     """
 
     defaulthttpoptions = {
-        "ipandport": ['localhost', 4243]
+        "ipandport": ['sandbox.dweb.me', 4243]
     }
     urlschemes = ['http']
 
